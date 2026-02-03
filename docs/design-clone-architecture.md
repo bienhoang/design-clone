@@ -43,12 +43,14 @@ design-clone/
             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Core Scripts (src/)                          │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │ core/           │  │ core/           │  │ ai/             │ │
-│  │ screenshot.js   │  │ filter-css.js   │  │ analyze-struct  │ │
-│  └────────┬────────┘  └────────┬────────┘  │     .py         │ │
-│           │                    │           └────────┬────────┘ │
-└───────────┼────────────────────┼───────────────────┼───────────┘
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐  │
+│  │ core/            │  │ core/            │  │ core/        │  │
+│  │ screenshot.js    │  │ filter-css.js    │  │ framework-   │  │
+│  │ animation-       │  │ state-capture.js │  │ detector.js  │  │
+│  │ extractor.js     │  │ extract-assets   │  └──────┬───────┘  │
+│  └────────┬─────────┘  │ .js              │         │          │
+│           │            └────────┬─────────┘         │          │
+└───────────┼─────────────────────┼─────────────────────┼─────────┘
             │                    │                   │
             ▼                    ▼                   ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -133,6 +135,7 @@ Both Node.js and Python share same resolution order:
 | screenshot.js | src/core/ | Node.js | Screenshot capture, HTML/CSS extraction |
 | animation-extractor.js | src/core/ | Node.js | Extract @keyframes, transitions, animation properties |
 | state-capture.js | src/core/ | Node.js | Capture hover states for interactive elements |
+| framework-detector.js | src/core/ | Node.js | Detect framework (Next.js, Nuxt, Vue, React, Angular, Svelte, Astro) |
 | filter-css.js | src/core/ | Node.js | Remove unused CSS selectors |
 | extract-assets.js | src/core/ | Node.js | Download images, fonts, icons |
 | analyze-structure.py | src/ai/ | Python | Gemini AI structure analysis |
