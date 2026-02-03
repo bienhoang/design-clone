@@ -377,4 +377,21 @@ async function captureMultiViewport() {
   }
 }
 
-captureMultiViewport();
+// Export for module use
+export {
+  captureViewport,
+  VIEWPORTS,
+  VIEWPORT_SETTLE_DELAY,
+  DEFAULT_SCROLL_DELAY,
+  compressIfNeeded
+};
+
+// Run if called directly (not imported as module)
+const isMainModule = process.argv[1] && (
+  process.argv[1].endsWith('screenshot.js') ||
+  process.argv[1].includes('screenshot')
+);
+
+if (isMainModule) {
+  captureMultiViewport();
+}

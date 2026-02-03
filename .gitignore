@@ -20,3 +20,5 @@ test-output/
 
 # OS
 .DS_Store
+cloned-designs/
+plans/

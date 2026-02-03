@@ -9,6 +9,27 @@
 export const MAX_CSS_SIZE = 5 * 1024 * 1024;   // 5MB limit
 export const MAX_CSS_RULES_WARN = 5000;        // Warn on large stylesheets
 
+// Layout-critical properties for accurate cloning
+export const LAYOUT_PROPERTIES = {
+  // Display & Flex
+  display: ['display', 'flexDirection', 'flexWrap', 'justifyContent',
+            'alignItems', 'alignContent', 'gap', 'rowGap', 'columnGap'],
+  // Grid
+  grid: ['gridTemplateColumns', 'gridTemplateRows', 'gridGap', 'gridAutoFlow'],
+  // Position
+  position: ['position', 'top', 'right', 'bottom', 'left', 'zIndex'],
+  // Sizing
+  sizing: ['width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight'],
+  // Box Model
+  box: ['boxSizing', 'overflow', 'overflowX', 'overflowY', 'borderWidth', 'borderStyle'],
+  // Visual (existing)
+  visual: ['color', 'backgroundColor', 'fontFamily', 'fontSize',
+           'fontWeight', 'lineHeight', 'padding', 'margin', 'borderRadius']
+};
+
+// Flatten for iteration
+export const ALL_PROPERTIES = Object.values(LAYOUT_PROPERTIES).flat();
+
 /**
  * Extract all CSS from page
  * @param {Page} page - Puppeteer page
@@ -16,7 +37,7 @@ export const MAX_CSS_RULES_WARN = 5000;        // Warn on large stylesheets
  * @returns {Promise<{cssBlocks: Array, corsBlocked: Array, computedStyles: Object, totalRules: number, warnings: Array}>}
  */
 export async function extractAllCss(page, baseUrl) {
-  return await page.evaluate((url) => {
+  return await page.evaluate((url, allProps) => {
     const cssBlocks = [];
     const corsBlocked = [];
     const warnings = [];
@@ -77,17 +98,21 @@ export async function extractAllCss(page, baseUrl) {
         const el = document.querySelector(selector);
         if (el) {
           const style = getComputedStyle(el);
-          computedStyles[selector] = {
-            color: style.color,
-            backgroundColor: style.backgroundColor,
-            fontFamily: style.fontFamily,
-            fontSize: style.fontSize,
-            fontWeight: style.fontWeight,
-            lineHeight: style.lineHeight,
-            padding: style.padding,
-            margin: style.margin,
-            borderRadius: style.borderRadius
-          };
+          const styles = {};
+
+          // Extract all layout + visual properties
+          allProps.forEach(prop => {
+            const value = style[prop];
+            // Skip empty/default values to reduce payload (except display)
+            if (prop === 'display') {
+              styles[prop] = value; // Always include display for inline strategy
+            } else if (value && value !== 'none' && value !== 'auto' &&
+                value !== 'normal' && value !== '0px' && value !== 'static') {
+              styles[prop] = value;
+            }
+          });
+
+          computedStyles[selector] = styles;
         }
       } catch (e) {
         // Ignore invalid selectors
@@ -103,5 +128,5 @@ export async function extractAllCss(page, baseUrl) {
       totalRules,
       warnings
     };
-  }, baseUrl);
+  }, baseUrl, ALL_PROPERTIES);
 }

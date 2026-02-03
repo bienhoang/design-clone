@@ -104,6 +104,54 @@ python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" -
 
 **Output:** desktop.png, tablet.png, mobile.png, source.html, source.css, source-raw.css
 
+### design:clone-site
+
+Multi-page site cloning with shared CSS and working navigation.
+
+```bash
+/design:clone-site https://example.com
+```
+
+**Workflow:**
+```bash
+# Auto-discover pages from navigation
+design-clone clone-site https://example.com
+
+# Or specify pages manually
+design-clone clone-site https://example.com --pages /,/about,/contact
+
+# Options:
+#   --pages <paths>     Comma-separated paths
+#   --max-pages <n>     Limit pages (default: 10)
+#   --viewports <list>  Viewports (default: desktop,tablet,mobile)
+#   --yes               Skip confirmation
+#   --output <dir>      Custom output directory
+```
+
+**Output Structure:**
+```
+cloned-designs/{timestamp}-{domain}/
+├── analysis/           # Screenshots by viewport
+│   ├── desktop/*.png
+│   ├── tablet/*.png
+│   └── mobile/*.png
+├── pages/              # HTML with rewritten links
+│   ├── index.html
+│   ├── about.html
+│   └── contact.html
+├── styles.css          # Merged + deduplicated CSS
+└── manifest.json       # Page metadata + mapping
+```
+
+**Features:**
+- Auto-discovers pages from navigation (SPA-aware)
+- Shared CSS with deduplication (15-30% reduction)
+- Working internal links
+- Progress reporting
+- Graceful error handling (continues on page failures)
+
+---
+
 ### design:clone-px
 
 Pixel-perfect clone with full asset extraction and AI analysis.
@@ -223,6 +271,11 @@ GEMINI_API_KEY=your-key    # Optional: enables AI structure analysis
 | screenshot.js | src/core/ | Capture screenshots + extract HTML/CSS |
 | filter-css.js | src/core/ | Filter unused CSS rules |
 | extract-assets.js | src/core/ | Download images, fonts, icons |
+| discover-pages.js | src/core/ | Discover navigation links |
+| multi-page-screenshot.js | src/core/ | Capture multiple pages |
+| merge-css.js | src/core/ | Merge + deduplicate CSS |
+| rewrite-links.js | src/core/ | Rewrite internal links |
+| clone-site.js | bin/commands/ | Multi-page clone CLI |
 | analyze-structure.py | src/ai/ | AI-powered structure analysis |
 | extract-design-tokens.py | src/ai/ | Extract colors, typography, spacing |
 | verify-menu.js | src/verification/ | Validate navigation structure |

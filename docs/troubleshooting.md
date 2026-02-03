@@ -95,3 +95,75 @@ GEMINI_API_KEY=your-api-key-here
 ```bash
 --viewports '[{"width":1440,"height":900,"name":"custom"}]'
 ```
+
+## clone-site Issues
+
+### No pages discovered
+
+**Symptom:** Only homepage cloned, other pages not found.
+
+**Causes:**
+- Site uses JS-rendered navigation (React/Vue/Angular)
+- Navigation not in standard selectors (header nav, footer nav)
+
+**Solutions:**
+```bash
+# Specify pages manually
+design-clone clone-site https://example.com --pages /,/about,/contact,/services
+
+# Increase max pages if hitting limit
+design-clone clone-site https://example.com --max-pages 20
+```
+
+### Links not working in cloned pages
+
+**Symptom:** Internal links point to original URLs.
+
+**Causes:**
+- Page not in discovered list
+- HTML file not found for rewriting
+
+**Solutions:**
+1. Check `manifest.json` for page list
+2. Ensure all pages captured successfully (check `capture-results.json`)
+3. Re-run with manual `--pages` flag including missing pages
+
+### CSS broken on some pages
+
+**Symptom:** Styling differs between cloned pages.
+
+**Causes:**
+- Page-specific CSS not merged
+- CSS extraction failed for some pages
+
+**Solutions:**
+1. Check `css/` folder for per-page CSS files
+2. Review merge stats in output
+3. Try with fewer pages to isolate issue
+
+### Timeout during capture
+
+**Error:** `Navigation timeout`
+
+**Causes:**
+- Large pages
+- Slow server
+- Too many pages
+
+**Solutions:**
+```bash
+# Reduce pages
+design-clone clone-site https://example.com --max-pages 5
+
+# Use specific viewports only
+design-clone clone-site https://example.com --viewports desktop
+```
+
+### Memory issues
+
+**Symptom:** Process crashes or hangs.
+
+**Solutions:**
+1. Reduce `--max-pages` to 5 or fewer
+2. Clone in batches
+3. Close other applications
