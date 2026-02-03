@@ -51,6 +51,9 @@ const EXCLUDE_PATTERNS = [
   /tiktok\.com/i
 ];
 
+// Valid framework names for validation
+const VALID_FRAMEWORKS = ['next', 'nuxt', 'vue', 'react', 'angular', 'svelte', 'astro'];
+
 // Default options
 const DEFAULT_OPTIONS = {
   maxPages: 10,
@@ -63,6 +66,31 @@ const DEFAULT_OPTIONS = {
   noSpaDetect: false,    // Disable SPA/framework detection entirely
   captureState: false    // Capture app state (Redux/Vuex/Pinia/Zustand)
 };
+
+/**
+ * Log warning message (only in TTY mode)
+ * @param {string} message - Warning message
+ */
+function logWarning(message) {
+  if (process.stderr.isTTY) {
+    console.error(`[discover-pages] WARN: ${message}`);
+  }
+}
+
+/**
+ * Validate and normalize framework option
+ * @param {string|null} framework - Framework name to validate
+ * @returns {string|null} Validated framework name or null
+ */
+function validateFramework(framework) {
+  if (!framework) return null;
+  const normalized = String(framework).toLowerCase().trim();
+  if (VALID_FRAMEWORKS.includes(normalized)) {
+    return normalized;
+  }
+  logWarning(`Invalid framework "${framework}". Valid options: ${VALID_FRAMEWORKS.join(', ')}`);
+  return null;
+}
 
 /**
  * Normalize URL for comparison and deduplication
@@ -156,37 +184,64 @@ function shouldExclude(href) {
 }
 
 /**
+ * Normalize a path (remove trailing slash except for root)
+ * @param {string} path - Path to normalize
+ * @returns {string} Normalized path
+ */
+function normalizePath(path) {
+  if (!path || typeof path !== 'string') return '/';
+  return path.endsWith('/') && path !== '/' ? path.slice(0, -1) : path;
+}
+
+/**
  * Merge framework-discovered routes with link-scraped pages
  * Prioritizes framework routes (higher quality), fills gaps with link-scraped
- * @param {Array} frameworkRoutes - Routes from framework discoverer
- * @param {Array} linkScrapedPages - Pages from link scraping
+ *
+ * @param {Array|null} frameworkRoutes - Routes from framework discoverer
+ * @param {Array|null} linkScrapedPages - Pages from link scraping
  * @param {string} baseDomain - Base domain for URL normalization
  * @param {string} baseUrl - Base URL for resolving paths
  * @returns {Array} Merged and deduplicated pages
+ *
+ * @example
+ * const merged = mergeRoutes(
+ *   [{ path: '/about', name: 'About' }],
+ *   [{ path: '/contact', name: 'Contact' }],
+ *   'example.com',
+ *   'https://example.com'
+ * );
  */
 function mergeRoutes(frameworkRoutes, linkScrapedPages, baseDomain, baseUrl) {
+  // Input validation
+  if (!baseDomain || typeof baseDomain !== 'string') {
+    logWarning('mergeRoutes: Invalid baseDomain');
+    baseDomain = '';
+  }
+  if (!baseUrl || typeof baseUrl !== 'string') {
+    logWarning('mergeRoutes: Invalid baseUrl');
+    baseUrl = '';
+  }
+
   const seenPaths = new Set();
   const merged = [];
 
   // Add framework routes first (higher quality, more accurate)
   if (Array.isArray(frameworkRoutes)) {
     for (const route of frameworkRoutes) {
-      const path = route.path || '/';
-      const normalizedPath = path.endsWith('/') && path !== '/'
-        ? path.slice(0, -1)
-        : path;
+      if (!route || typeof route !== 'object') continue;
 
+      const normalizedPath = normalizePath(route.path || '/');
       if (seenPaths.has(normalizedPath)) continue;
       seenPaths.add(normalizedPath);
 
-      const url = normalizeUrl(baseUrl, normalizedPath) || route.url;
+      const url = normalizeUrl(baseUrl, normalizedPath) || route.url || '';
 
       merged.push({
         path: normalizedPath,
         name: route.name || extractPageName('', normalizedPath),
         url,
         source: route.source || 'framework',
-        dynamic: route.dynamic || false
+        dynamic: Boolean(route.dynamic)
       });
     }
   }
@@ -194,17 +249,16 @@ function mergeRoutes(frameworkRoutes, linkScrapedPages, baseDomain, baseUrl) {
   // Add link-scraped pages (fill gaps)
   if (Array.isArray(linkScrapedPages)) {
     for (const page of linkScrapedPages) {
-      const path = page.path || '/';
-      const normalizedPath = path.endsWith('/') && path !== '/'
-        ? path.slice(0, -1)
-        : path;
+      if (!page || typeof page !== 'object') continue;
 
+      const normalizedPath = normalizePath(page.path || '/');
       if (seenPaths.has(normalizedPath)) continue;
       seenPaths.add(normalizedPath);
 
       merged.push({
-        ...page,
         path: normalizedPath,
+        name: page.name || extractPageName('', normalizedPath),
+        url: page.url || normalizeUrl(baseUrl, normalizedPath) || '',
         source: 'link-scrape',
         dynamic: false
       });
@@ -273,20 +327,23 @@ export async function discoverPages(baseUrl, options = {}) {
     if (!opts.noSpaDetect) {
       // Framework detection
       if (opts.framework) {
-        // User forced specific framework
-        frameworkInfo = {
-          framework: opts.framework,
-          version: null,
-          routingType: 'spa',
-          confidence: 'forced',
-          signals: ['user-specified']
-        };
+        // User forced specific framework - validate it
+        const validatedFramework = validateFramework(opts.framework);
+        if (validatedFramework) {
+          frameworkInfo = {
+            framework: validatedFramework,
+            version: null,
+            routingType: 'spa',
+            confidence: 'forced',
+            signals: ['user-specified']
+          };
+        }
       } else {
         // Auto-detect framework
         try {
           frameworkInfo = await detectFramework(page);
         } catch (e) {
-          // Detection failed, continue without it
+          logWarning(`Framework detection failed: ${e.message}`);
           frameworkInfo = null;
         }
       }
@@ -297,7 +354,7 @@ export async function discoverPages(baseUrl, options = {}) {
           const discoveryResult = await discoverFrameworkRoutes(page, baseUrl, frameworkInfo);
           frameworkRoutes = discoveryResult.routes || [];
         } catch (e) {
-          // Route discovery failed, continue with link scraping
+          logWarning(`Route discovery failed for ${frameworkInfo.framework}: ${e.message}`);
           frameworkRoutes = [];
         }
       }
@@ -307,7 +364,7 @@ export async function discoverPages(baseUrl, options = {}) {
         try {
           stateSnapshot = await captureAppState(page, frameworkInfo);
         } catch (e) {
-          // State capture failed, continue without it
+          logWarning(`State capture failed: ${e.message}`);
           stateSnapshot = null;
         }
       }
@@ -420,9 +477,21 @@ export async function discoverPages(baseUrl, options = {}) {
       }
     };
   } catch (error) {
+    // Normalize baseUrl in error case for consistency
+    let normalizedBaseUrl = baseUrl;
+    let errorBaseDomain = '';
+    try {
+      const urlObj = new URL(baseUrl);
+      normalizedBaseUrl = urlObj.origin;
+      errorBaseDomain = urlObj.hostname;
+    } catch {
+      // Keep original baseUrl if parsing fails
+    }
+
     return {
       success: false,
-      baseUrl,
+      baseUrl: normalizedBaseUrl,
+      baseDomain: errorBaseDomain,
       framework: null,
       stateSnapshot: null,
       pages: [{
