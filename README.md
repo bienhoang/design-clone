@@ -2,7 +2,7 @@
 
 Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis.
 
-[![npm](https://img.shields.io/npm/v/design-clone-skill)](https://www.npmjs.com/package/design-clone-skill)
+[![npm](https://img.shields.io/npm/v/design-clone)](https://www.npmjs.com/package/design-clone)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
 
@@ -19,15 +19,15 @@ Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and 
 ### Option 1: npm (Recommended)
 
 ```bash
-npm install -g design-clone-skill
+npm install -g design-clone
 design-clone init
 ```
 
 ### Option 2: Manual
 
 ```bash
-git clone https://github.com/user/design-clone-skill.git
-cp -r design-clone-skill ~/.claude/skills/design-clone
+git clone https://github.com/bienhoang/design-clone.git
+cp -r design-clone ~/.claude/skills/design-clone
 cd ~/.claude/skills/design-clone
 npm install
 pip install -r requirements.txt

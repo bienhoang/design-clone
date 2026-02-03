@@ -228,13 +228,13 @@ cloned-design/
 
 ### npm (Recommended)
 ```bash
-npm install -g design-clone-skill
+npm install -g design-clone
 design-clone init
 ```
 
 ### Manual
 ```bash
-cp -r design-clone-skill ~/.claude/skills/design-clone
+cp -r design-clone ~/.claude/skills/design-clone
 cd ~/.claude/skills/design-clone
 npm install && pip install -r requirements.txt
 ```

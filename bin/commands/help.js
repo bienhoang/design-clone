@@ -24,6 +24,6 @@ After installation:
   1. Set GEMINI_API_KEY in ~/.claude/.env (optional, for AI analysis)
   2. Use /design:clone or /design:clone-px in Claude Code
 
-For more info: https://github.com/user/design-clone-skill
+For more info: https://github.com/bienhoang/design-clone
 `);
 }

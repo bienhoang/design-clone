@@ -1,5 +1,5 @@
 {
-  "name": "design-clone-skill",
+  "name": "design-clone",
   "version": "1.0.0",
   "type": "module",
   "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis",
@@ -38,7 +38,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/user/design-clone-skill"
+    "url": "https://github.com/bienhoang/design-clone"
   },
   "engines": {
     "node": ">=18.0.0"
