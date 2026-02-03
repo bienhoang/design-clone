@@ -34,6 +34,7 @@ import { extractCleanHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-e
 import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
 import { extractComponentDimensions } from './dimension-extractor.js';
 import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
+import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
 
 // Try to import Sharp for compression
 let sharp = null;
@@ -291,6 +292,53 @@ async function captureMultiViewport() {
         } catch (error) {
           extraction.filtered = { error: error.message, failed: true };
           extractionWarnings.push(`CSS filtering failed: ${error.message}`);
+        }
+      }
+
+      // Extract animations (enabled by default with CSS extraction)
+      const extractAnimationsFlag = args['extract-animations'] !== 'false';
+      if (extractCss && extractAnimationsFlag && extraction?.css?.path && !extraction.css.failed) {
+        try {
+          const rawCss = await fs.readFile(extraction.css.path, 'utf-8');
+          const animData = await extractAnimations(rawCss);
+
+          if (!animData.error) {
+            // Write animations.css
+            const animCss = generateAnimationsCss(animData);
+            const animPath = path.join(args.output, 'animations.css');
+            await fs.writeFile(animPath, animCss, 'utf-8');
+
+            // Generate animation tokens
+            const animTokens = generateAnimationTokens(animData);
+
+            // Write animation-tokens.json
+            const animTokensPath = path.join(args.output, 'animation-tokens.json');
+            await fs.writeFile(animTokensPath, JSON.stringify({
+              keyframes: animData.keyframes,
+              transitions: animData.transitions,
+              animatedElements: animData.animatedElements,
+              summary: animTokens
+            }, null, 2), 'utf-8');
+
+            extraction.animations = {
+              path: path.resolve(animPath),
+              tokensPath: path.resolve(animTokensPath),
+              keyframeCount: animTokens.keyframeCount,
+              transitionCount: animTokens.transitions,
+              animatedElementCount: animTokens.animatedElements,
+              tokens: animTokens
+            };
+
+            if (process.stderr.isTTY) {
+              console.error(`[INFO] Animations: ${animTokens.keyframeCount} keyframes, ${animTokens.transitions} transitions`);
+            }
+          } else {
+            extraction.animations = { error: animData.error, failed: true };
+            extractionWarnings.push(`Animation extraction failed: ${animData.error}`);
+          }
+        } catch (error) {
+          extraction.animations = { error: error.message, failed: true };
+          extractionWarnings.push(`Animation extraction failed: ${error.message}`);
         }
       }
 

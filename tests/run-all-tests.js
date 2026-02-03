@@ -14,6 +14,7 @@ const tests = [
   { name: 'Node.js env.js tests', cmd: 'node', args: ['test-env-js.js'] },
   { name: 'Python env.py tests', cmd: 'python3', args: ['test-env-py.py'] },
   { name: 'filter-css.js tests', cmd: 'node', args: ['test-filter-css.js'] },
+  { name: 'animation-extractor.js tests', cmd: 'node', args: ['test-animation-extractor.js'] },
   { name: 'Python imports tests', cmd: 'python3', args: ['test-python-imports.py'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
   { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] }

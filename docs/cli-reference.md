@@ -22,8 +22,11 @@ node src/core/screenshot.js [options]
 | --close | bool | false | Close browser after capture (false keeps session) |
 | --extract-html | bool | false | Extract cleaned HTML |
 | --extract-css | bool | false | Extract all CSS from page |
+| --extract-animations | bool | true* | Extract @keyframes and transitions (enabled with --extract-css) |
 | --filter-unused | bool | true | Filter CSS to remove unused selectors |
 | --verbose | bool | false | Verbose logging |
+
+*Default true when --extract-css is enabled, can be disabled with `--extract-animations false`
 
 **Output**: JSON with screenshot paths and metadata. Includes `browserRestarts` count tracking for stability monitoring.
 

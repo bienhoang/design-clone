@@ -75,14 +75,16 @@ Full pixel-perfect clone:
 
 ```
 cloned-design/
-├── desktop.png           # 1920x1080 screenshot
-├── tablet.png            # 768x1024 screenshot
-├── mobile.png            # 375x812 screenshot
-├── source.html           # Cleaned HTML
-├── source.css            # Filtered CSS
-├── source-raw.css        # Original CSS (unfiltered)
-├── structure.md          # AI analysis (if GEMINI_API_KEY set)
-├── tokens.json           # Extracted design tokens
+├── desktop.png              # 1920x1080 screenshot
+├── tablet.png               # 768x1024 screenshot
+├── mobile.png               # 375x812 screenshot
+├── source.html              # Cleaned HTML
+├── source.css               # Filtered CSS
+├── source-raw.css           # Original CSS (unfiltered)
+├── animations.css           # Extracted @keyframes definitions
+├── animation-tokens.json    # Animation metadata (keyframes, transitions, timings)
+├── structure.md             # AI analysis (if GEMINI_API_KEY set)
+├── tokens.json              # Extracted design tokens
 └── assets/
     ├── images/
     ├── fonts/

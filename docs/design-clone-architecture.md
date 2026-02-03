@@ -131,6 +131,7 @@ Both Node.js and Python share same resolution order:
 | Script | Location | Language | Purpose |
 |--------|----------|----------|---------|
 | screenshot.js | src/core/ | Node.js | Screenshot capture, HTML/CSS extraction |
+| animation-extractor.js | src/core/ | Node.js | Extract @keyframes, transitions, animation properties |
 | filter-css.js | src/core/ | Node.js | Remove unused CSS selectors |
 | extract-assets.js | src/core/ | Node.js | Download images, fonts, icons |
 | analyze-structure.py | src/ai/ | Python | Gemini AI structure analysis |
@@ -179,36 +180,41 @@ bin/
 ### design:clone
 
 ```
-URL → src/core/screenshot.js → Screenshots (3 viewports)
-                              → source.html (cleaned)
-                              → source-raw.css
-    → src/core/filter-css.js  → source.css (filtered)
+URL → src/core/screenshot.js       → Screenshots (3 viewports)
+                                   → source.html (cleaned)
+                                   → source-raw.css
+    → src/core/filter-css.js       → source.css (filtered)
+    → src/core/animation-extractor → animations.css
+                                   → animation-tokens.json
 ```
 
 ### design:clone-px
 
 ```
-URL → src/core/screenshot.js      → Screenshots + HTML/CSS
-    → src/core/filter-css.js      → Filtered CSS
-    → src/core/extract-assets.js  → assets/ (images, fonts, icons)
-    → src/ai/analyze-structure.py → structure.md (AI analysis)
-    → src/ai/extract-design-tokens.py → tokens.json, tokens.css
-    → src/verification/verify-menu.js → Menu validation report
+URL → src/core/screenshot.js           → Screenshots + HTML/CSS
+    → src/core/filter-css.js           → Filtered CSS
+    → src/core/animation-extractor     → animations.css, animation-tokens.json
+    → src/core/extract-assets.js       → assets/ (images, fonts, icons)
+    → src/ai/analyze-structure.py      → structure.md (AI analysis)
+    → src/ai/extract-design-tokens.py  → tokens.json, tokens.css
+    → src/verification/verify-menu.js  → Menu validation report
 ```
 
 ## Output Structure
 
 ```
 cloned-design/
-├── desktop.png           # 1920x1080
-├── tablet.png            # 768x1024
-├── mobile.png            # 375x812
-├── source.html           # Cleaned HTML
-├── source.css            # Filtered CSS
-├── source-raw.css        # Original CSS
-├── structure.md          # AI analysis (optional)
-├── tokens.json           # Design tokens
-├── tokens.css            # CSS variables
+├── desktop.png              # 1920x1080
+├── tablet.png               # 768x1024
+├── mobile.png               # 375x812
+├── source.html              # Cleaned HTML
+├── source.css               # Filtered CSS
+├── source-raw.css           # Original CSS
+├── animations.css           # Extracted @keyframes definitions
+├── animation-tokens.json    # Animation metadata (keyframes, transitions, timings)
+├── structure.md             # AI analysis (optional)
+├── tokens.json              # Design tokens
+├── tokens.css               # CSS variables
 └── assets/
     ├── images/
     ├── fonts/
