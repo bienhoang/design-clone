@@ -41,7 +41,7 @@ export function getDiscovererClass(framework) {
 /**
  * Create a discoverer instance for a framework
  * @param {string} framework - Framework name
- * @param {import('puppeteer').Page} page - Puppeteer page instance
+ * @param {import('playwright').Page} page - Playwright page instance
  * @param {string} baseUrl - Base URL of the site
  * @returns {import('./base-discoverer.js').BaseDiscoverer}
  */
@@ -52,7 +52,7 @@ export function createDiscoverer(framework, page, baseUrl) {
 
 /**
  * Discover routes for a given page using framework detection
- * @param {import('puppeteer').Page} page - Puppeteer page instance
+ * @param {import('playwright').Page} page - Playwright page instance
  * @param {string} baseUrl - Base URL of the site
  * @param {object} [frameworkInfo] - Optional pre-detected framework info
  * @returns {Promise<{routes: import('./base-discoverer.js').DiscoveredRoute[], framework: string, discoverer: string}>}

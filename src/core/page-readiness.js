@@ -32,7 +32,7 @@ export const CONTENT_SELECTORS = [
 
 /**
  * Wait for fonts to finish loading
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {number} timeout - Max wait time in ms
  */
 export async function waitForFontsLoaded(page, timeout = FONT_LOAD_TIMEOUT) {
@@ -51,7 +51,7 @@ export async function waitForFontsLoaded(page, timeout = FONT_LOAD_TIMEOUT) {
 
 /**
  * Wait for styles to stabilize (no new style mutations)
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {number} stableMs - How long to wait without changes
  * @param {number} timeout - Max wait time in ms
  */
@@ -96,7 +96,7 @@ export async function waitForStylesStable(page, stableMs = 500, timeout = 5000) 
 
 /**
  * Wait for DOM to stabilize (element count unchanged)
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {number} threshold - Stability duration in ms
  * @param {number} timeout - Max wait time in ms
  */
@@ -116,7 +116,7 @@ export async function waitForDomStable(page, threshold = DOM_STABLE_THRESHOLD, t
 
 /**
  * Wait for page to be ready (loading complete, content visible)
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {number} timeout - Max wait time
  */
 export async function waitForPageReady(page, timeout = PAGE_READY_TIMEOUT) {

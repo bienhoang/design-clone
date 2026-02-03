@@ -364,7 +364,7 @@ async function extractAssets() {
     if (verbose) console.error(`\n📦 Extracting assets from: ${args.url}\n`);
 
     await page.goto(args.url, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'networkidle',
       timeout: 30000
     });
 

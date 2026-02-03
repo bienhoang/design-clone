@@ -34,7 +34,7 @@ export const CRITICAL_POSITION = ['absolute', 'fixed'];
 
 /**
  * Extract and clean HTML from page
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {Array} frameworkPatterns - Patterns to remove
  * @returns {Promise<{html: string, warnings: string[], elementCount: number}>}
  */

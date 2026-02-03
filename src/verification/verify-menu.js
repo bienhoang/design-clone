@@ -339,7 +339,7 @@ async function verifyMenu() {
     if (verbose) console.error(`\n🔍 Verifying responsive menu: ${targetUrl}\n`);
 
     await page.goto(targetUrl, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'networkidle',
       timeout: 30000
     });
 

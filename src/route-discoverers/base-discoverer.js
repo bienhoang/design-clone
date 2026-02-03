@@ -34,7 +34,7 @@ const DYNAMIC_PATTERNS = [
  */
 export class BaseDiscoverer {
   /**
-   * @param {import('puppeteer').Page} page - Puppeteer page object
+   * @param {import('playwright').Page} page - Playwright page object
    * @param {string} baseUrl - Base URL of the site
    */
   constructor(page, baseUrl) {

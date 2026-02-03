@@ -14,7 +14,7 @@ export const IMAGE_LOAD_TIMEOUT = 20000;
  * - Sets loading="eager" on all images
  * - Copies data-src to src if exists
  * - Triggers IntersectionObserver by scrolling
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  */
 export async function forceLazyImages(page) {
   return await page.evaluate(async () => {
@@ -51,7 +51,7 @@ export async function forceLazyImages(page) {
 
 /**
  * Force all hidden animated elements to be visible
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  */
 export async function forceAnimatedElementsVisible(page) {
   return await page.evaluate(() => {
@@ -78,7 +78,7 @@ export async function forceAnimatedElementsVisible(page) {
 
 /**
  * Trigger lazy loading by scrolling through entire page
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {number} maxIterations - Max scroll iterations
  * @param {number} scrollDelay - Pause time between scrolls
  */
@@ -133,7 +133,7 @@ export async function triggerLazyLoad(page, maxIterations = 20, scrollDelay = 15
 
 /**
  * Wait for all images to finish loading
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {number} timeout - Max wait time
  */
 export async function waitForAllImages(page, timeout = IMAGE_LOAD_TIMEOUT) {

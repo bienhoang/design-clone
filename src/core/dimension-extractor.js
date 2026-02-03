@@ -7,7 +7,7 @@
 
 /**
  * Extract component dimensions from page
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {string} viewportName - 'desktop', 'tablet', or 'mobile'
  * @returns {Promise<Object>} Dimension data for this viewport
  */

@@ -69,7 +69,7 @@ async function createOutputStructure(outputDir, viewports) {
 
 /**
  * Capture a single page (all viewports + HTML/CSS extraction)
- * @param {Page} page - Puppeteer page instance
+ * @param {Page} page - Playwright page instance
  * @param {Object} pageInfo - Page info { path, name, url }
  * @param {string} outputDir - Output directory
  * @param {Object} options - Capture options

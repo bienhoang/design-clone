@@ -220,7 +220,7 @@ function enforceStateLimit(snapshot, warnings) {
 
 /**
  * Capture framework-specific data from page
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @param {string|null} framework - Detected framework name
  * @returns {Promise<Object|null>}
  */
@@ -323,7 +323,7 @@ async function captureFrameworkData(page, framework) {
 
 /**
  * Capture state management store state
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @returns {Promise<StoreResult>}
  */
 async function captureStoreState(page) {
@@ -422,7 +422,7 @@ async function captureStoreState(page) {
 
 /**
  * Capture application state from page
- * @param {import('puppeteer').Page} page - Puppeteer page instance
+ * @param {import('playwright').Page} page - Playwright page instance
  * @param {Object|null} [frameworkInfo] - Framework detection result
  * @returns {Promise<StateSnapshot>}
  */

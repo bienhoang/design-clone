@@ -1,7 +1,7 @@
 /**
  * State Capture Module
  *
- * Capture hover states for interactive elements using Puppeteer.
+ * Capture hover states for interactive elements using Playwright.
  * Screenshots before/after, computes style differences, generates :hover CSS.
  *
  * Usage:
@@ -220,7 +220,7 @@ function extractHoverSelectorsFromCss(cssString) {
  * Detect interactive elements on page via DOM query.
  * Uses inline function to avoid new Function() for CSP compliance.
  *
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @returns {Promise<InteractiveElement[]>} Array of interactive elements
  */
 async function detectInteractiveElementsFromDom(page) {
@@ -326,7 +326,7 @@ async function detectInteractiveElementsFromDom(page) {
 /**
  * Detect interactive elements using CSS + DOM analysis.
  *
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @param {string|null} cssString - Raw CSS for :hover detection
  * @returns {Promise<{fromCss: string[], fromDom: InteractiveElement[], combined: string[]}>}
  */
@@ -370,7 +370,7 @@ export async function detectInteractiveElements(page, cssString) {
 /**
  * Capture computed styles for an element.
  *
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @param {string} selector - CSS selector
  * @returns {Promise<Object<string, string>|null>} Style object or null
  */
@@ -391,7 +391,7 @@ async function captureElementStyles(page, selector) {
 /**
  * Capture hover state for a single element.
  *
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @param {string} selector - CSS selector for element
  * @param {string} outputDir - Directory for screenshots
  * @param {number} index - Element index for filename
@@ -487,7 +487,7 @@ export async function captureHoverState(page, selector, outputDir, index) {
 /**
  * Capture all hover states for detected interactive elements.
  *
- * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {import('playwright').Page} page - Playwright page
  * @param {string|null} cssString - Raw CSS for detection
  * @param {string} outputDir - Base output directory
  * @returns {Promise<HoverCaptureOutput>}

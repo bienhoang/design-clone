@@ -6,7 +6,7 @@
  */
 
 // Size limits
-export const MAX_CSS_SIZE = 5 * 1024 * 1024;   // 5MB limit
+export const MAX_CSS_SIZE = 10 * 1024 * 1024;  // 10MB limit
 export const MAX_CSS_RULES_WARN = 5000;        // Warn on large stylesheets
 
 // Layout-critical properties for accurate cloning
@@ -32,7 +32,7 @@ export const ALL_PROPERTIES = Object.values(LAYOUT_PROPERTIES).flat();
 
 /**
  * Extract all CSS from page
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @param {string} baseUrl - Base URL for resolving relative paths
  * @returns {Promise<{cssBlocks: Array, corsBlocked: Array, computedStyles: Object, totalRules: number, warnings: Array}>}
  */

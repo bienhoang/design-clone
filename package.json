@@ -1,6 +1,6 @@
 {
   "name": "design-clone",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis",
   "bin": {
@@ -31,7 +31,7 @@
     "design",
     "clone",
     "screenshot",
-    "puppeteer",
+    "playwright",
     "gemini",
     "website"
   ],
@@ -48,10 +48,10 @@
     "css-tree": "^2.3.1"
   },
   "peerDependencies": {
-    "puppeteer": ">=21.0.0"
+    "playwright": ">=1.40.0"
   },
   "peerDependenciesMeta": {
-    "puppeteer": {
+    "playwright": {
       "optional": true
     }
   },

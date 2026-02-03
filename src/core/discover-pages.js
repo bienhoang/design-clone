@@ -216,8 +216,15 @@ function mergeRoutes(frameworkRoutes, linkScrapedPages, baseDomain, baseUrl) {
 
 /**
  * Discover pages from a website by extracting navigation links
+ * Enhanced with SPA/Framework support (v1.3)
+ *
  * @param {string} baseUrl - Starting URL to discover from
  * @param {Object} options - Discovery options
+ * @param {number} [options.maxPages=10] - Maximum pages to discover
+ * @param {boolean} [options.spaMode=true] - Enable SPA detection
+ * @param {string} [options.framework] - Force specific framework
+ * @param {boolean} [options.noSpaDetect=false] - Disable SPA detection
+ * @param {boolean} [options.captureState=false] - Capture app state
  * @returns {Promise<Object>} Discovery result
  */
 export async function discoverPages(baseUrl, options = {}) {
@@ -256,7 +263,59 @@ export async function discoverPages(baseUrl, options = {}) {
     // Wait a bit more for any dynamic content
     await new Promise(r => setTimeout(r, 1000));
 
-    // Extract links using selectors
+    // =========================================
+    // SPA/Framework Detection (v1.3)
+    // =========================================
+    let frameworkInfo = null;
+    let frameworkRoutes = [];
+    let stateSnapshot = null;
+
+    if (!opts.noSpaDetect) {
+      // Framework detection
+      if (opts.framework) {
+        // User forced specific framework
+        frameworkInfo = {
+          framework: opts.framework,
+          version: null,
+          routingType: 'spa',
+          confidence: 'forced',
+          signals: ['user-specified']
+        };
+      } else {
+        // Auto-detect framework
+        try {
+          frameworkInfo = await detectFramework(page);
+        } catch (e) {
+          // Detection failed, continue without it
+          frameworkInfo = null;
+        }
+      }
+
+      // Framework-specific route discovery
+      if (frameworkInfo?.framework && opts.spaMode) {
+        try {
+          const discoveryResult = await discoverFrameworkRoutes(page, baseUrl, frameworkInfo);
+          frameworkRoutes = discoveryResult.routes || [];
+        } catch (e) {
+          // Route discovery failed, continue with link scraping
+          frameworkRoutes = [];
+        }
+      }
+
+      // Capture app state (optional)
+      if (opts.captureState && frameworkInfo) {
+        try {
+          stateSnapshot = await captureAppState(page, frameworkInfo);
+        } catch (e) {
+          // State capture failed, continue without it
+          stateSnapshot = null;
+        }
+      }
+    }
+
+    // =========================================
+    // Traditional Link Scraping (existing logic)
+    // =========================================
     const selectors = opts.selectors || NAV_SELECTORS;
     const selectorString = selectors.join(', ');
 
@@ -270,13 +329,13 @@ export async function discoverPages(baseUrl, options = {}) {
 
     // Process and filter links
     const seenUrls = new Set();
-    const pages = [];
+    const linkScrapedPages = [];
 
     // Always include homepage first
     const homeUrl = normalizeUrl(baseUrl, '/');
     if (homeUrl) {
       seenUrls.add(homeUrl);
-      pages.push({
+      linkScrapedPages.push({
         path: '/',
         name: 'Home',
         url: homeUrl
@@ -306,14 +365,31 @@ export async function discoverPages(baseUrl, options = {}) {
 
       // Add to results
       seenUrls.add(normalized);
-      pages.push({
+      linkScrapedPages.push({
         path,
         name: extractPageName(link.text, path),
         url: normalized
       });
 
       // Check max pages limit
-      if (pages.length >= opts.maxPages) break;
+      if (linkScrapedPages.length >= opts.maxPages) break;
+    }
+
+    // =========================================
+    // Merge Routes (v1.3)
+    // =========================================
+    let pages;
+    if (frameworkRoutes.length > 0) {
+      // Merge framework routes with link-scraped pages
+      pages = mergeRoutes(frameworkRoutes, linkScrapedPages, baseDomain, baseUrl);
+    } else {
+      // No framework routes, use link-scraped pages only
+      pages = linkScrapedPages.map(p => ({ ...p, source: 'link-scrape', dynamic: false }));
+    }
+
+    // Apply max pages limit to merged results
+    if (pages.length > opts.maxPages) {
+      pages = pages.slice(0, opts.maxPages);
     }
 
     // Sort by path depth (shallow first)
@@ -331,9 +407,14 @@ export async function discoverPages(baseUrl, options = {}) {
       success: true,
       baseUrl: baseUrlObj.origin,
       baseDomain,
+      // SPA/Framework data (v1.3)
+      framework: frameworkInfo,
+      stateSnapshot: stateSnapshot,
+      // Page discovery results
       pages,
       stats: {
         totalLinksFound: rawLinks.length,
+        frameworkRoutesFound: frameworkRoutes.length,
         pagesDiscovered: pages.length,
         durationMs: duration
       }
@@ -342,14 +423,19 @@ export async function discoverPages(baseUrl, options = {}) {
     return {
       success: false,
       baseUrl,
+      framework: null,
+      stateSnapshot: null,
       pages: [{
         path: '/',
         name: 'Home',
-        url: normalizeUrl(baseUrl, '/') || baseUrl
+        url: normalizeUrl(baseUrl, '/') || baseUrl,
+        source: 'fallback',
+        dynamic: false
       }],
       error: error.message,
       stats: {
         totalLinksFound: 0,
+        frameworkRoutesFound: 0,
         pagesDiscovered: 1,
         durationMs: Date.now() - startTime
       }

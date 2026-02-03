@@ -252,7 +252,7 @@ function browserDetectionLogic(signals) {
 
 /**
  * Infer routing type based on framework and detected signals
- * @param {import('puppeteer').Page} page - Puppeteer page object
+ * @param {import('playwright').Page} page - Playwright page object
  * @param {string} framework - Detected framework name
  * @returns {Promise<'spa'|'ssr'|'ssg'|'unknown'>} Routing type
  */
@@ -321,7 +321,7 @@ async function inferRoutingType(page, framework) {
 
 /**
  * Detect framework used on the current page
- * @param {import('puppeteer').Page} page - Puppeteer page object
+ * @param {import('playwright').Page} page - Playwright page object
  * @returns {Promise<FrameworkInfo>} Framework detection result
  */
 export async function detectFramework(page) {

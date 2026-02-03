@@ -328,7 +328,7 @@ async function verifyLayout() {
     const targetUrl = `file://${absolutePath}`;
 
     await page.goto(targetUrl, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'networkidle',
       timeout: 30000
     });
 

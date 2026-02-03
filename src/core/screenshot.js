@@ -360,7 +360,7 @@ async function captureMultiViewport() {
       }
     }
 
-    // Capture hover states (requires headless mode per Puppeteer #5255)
+    // Capture hover states (requires headless mode per Playwright #5255)
     let hoverResult = null;
     if (captureHover) {
       try {

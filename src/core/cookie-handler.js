@@ -38,7 +38,7 @@ export const COOKIE_REMOVE_SELECTORS = [
 
 /**
  * Dismiss cookie banners by clicking accept or removing elements
- * @param {Page} page - Puppeteer page
+ * @param {Page} page - Playwright page
  * @returns {Promise<{method: string, selector?: string, count?: number}>}
  */
 export async function dismissCookieBanner(page) {
