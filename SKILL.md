@@ -13,6 +13,7 @@ Clone website designs with multi-viewport screenshots, HTML/CSS extraction, CSS 
 - **Direct Unsplash Images** - Real images without API key needed
 - **Japanese Design Principles** - Ma, Kanso, Shibui, Seijaku for elegant designs
 - **Multi-viewport Screenshots** - Desktop, tablet, mobile captures
+- **Hover State Capture** - Interactive element screenshots and :hover CSS generation
 - **Gemini Vision Analysis** - AI-powered design token extraction
 - **ui-ux-pro-max Quality Check** - Accessibility, hover states, contrast validation
 
@@ -164,6 +165,7 @@ node src/core/screenshot.js \
   --url "URL" \
   --output ./output \
   --extract-html --extract-css \
+  --capture-hover true \
   --full-page
 
 # Step 2: Filter CSS
@@ -198,6 +200,8 @@ python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --d
 python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" --domain ux
 python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "z-index" --domain ux
 ```
+
+**Note:** Step 1 includes `--capture-hover true` to capture interactive element states and generate `:hover` CSS rules. Outputs include `hover-states/` directory and `hover.css`.
 
 ## Quality Checklist (ui-ux-pro-max)
 
@@ -270,6 +274,7 @@ GEMINI_API_KEY=your-key    # Optional: enables AI structure analysis
 |--------|----------|---------|
 | screenshot.js | src/core/ | Capture screenshots + extract HTML/CSS |
 | filter-css.js | src/core/ | Filter unused CSS rules |
+| state-capture.js | src/core/ | Capture hover states for interactive elements |
 | extract-assets.js | src/core/ | Download images, fonts, icons |
 | discover-pages.js | src/core/ | Discover navigation links |
 | multi-page-screenshot.js | src/core/ | Capture multiple pages |

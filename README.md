@@ -10,6 +10,7 @@ Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and 
 
 - **Multi-viewport screenshots**: Desktop (1920px), Tablet (768px), Mobile (375px)
 - **HTML/CSS extraction**: Clean source files with unused CSS removal
+- **Hover state capture**: Screenshots and CSS for interactive element states (phase 2)
 - **AI structure analysis**: Gemini Vision analyzes page layout (optional)
 - **Asset extraction**: Downloads images, fonts, icons
 - **Menu verification**: Tests responsive navigation functionality
@@ -83,8 +84,13 @@ cloned-design/
 ├── source-raw.css           # Original CSS (unfiltered)
 ├── animations.css           # Extracted @keyframes definitions
 ├── animation-tokens.json    # Animation metadata (keyframes, transitions, timings)
+├── hover.css                # Generated :hover CSS rules (with --capture-hover)
 ├── structure.md             # AI analysis (if GEMINI_API_KEY set)
 ├── tokens.json              # Extracted design tokens
+├── hover-states/            # Hover state captures (with --capture-hover)
+│   ├── hover-N-normal.png   # Element before hover
+│   ├── hover-N-hover.png    # Element during hover
+│   └── hover-diff.json      # Captured element summary
 └── assets/
     ├── images/
     ├── fonts/

@@ -132,6 +132,7 @@ Both Node.js and Python share same resolution order:
 |--------|----------|----------|---------|
 | screenshot.js | src/core/ | Node.js | Screenshot capture, HTML/CSS extraction |
 | animation-extractor.js | src/core/ | Node.js | Extract @keyframes, transitions, animation properties |
+| state-capture.js | src/core/ | Node.js | Capture hover states for interactive elements |
 | filter-css.js | src/core/ | Node.js | Remove unused CSS selectors |
 | extract-assets.js | src/core/ | Node.js | Download images, fonts, icons |
 | analyze-structure.py | src/ai/ | Python | Gemini AI structure analysis |
@@ -186,7 +187,11 @@ URL → src/core/screenshot.js       → Screenshots (3 viewports)
     → src/core/filter-css.js       → source.css (filtered)
     → src/core/animation-extractor → animations.css
                                    → animation-tokens.json
+    → src/core/state-capture.js*   → hover-states/ (hover screenshots)
+                                   → hover.css (generated :hover rules)
 ```
+
+*Enabled with `--capture-hover true` flag
 
 ### design:clone-px
 
@@ -194,11 +199,14 @@ URL → src/core/screenshot.js       → Screenshots (3 viewports)
 URL → src/core/screenshot.js           → Screenshots + HTML/CSS
     → src/core/filter-css.js           → Filtered CSS
     → src/core/animation-extractor     → animations.css, animation-tokens.json
+    → src/core/state-capture.js*       → hover-states/, hover.css
     → src/core/extract-assets.js       → assets/ (images, fonts, icons)
     → src/ai/analyze-structure.py      → structure.md (AI analysis)
     → src/ai/extract-design-tokens.py  → tokens.json, tokens.css
     → src/verification/verify-menu.js  → Menu validation report
 ```
+
+*Hover state capture enabled by default in design:clone-px workflow
 
 ## Output Structure
 
@@ -212,14 +220,28 @@ cloned-design/
 ├── source-raw.css           # Original CSS
 ├── animations.css           # Extracted @keyframes definitions
 ├── animation-tokens.json    # Animation metadata (keyframes, transitions, timings)
+├── hover.css                # Generated :hover CSS rules (when --capture-hover)
 ├── structure.md             # AI analysis (optional)
 ├── tokens.json              # Design tokens
 ├── tokens.css               # CSS variables
+├── hover-states/            # Hover state captures (when --capture-hover)
+│   ├── hover-0-normal.png   # Element before hover
+│   ├── hover-0-hover.png    # Element during hover
+│   ├── hover-1-normal.png   # ...
+│   ├── hover-1-hover.png
+│   └── hover-diff.json      # Summary of detected and captured elements
 └── assets/
     ├── images/
     ├── fonts/
     └── icons/
 ```
+
+**Hover State Output** (when `--capture-hover true`):
+- `hover-states/`: Directory containing hover state captures
+  - `hover-N-normal.png`: Screenshot of element in normal state
+  - `hover-N-hover.png`: Screenshot of element with hover state applied
+  - `hover-diff.json`: Summary with detected count, captured count, and style differences for each element
+- `hover.css`: Generated CSS rules with `:hover` selectors extracted from style diffs
 
 ## Dependencies
 

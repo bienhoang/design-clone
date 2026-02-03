@@ -24,11 +24,12 @@ node src/core/screenshot.js [options]
 | --extract-css | bool | false | Extract all CSS from page |
 | --extract-animations | bool | true* | Extract @keyframes and transitions (enabled with --extract-css) |
 | --filter-unused | bool | true | Filter CSS to remove unused selectors |
+| --capture-hover | bool | false | Capture hover state screenshots and generate :hover CSS |
 | --verbose | bool | false | Verbose logging |
 
 *Default true when --extract-css is enabled, can be disabled with `--extract-animations false`
 
-**Output**: JSON with screenshot paths and metadata. Includes `browserRestarts` count tracking for stability monitoring.
+**Output**: JSON with screenshot paths and metadata. Includes `browserRestarts` count tracking for stability monitoring. When `--capture-hover` is enabled, also includes hover state results in output.
 
 ## filter-css.js
 
@@ -95,3 +96,23 @@ Verify layout consistency.
 ```bash
 node src/verification/verify-layout.js --html FILE
 ```
+
+## state-capture.js
+
+Capture hover states for interactive elements.
+
+Used internally by screenshot.js with `--capture-hover` flag.
+
+| Export | Description |
+|--------|-------------|
+| `captureAllHoverStates(page, cssString, outputDir)` | Detect interactive elements and capture normal/hover screenshots |
+| `captureHoverState(page, selector, outputDir, index)` | Capture hover state for a single element |
+| `generateHoverCss(results)` | Generate `:hover` CSS rules from captured style diffs |
+| `detectInteractiveElements(page, cssString)` | Detect interactive elements via CSS analysis and DOM query |
+
+**Key Features:**
+- Dual detection: CSS-based (`:hover` selectors) and DOM-based (interactive elements, transitions)
+- Per-element style diff capture (backgroundColor, color, transform, boxShadow, etc.)
+- Automatic screenshot pair generation (normal + hover states)
+- CSS rule generation from detected style changes
+- Validates selectors and skips hidden/invisible elements

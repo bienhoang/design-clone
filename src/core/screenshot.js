@@ -35,6 +35,7 @@ import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
 import { extractComponentDimensions } from './dimension-extractor.js';
 import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
 import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
+import { captureAllHoverStates, generateHoverCss } from './state-capture.js';
 
 // Try to import Sharp for compression
 let sharp = null;
@@ -167,6 +168,7 @@ async function captureMultiViewport() {
   const extractHtml = args['extract-html'] === 'true';
   const extractCss = args['extract-css'] === 'true';
   const filterUnused = args['filter-unused'] !== 'false';
+  const captureHover = args['capture-hover'] === 'true';
 
   for (const vp of requestedViewports) {
     if (!VIEWPORTS[vp]) {
@@ -348,6 +350,65 @@ async function captureMultiViewport() {
       }
     }
 
+    // Capture hover states (requires headless mode per Puppeteer #5255)
+    let hoverResult = null;
+    if (captureHover) {
+      try {
+        // Try headed mode first, fallback to headless (per validation decision)
+        const wasHeadless = currentHeadless;
+        let hoverCaptureSuccess = false;
+
+        // Attempt headed mode first
+        if (!wasHeadless) {
+          try {
+            const cssContent = extraction?.css?.path
+              ? await fs.readFile(extraction.css.path, 'utf-8')
+              : null;
+            hoverResult = await captureAllHoverStates(page, cssContent, args.output);
+            hoverCaptureSuccess = hoverResult.captured > 0;
+          } catch (headedError) {
+            if (process.stderr.isTTY) {
+              console.error(`[WARN] Headed hover capture failed, switching to headless: ${headedError.message}`);
+            }
+          }
+        }
+
+        // Fallback to headless if headed failed or was already headless
+        if (!hoverCaptureSuccess) {
+          if (!currentHeadless) {
+            await initBrowser(true, args.url);
+          }
+
+          const cssContent = extraction?.css?.path
+            ? await fs.readFile(extraction.css.path, 'utf-8')
+            : null;
+          hoverResult = await captureAllHoverStates(page, cssContent, args.output);
+        }
+
+        // Generate hover.css from captured diffs
+        if (hoverResult && hoverResult.elements && hoverResult.captured > 0) {
+          const hoverCss = generateHoverCss(hoverResult.elements);
+          const hoverCssPath = path.join(args.output, 'hover.css');
+          await fs.writeFile(hoverCssPath, hoverCss, 'utf-8');
+          hoverResult.generatedCss = path.resolve(hoverCssPath);
+        }
+
+        if (process.stderr.isTTY && hoverResult) {
+          console.error(`[INFO] Hover states: ${hoverResult.captured}/${hoverResult.detected} captured`);
+        }
+
+        // Restore browser mode for viewport captures if needed
+        if (!wasHeadless && currentHeadless && requestedViewports.some(v => !getHeadlessForViewport(v))) {
+          await initBrowser(false, args.url);
+        }
+      } catch (error) {
+        if (process.stderr.isTTY) {
+          console.error(`[WARN] Hover capture failed: ${error.message}`);
+        }
+        hoverResult = { error: error.message, failed: true };
+      }
+    }
+
     // Capture viewports
     const screenshots = [];
     const browserRestarts = [];
@@ -394,6 +455,13 @@ async function captureMultiViewport() {
       outputDir: path.resolve(args.output),
       cookieHandling: cookieResult,
       extraction,
+      hoverStates: hoverResult && !hoverResult.failed ? {
+        directory: hoverResult.directory,
+        detected: hoverResult.detected,
+        captured: hoverResult.captured,
+        summaryPath: hoverResult.summaryPath,
+        generatedCss: hoverResult.generatedCss
+      } : (hoverResult?.error ? { error: hoverResult.error } : undefined),
       componentDimensions: {
         full: path.resolve(dimensionsPath),
         summary: path.resolve(summaryPath),
