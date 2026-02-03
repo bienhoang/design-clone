@@ -30,12 +30,12 @@ export async function verify() {
   // Check required files
   const requiredFiles = [
     'SKILL.md',
-    'multi-screenshot.js',
-    'filter-css.js',
-    'analyze-structure.py',
-    'lib/browser.js',
-    'lib/env.js',
-    'lib/env.py',
+    'src/core/screenshot.js',
+    'src/core/filter-css.js',
+    'src/ai/analyze-structure.py',
+    'src/utils/browser.js',
+    'src/utils/env.js',
+    'src/utils/env.py',
     'requirements.txt'
   ];
 

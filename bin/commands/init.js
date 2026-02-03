@@ -107,12 +107,47 @@ export async function init(args) {
     // Python dependencies
     if (checks.python.ok) {
       console.log('Installing Python dependencies...');
+
+      // Check if google-genai already installed
+      let alreadyInstalled = false;
       try {
-        await exec('pip install -r requirements.txt', { cwd: SKILL_DEST });
-        console.log('  Python packages installed');
-      } catch (error) {
-        console.warn(`  Warning: pip install failed: ${error.message}`);
-        console.warn('  Try: pip install google-genai');
+        await exec('python3 -c "import google.genai"');
+        alreadyInstalled = true;
+        console.log('  Python packages already available');
+      } catch {
+        // Need to install
+      }
+
+      if (!alreadyInstalled) {
+        const HOME = process.env.HOME || process.env.USERPROFILE || '';
+        const sharedVenvPip = path.join(HOME, '.claude/skills/.venv/bin/pip');
+
+        // Try installation methods in order of preference
+        const pipCommands = [
+          { cmd: `"${sharedVenvPip}" install google-genai`, name: 'shared venv' },
+          { cmd: 'pip3 install --user google-genai', name: 'pip3 --user' },
+          { cmd: 'pip install --user google-genai', name: 'pip --user' }
+        ];
+
+        let installed = false;
+        for (const { cmd, name } of pipCommands) {
+          try {
+            await exec(cmd);
+            console.log(`  Python packages installed via ${name}`);
+            installed = true;
+            break;
+          } catch {
+            // Try next method
+          }
+        }
+
+        if (!installed) {
+          console.warn('  Warning: Could not install Python packages automatically');
+          console.warn('  Try one of these manually:');
+          console.warn(`    ${sharedVenvPip} install google-genai`);
+          console.warn('    pip3 install --user google-genai');
+          console.warn('    pip3 install --break-system-packages google-genai');
+        }
       }
     }
   }
