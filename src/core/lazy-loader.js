@@ -83,7 +83,7 @@ export async function forceAnimatedElementsVisible(page) {
  * @param {number} scrollDelay - Pause time between scrolls
  */
 export async function triggerLazyLoad(page, maxIterations = 20, scrollDelay = 1500) {
-  return await page.evaluate(async (maxIter, pauseMs) => {
+  return await page.evaluate(async ({ maxIter, pauseMs }) => {
     return new Promise(async (resolve) => {
       const viewportHeight = window.innerHeight;
       const totalHeight = document.body.scrollHeight;
@@ -128,7 +128,7 @@ export async function triggerLazyLoad(page, maxIterations = 20, scrollDelay = 15
         stableAt: iterations
       });
     });
-  }, maxIterations, scrollDelay);
+  }, { maxIter: maxIterations, pauseMs: scrollDelay });
 }
 
 /**

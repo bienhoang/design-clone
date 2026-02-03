@@ -37,7 +37,7 @@ export const ALL_PROPERTIES = Object.values(LAYOUT_PROPERTIES).flat();
  * @returns {Promise<{cssBlocks: Array, corsBlocked: Array, computedStyles: Object, totalRules: number, warnings: Array}>}
  */
 export async function extractAllCss(page, baseUrl) {
-  return await page.evaluate((url, allProps) => {
+  return await page.evaluate(({ url, allProps }) => {
     const cssBlocks = [];
     const corsBlocked = [];
     const warnings = [];
@@ -128,5 +128,5 @@ export async function extractAllCss(page, baseUrl) {
       totalRules,
       warnings
     };
-  }, baseUrl, ALL_PROPERTIES);
+  }, { url: baseUrl, allProps: ALL_PROPERTIES });
 }

@@ -57,7 +57,7 @@ export async function waitForFontsLoaded(page, timeout = FONT_LOAD_TIMEOUT) {
  */
 export async function waitForStylesStable(page, stableMs = 500, timeout = 5000) {
   try {
-    await page.evaluate(async (stable, max) => {
+    await page.evaluate(async ({ stable, max }) => {
       return new Promise((resolve) => {
         let lastChange = Date.now();
         let checkInterval;
@@ -88,7 +88,7 @@ export async function waitForStylesStable(page, stableMs = 500, timeout = 5000) 
           }
         }, 100);
       });
-    }, stableMs, timeout);
+    }, { stable: stableMs, max: timeout });
   } catch {
     // Error in style stability check, continue anyway
   }
@@ -125,7 +125,7 @@ export async function waitForPageReady(page, timeout = PAGE_READY_TIMEOUT) {
   const minContentElements = Math.max(100, initialCount * 2);
 
   while (Date.now() - startTime < timeout) {
-    const result = await page.evaluate((loadingSels, contentSels, minElements) => {
+    const result = await page.evaluate(({ loadingSels, contentSels, minElements }) => {
       const elementCount = document.querySelectorAll('*').length;
 
       const loadingGone = loadingSels.every(sel => {
@@ -148,7 +148,7 @@ export async function waitForPageReady(page, timeout = PAGE_READY_TIMEOUT) {
         loadingGone,
         contentExists
       };
-    }, LOADING_SELECTORS, CONTENT_SELECTORS, minContentElements);
+    }, { loadingSels: LOADING_SELECTORS, contentSels: CONTENT_SELECTORS, minElements: minContentElements });
 
     if (result.ready) break;
     await new Promise(r => setTimeout(r, 200));

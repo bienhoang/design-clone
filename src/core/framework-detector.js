@@ -326,7 +326,124 @@ async function inferRoutingType(page, framework) {
  */
 export async function detectFramework(page) {
   // Run detection logic in browser context
-  const results = await page.evaluate(browserDetectionLogic, DETECTION_SIGNALS);
+  const results = await page.evaluate((signals) => {
+    // Helper: safe property access without eval
+    function safeGet(obj, path) {
+      let current = obj;
+      for (const key of path) {
+        if (current === null || current === undefined) return undefined;
+        current = current[key];
+      }
+      return current;
+    }
+
+    // Helper: check if any element has attribute with prefix
+    function hasAttrPrefix(prefix) {
+      return Array.from(document.querySelectorAll('*')).some(el =>
+        Array.from(el.attributes).some(attr => attr.name.startsWith(prefix))
+      );
+    }
+
+    const results = {};
+
+    for (const [framework, checks] of Object.entries(signals)) {
+      let totalWeight = 0;
+      const matchedSignals = [];
+      let version = null;
+
+      for (const check of checks) {
+        let matched = false;
+
+        try {
+          switch (check.type) {
+            case 'global':
+              matched = safeGet(window, check.path) !== undefined;
+              break;
+
+            case 'dom':
+              if (check.selector.includes('[data-v-]')) {
+                matched = hasAttrPrefix('data-v-');
+              } else if (check.selector.includes('[data-astro-cid-]')) {
+                matched = hasAttrPrefix('data-astro-cid-');
+              } else if (check.selector.includes('[_nghost-]')) {
+                matched = hasAttrPrefix('_nghost-');
+              } else {
+                matched = !!document.querySelector(check.selector);
+              }
+              break;
+
+            case 'script':
+              const scripts = Array.from(document.querySelectorAll('script[src]'));
+              matched = scripts.some(s => s.src.includes(check.pattern));
+              break;
+
+            case 'meta':
+              const meta = document.querySelector(`meta[name="${check.name}"]`);
+              matched = meta && meta.content && meta.content.includes(check.pattern);
+              break;
+          }
+        } catch (e) {
+          matched = false;
+        }
+
+        if (matched) {
+          totalWeight += check.weight;
+          matchedSignals.push(check.signal);
+        }
+      }
+
+      // Extract version based on framework
+      if (totalWeight > 0) {
+        try {
+          switch (framework) {
+            case 'next':
+              const nextData = safeGet(window, ['__NEXT_DATA__']);
+              if (nextData) {
+                version = nextData.nextExport ? 'export' : (nextData.buildId || null);
+                if (nextData.runtimeConfig?.version) {
+                  version = nextData.runtimeConfig.version;
+                }
+              }
+              break;
+            case 'nuxt':
+              const nuxtConfig = safeGet(window, ['__NUXT__', 'config', 'app', 'buildId']);
+              if (nuxtConfig) version = nuxtConfig;
+              break;
+            case 'vue':
+              version = safeGet(window, ['Vue', 'version']) ||
+                        safeGet(window, ['__VUE__', 'version']) || null;
+              break;
+            case 'react':
+              version = safeGet(window, ['React', 'version']) || null;
+              break;
+            case 'angular':
+              const ngVersion = document.querySelector('[ng-version]');
+              if (ngVersion) version = ngVersion.getAttribute('ng-version');
+              break;
+            case 'svelte':
+              break;
+            case 'astro':
+              const astroMeta = document.querySelector('meta[name="generator"]');
+              if (astroMeta && astroMeta.content.includes('Astro')) {
+                const match = astroMeta.content.match(/Astro v?([\d.]+)/);
+                if (match) version = match[1];
+              }
+              break;
+          }
+        } catch (e) {
+          // Ignore version extraction errors
+        }
+      }
+
+      results[framework] = {
+        weight: totalWeight,
+        signals: matchedSignals,
+        version
+      };
+    }
+
+    return results;
+  }, DETECTION_SIGNALS);
 
   // Find framework with highest weight
   // Priority order: SSR frameworks first, then base frameworks

@@ -202,7 +202,7 @@ export class BaseDiscoverer {
     const selectorString = selectors.join(', ');
     const baseOrigin = this.baseOrigin;
 
-    const routes = await this.page.evaluate((sel, origin) => {
+    const routes = await this.page.evaluate(({ sel, origin }) => {
       const links = [];
       const elements = document.querySelectorAll(sel);
 
@@ -230,7 +230,7 @@ export class BaseDiscoverer {
       });
 
       return links;
-    }, selectorString, baseOrigin);
+    }, { sel: selectorString, origin: baseOrigin });
 
     return routes.map(r => ({
       ...r,

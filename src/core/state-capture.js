@@ -224,7 +224,7 @@ function extractHoverSelectorsFromCss(cssString) {
  * @returns {Promise<InteractiveElement[]>} Array of interactive elements
  */
 async function detectInteractiveElementsFromDom(page) {
-  return await page.evaluate((selectors, maxScan, maxDepth) => {
+  return await page.evaluate(({ selectors, maxScan, maxDepth }) => {
     // Inline getUniqueSelector to avoid new Function()
     function getUniqueSelector(element) {
       if (element.id) return '#' + element.id;
@@ -316,7 +316,7 @@ async function detectInteractiveElementsFromDom(page) {
     }
 
     return results;
-  }, INTERACTIVE_SELECTORS, MAX_DOM_SCAN, MAX_SELECTOR_DEPTH);
+  }, { selectors: INTERACTIVE_SELECTORS, maxScan: MAX_DOM_SCAN, maxDepth: MAX_SELECTOR_DEPTH });
 }
 
 // ============================================================================
@@ -375,7 +375,7 @@ export async function detectInteractiveElements(page, cssString) {
  * @returns {Promise<Object<string, string>|null>} Style object or null
  */
 async function captureElementStyles(page, selector) {
-  return await page.evaluate((sel, props) => {
+  return await page.evaluate(({ sel, props }) => {
     const el = document.querySelector(sel);
     if (!el) return null;
 
@@ -385,7 +385,7 @@ async function captureElementStyles(page, selector) {
       result[prop] = style[prop];
     }
     return result;
-  }, selector, STYLE_PROPERTIES);
+  }, { sel: selector, props: STYLE_PROPERTIES });
 }
 
 /**

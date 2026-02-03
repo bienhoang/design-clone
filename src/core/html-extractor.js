@@ -39,7 +39,7 @@ export const CRITICAL_POSITION = ['absolute', 'fixed'];
  * @returns {Promise<{html: string, warnings: string[], elementCount: number}>}
  */
 export async function extractCleanHtml(page, frameworkPatterns = JS_FRAMEWORK_PATTERNS) {
-  return await page.evaluate((patterns, inlineProps, criticalDisplay, criticalPosition) => {
+  return await page.evaluate(({ patterns, inlineProps, criticalDisplay, criticalPosition }) => {
     const warnings = [];
 
     // Check DOM size
@@ -166,6 +166,10 @@ export async function extractCleanHtml(page, frameworkPatterns = JS_FRAMEWORK_PA
                  doc.innerHTML + '\n</html>';
 
     return { html, warnings, elementCount, inlinedCount };
-  }, frameworkPatterns.map(r => ({ source: r.source, flags: r.flags })),
-     INLINE_LAYOUT_PROPS, CRITICAL_DISPLAY, CRITICAL_POSITION);
+  }, {
+    patterns: frameworkPatterns.map(r => ({ source: r.source, flags: r.flags })),
+    inlineProps: INLINE_LAYOUT_PROPS,
+    criticalDisplay: CRITICAL_DISPLAY,
+    criticalPosition: CRITICAL_POSITION
+  });
 }
