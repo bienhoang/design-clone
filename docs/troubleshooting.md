@@ -20,14 +20,15 @@ sudo apt install chromium-browser
 export CHROME_PATH="/path/to/chrome"
 ```
 
-### Puppeteer launch fails
+### Playwright launch fails
 
 **Error:** `Failed to launch browser`
 
 **Solutions:**
-1. Install dependencies: `npm install puppeteer`
-2. Linux: Install required libs: `apt install libnss3 libatk1.0-0 libatk-bridge2.0-0`
-3. Run with `--no-sandbox` (Docker): Set `PUPPETEER_NO_SANDBOX=1`
+1. Install Playwright: `npm install playwright` (includes bundled browsers)
+   - Or lighter: `npm install playwright-core` (requires Chrome installed)
+2. Verify Chrome is installed or use full `playwright` package
+3. Docker: Already includes `--no-sandbox` flag automatically
 
 ## CSS Issues
 

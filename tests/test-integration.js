@@ -104,7 +104,7 @@ try {
   const browser = await import('../src/utils/browser.js');
   const providerName = browser.getProviderName();
 
-  assert(['unknown', 'chrome-devtools', 'standalone'].includes(providerName),
+  assert(['unknown', 'playwright'].includes(providerName),
     `Invalid provider name: ${providerName}`);
 
   console.log(`  ✓ PASSED (Provider: ${providerName})\n`);
@@ -152,7 +152,7 @@ try {
   const utilsDir = path.join(SRC_DIR, 'utils');
   assert(fs.existsSync(utilsDir), 'src/utils directory missing');
 
-  const files = ['helpers.js', 'puppeteer.js', 'browser.js', 'env.js'];
+  const files = ['helpers.js', 'playwright.js', 'browser.js', 'env.js'];
   for (const file of files) {
     const filePath = path.join(utilsDir, file);
     assert(fs.existsSync(filePath), `${file} missing`);

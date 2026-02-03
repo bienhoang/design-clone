@@ -64,8 +64,8 @@ design-clone/
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │              Browser Provider Selection                  │   │
 │  │  ┌─────────────────┐    ┌─────────────────────────┐    │   │
-│  │  │ chrome-devtools │ OR │ puppeteer.js (standalone)│    │   │
-│  │  │   (if exists)   │    │   (bundled fallback)    │    │   │
+│  │  │ chrome-devtools │ OR │ playwright.js (standalone)│   │   │
+│  │  │   (if exists)   │    │   (bundled fallback)     │   │   │
 │  │  └─────────────────┘    └─────────────────────────┘    │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
@@ -87,7 +87,7 @@ design-clone/
 ```
 src/utils/
 ├── browser.js      # Facade - auto-selects provider
-├── puppeteer.js    # Standalone Puppeteer wrapper
+├── playwright.js   # Standalone Playwright wrapper
 ├── helpers.js      # CLI utilities (parseArgs, outputJSON)
 ├── env.js          # Node.js env resolution
 └── env.py          # Python env resolution
@@ -95,22 +95,20 @@ src/utils/
 
 **browser.js** - Facade pattern for browser automation:
 ```javascript
-// Auto-detects chrome-devtools skill or falls back to standalone
+// Uses Playwright wrapper for browser automation
 async function initProvider() {
-  if (fs.existsSync(CHROME_DEVTOOLS_PATH)) {
-    browserModule = await import(CHROME_DEVTOOLS_PATH);
-    providerName = 'chrome-devtools';
-  } else {
-    browserModule = await import('./puppeteer.js');
-    providerName = 'standalone';
-  }
+  if (browserModule) return;
+
+  browserModule = await import('./playwright.js');
+  providerName = 'playwright';
+  console.error('[browser] Using Playwright wrapper');
 }
 ```
 
-**puppeteer.js** - Standalone browser wrapper:
+**playwright.js** - Standalone browser wrapper:
 - Cross-platform Chrome detection (macOS, Linux, Windows)
-- Session persistence via WebSocket endpoint caching
-- PID tracking for cleanup
+- Supports both full `playwright` and lighter `playwright-core`
+- Auto-detects Chrome executable path on all platforms
 
 ### 2. Environment Resolution
 
@@ -250,7 +248,7 @@ cloned-design/
 
 ### Node.js (package.json)
 - `css-tree`: CSS parsing and filtering
-- `puppeteer`: Browser automation (peerDep, optional)
+- `playwright` or `playwright-core`: Browser automation (peerDep, optional)
 
 ### Python (requirements.txt)
 - `google-genai`: Gemini AI for vision analysis

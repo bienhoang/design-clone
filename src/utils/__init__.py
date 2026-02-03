@@ -3,7 +3,7 @@ Design Clone skill library modules.
 
 JavaScript modules:
 - browser.js: Browser abstraction facade
-- puppeteer.js: Standalone Puppeteer wrapper
+- playwright.js: Playwright browser wrapper
 - utils.js: CLI utilities
 - env.js: Environment variable resolution
 

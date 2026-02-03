@@ -1,11 +1,9 @@
 /**
  * Browser abstraction facade for design-clone scripts
  *
- * Auto-detects and uses:
- * 1. chrome-devtools skill (if installed) - Preferred
- * 2. Standalone puppeteer wrapper - Fallback
+ * Uses Playwright wrapper for browser automation.
  *
- * Exports same API regardless of provider:
+ * Exports same API:
  * - getBrowser(options)
  * - getPage(browser)
  * - closeBrowser()
@@ -14,18 +12,6 @@
  * - outputJSON(data)
  * - outputError(error)
  */
-
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Chrome DevTools skill path
-const CHROME_DEVTOOLS_PATH = path.join(
-  process.env.HOME,
-  '.claude/skills/chrome-devtools/scripts/lib/browser.js'
-);
 
 let browserModule = null;
 let providerName = 'unknown';
@@ -36,22 +22,9 @@ let providerName = 'unknown';
 async function initProvider() {
   if (browserModule) return;
 
-  // Check for chrome-devtools skill
-  if (fs.existsSync(CHROME_DEVTOOLS_PATH)) {
-    try {
-      browserModule = await import(CHROME_DEVTOOLS_PATH);
-      providerName = 'chrome-devtools';
-      console.error('[browser] Using chrome-devtools skill');
-      return;
-    } catch (e) {
-      console.error('[browser] chrome-devtools found but failed to load:', e.message);
-    }
-  }
-
-  // Fall back to standalone puppeteer wrapper
-  browserModule = await import('./puppeteer.js');
-  providerName = 'standalone';
-  console.error('[browser] Using standalone puppeteer wrapper');
+  browserModule = await import('./playwright.js');
+  providerName = 'playwright';
+  console.error('[browser] Using Playwright wrapper');
 }
 
 // Import utilities (always use local helpers)
@@ -60,7 +33,7 @@ export { parseArgs, outputJSON, outputError };
 
 /**
  * Get current browser provider name
- * @returns {string} 'chrome-devtools' or 'standalone'
+ * @returns {string} 'playwright'
  */
 export function getProviderName() {
   return providerName;
@@ -79,15 +52,16 @@ export async function getBrowser(options = {}) {
 /**
  * Get page from browser
  * @param {Browser} browser - Browser instance
+ * @param {Object} [options] - Page options
  * @returns {Promise<Page>} Page instance
  */
-export async function getPage(browser) {
+export async function getPage(browser, options = {}) {
   await initProvider();
-  return browserModule.getPage(browser);
+  return browserModule.getPage(browser, options);
 }
 
 /**
- * Close browser and clear session
+ * Close browser
  */
 export async function closeBrowser() {
   await initProvider();
@@ -95,7 +69,7 @@ export async function closeBrowser() {
 }
 
 /**
- * Disconnect from browser without closing
+ * Disconnect from browser (alias for close in Playwright)
  */
 export async function disconnectBrowser() {
   await initProvider();
