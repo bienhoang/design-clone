@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-03
+
+### Added
+- **clone-site command** - Clone multiple pages from a website with shared CSS
+- **Filtered CSS merging** - Uses per-page filtered CSS instead of raw CSS for smaller output
+- `--ai` flag for Gemini-powered design token extraction
+- `cssFilesFiltered` tracking in multi-page-screenshot results
+- `design-tokens.js` wrapper for Python token extraction script
+- `tokens.css` injection in rewritten HTML pages
+- Page discovery with automatic link crawling
+- Link rewriting for local navigation between cloned pages
+
+### Changed
+- CSS links now use `../styles.css` path (pages in `pages/` subdirectory)
+- Clone process now has 6 steps (added token extraction step)
+- Help documentation updated with `--ai` flag
+
 ## [1.0.2] - 2026-02-03
 
 ### Fixed
