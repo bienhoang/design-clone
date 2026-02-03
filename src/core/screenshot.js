@@ -17,6 +17,10 @@
  *   --extract-html  Extract cleaned HTML (default: false)
  *   --extract-css   Extract all CSS from page (default: false)
  *   --filter-unused Filter CSS to remove unused selectors (default: true)
+ *   --capture-hover Capture hover state screenshots and CSS (default: false)
+ *   --video         Record scroll preview video (default: false)
+ *   --video-format  Video format: webm, mp4, gif (default: webm)
+ *   --video-duration Video duration in ms (default: 12000)
  */
 
 import path from 'path';
@@ -36,6 +40,7 @@ import { extractComponentDimensions } from './dimension-extractor.js';
 import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
 import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
 import { captureAllHoverStates, generateHoverCss } from './state-capture.js';
+import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from './video-capture.js';
 
 // Try to import Sharp for compression
 let sharp = null;
@@ -169,6 +174,11 @@ async function captureMultiViewport() {
   const extractCss = args['extract-css'] === 'true';
   const filterUnused = args['filter-unused'] !== 'false';
   const captureHover = args['capture-hover'] === 'true';
+  const captureVideoFlag = args['video'] === 'true';
+  const videoFormat = args['video-format'] || 'webm';
+  const videoDuration = args['video-duration']
+    ? parseInt(args['video-duration'], 10)
+    : 12000;
 
   for (const vp of requestedViewports) {
     if (!VIEWPORTS[vp]) {
@@ -425,6 +435,45 @@ async function captureMultiViewport() {
       screenshots.push(result);
     }
 
+    // Capture video (opt-in, after screenshots)
+    let videoResult = null;
+    if (captureVideoFlag) {
+      try {
+        // Check if ffmpeg is needed but not available
+        if (FFMPEG_REQUIRED_FORMATS.includes(videoFormat)) {
+          const hasFf = await hasFfmpeg();
+          if (!hasFf && process.stderr.isTTY) {
+            console.error(`[WARN] ffmpeg not found. Will output WebM instead of ${videoFormat}`);
+            console.error('[WARN] Install: npm install fluent-ffmpeg @ffmpeg-installer/ffmpeg');
+          }
+        }
+
+        // Use desktop viewport for video
+        await page.setViewport(VIEWPORTS.desktop);
+        await new Promise(r => setTimeout(r, 1000));
+
+        if (process.stderr.isTTY) {
+          console.error(`[INFO] Recording video (${videoDuration / 1000}s)...`);
+        }
+
+        videoResult = await captureVideo(page, args.output, {
+          format: videoFormat,
+          duration: videoDuration,
+          filename: 'preview'
+        });
+
+        if (process.stderr.isTTY) {
+          const outputFormat = videoResult.output.split('.').pop();
+          console.error(`[INFO] Video saved: ${outputFormat} (${(videoResult.duration / 1000).toFixed(1)}s)`);
+        }
+      } catch (error) {
+        if (process.stderr.isTTY) {
+          console.error(`[WARN] Video capture failed: ${error.message}`);
+        }
+        videoResult = { error: error.message, failed: true };
+      }
+    }
+
     // Build dimension output
     const allViewportDimensions = {};
     for (const screenshot of screenshots) {
@@ -462,6 +511,16 @@ async function captureMultiViewport() {
         summaryPath: hoverResult.summaryPath,
         generatedCss: hoverResult.generatedCss
       } : (hoverResult?.error ? { error: hoverResult.error } : undefined),
+      video: videoResult && !videoResult.failed ? {
+        path: videoResult.output,
+        format: videoResult.output.split('.').pop(),
+        duration: videoResult.duration,
+        pageHeight: videoResult.pageHeight,
+        webm: videoResult.webm,
+        mp4: videoResult.mp4,
+        gif: videoResult.gif,
+        conversionError: videoResult.conversionError
+      } : (videoResult?.error ? { error: videoResult.error } : undefined),
       componentDimensions: {
         full: path.resolve(dimensionsPath),
         summary: path.resolve(summaryPath),

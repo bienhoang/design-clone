@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-03
+
+### Added
+- **CSS Animation Extraction** - Extract @keyframes and transition properties from CSS
+  - `animations.css` output with preserved keyframe definitions
+  - `animation-tokens.json` with detailed animation metadata
+  - Enabled by default with `--extract-css`
+- **Hover State Capture** - Capture interactive element hover states
+  - `hover-states/` directory with before/after screenshots
+  - `hover.css` with generated :hover rules from style diffs
+  - CSS-based and DOM-based interactive element detection
+  - Enable with `--capture-hover` flag
+- **Video Recording** - Record scroll preview videos (opt-in)
+  - Native WebM output via Puppeteer screencast
+  - Optional MP4/GIF conversion with ffmpeg
+  - Configurable duration with `--video-duration`
+  - Enable with `--video` flag
+
+### New CLI Flags
+- `--extract-animations` - Extract @keyframes and transitions (default: true with --extract-css)
+- `--capture-hover` - Capture hover state screenshots and generate CSS
+- `--video` - Record scroll preview video (increases capture time 3-5x)
+- `--video-format` - Video output format: webm (default), mp4, gif
+- `--video-duration` - Video recording duration in ms (default: 12000)
+
+### New Modules
+- `src/core/animation-extractor.js` - CSS animation/transition extraction via css-tree AST
+- `src/core/state-capture.js` - Hover state detection and capture
+- `src/core/video-capture.js` - Puppeteer screencast with optional ffmpeg conversion
+
+### Dependencies
+- Optional: `fluent-ffmpeg` and `@ffmpeg-installer/ffmpeg` for video format conversion
+
 ## [1.1.1] - 2026-02-03
 
 ### Fixed
@@ -76,7 +109,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Video/animation capture support
-- Interactive element detection
 - Figma export format
 - Tailwind CSS class extraction
+- Animation timeline recording

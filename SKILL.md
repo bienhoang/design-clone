@@ -260,6 +260,73 @@ After generating HTML/CSS, verify these items using `ui-ux-pro-max` skill:
 | Shibui (渋い) | Subtle elegance | Soft shadows, gentle transitions |
 | Seijaku (静寂) | Tranquility | Calm colors, visual harmony |
 
+## Animation & Interaction Capture (v1.2+)
+
+### CSS Animations
+
+Automatically extracts @keyframes and transition properties when using `--extract-css`:
+
+```bash
+node src/core/screenshot.js --url https://example.com --output ./out --extract-css true
+```
+
+**Output:**
+- `animations.css` - All @keyframes definitions with frame data
+- `animation-tokens.json` - Detailed animation metadata (durations, timing functions)
+
+### Hover State Capture
+
+Capture interactive element hover states:
+
+```bash
+node src/core/screenshot.js --url https://example.com --output ./out --capture-hover
+```
+
+**Output:**
+- `hover-states/` - Before/after screenshots for each interactive element
+- `hover.css` - Generated :hover rules from computed style differences
+- `hover-diff.json` - Style diff data
+
+**Detection Methods:**
+1. CSS-based: Parses :hover selectors from extracted CSS
+2. DOM-based: Queries buttons, links, and interactive elements
+
+### Video Recording
+
+Record scroll preview video (opt-in due to 3-5x capture time increase):
+
+```bash
+# WebM (native, no extra deps)
+node src/core/screenshot.js --url https://example.com --output ./out --video
+
+# MP4 (requires ffmpeg)
+node src/core/screenshot.js --url https://example.com --output ./out --video --video-format mp4
+
+# GIF (requires ffmpeg)
+node src/core/screenshot.js --url https://example.com --output ./out --video --video-format gif
+
+# Custom duration (default: 12000ms)
+node src/core/screenshot.js --url https://example.com --output ./out --video --video-duration 8000
+```
+
+**Output:**
+- `preview.webm` (default) or `preview.mp4` / `preview.gif`
+
+**ffmpeg Setup (for MP4/GIF):**
+```bash
+npm install fluent-ffmpeg @ffmpeg-installer/ffmpeg
+```
+
+### Feature Flags Reference
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--extract-animations` | true (with --extract-css) | Extract @keyframes and transitions |
+| `--capture-hover` | false | Capture hover state screenshots |
+| `--video` | false | Record scroll preview video |
+| `--video-format` | webm | Video format: webm, mp4, gif |
+| `--video-duration` | 12000 | Video duration in ms |
+
 ## Environment Variables
 
 Create `.env` file (see `.env.example`):
@@ -274,7 +341,9 @@ GEMINI_API_KEY=your-key    # Optional: enables AI structure analysis
 |--------|----------|---------|
 | screenshot.js | src/core/ | Capture screenshots + extract HTML/CSS |
 | filter-css.js | src/core/ | Filter unused CSS rules |
+| animation-extractor.js | src/core/ | Extract @keyframes and transitions from CSS |
 | state-capture.js | src/core/ | Capture hover states for interactive elements |
+| video-capture.js | src/core/ | Record scroll preview video with optional ffmpeg conversion |
 | extract-assets.js | src/core/ | Download images, fonts, icons |
 | discover-pages.js | src/core/ | Discover navigation links |
 | multi-page-screenshot.js | src/core/ | Capture multiple pages |
