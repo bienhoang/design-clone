@@ -1,8 +1,8 @@
 /**
  * Video Capture Module
  *
- * Record scrolling interactions and CSS animations using Puppeteer's
- * page.screencast(). Optionally convert WebM to MP4/GIF using ffmpeg.
+ * Record scrolling interactions and CSS animations using Playwright's
+ * context-level video recording. Optionally convert WebM to MP4/GIF using ffmpeg.
  *
  * Usage:
  *   import { captureVideo, hasFfmpeg } from './video-capture.js';
@@ -37,6 +37,9 @@ const MAX_SCROLL_STEPS = 100;
 /** Viewport overlap fraction for scroll step calculation */
 const VIEWPORT_OVERLAP_FRACTION = 0.5;
 
+/** Default viewport for video recording */
+const DEFAULT_VIDEO_VIEWPORT = { width: 1440, height: 900 };
+
 // ============================================================================
 // Type Definitions (JSDoc)
 // ============================================================================
@@ -47,6 +50,7 @@ const VIEWPORT_OVERLAP_FRACTION = 0.5;
  * @property {number} [scrollPauseMs=50] - Pause between scroll steps for smoothness
  * @property {number} [holdTopMs=500] - Hold time at page top
  * @property {number} [holdBottomMs=500] - Hold time at page bottom
+ * @property {{width: number, height: number}} [viewport] - Viewport dimensions
  */
 
 /**
@@ -123,10 +127,7 @@ async function initFfmpeg() {
     ffmpeg = false;
 
     const isModuleNotFound = importError.code === 'ERR_MODULE_NOT_FOUND';
-    if (isModuleNotFound) {
-      // Expected case: optional dependency not installed
-      // Don't log anything - hasFfmpeg() will handle messaging
-    } else {
+    if (!isModuleNotFound) {
       // Unexpected error
       console.error(
         '[video-capture] ffmpeg initialization error:',
@@ -142,11 +143,6 @@ async function initFfmpeg() {
  * Check if ffmpeg is available for video conversion.
  *
  * @returns {Promise<boolean>} True if ffmpeg dependencies are available
- *
- * @example
- * if (await hasFfmpeg()) {
- *   await convertToMp4(webmPath, mp4Path);
- * }
  */
 export async function hasFfmpeg() {
   return await initFfmpeg();
@@ -171,13 +167,17 @@ function log(message) {
 // ============================================================================
 
 /**
- * Validate page object
- * @param {Object} page - Puppeteer page object
+ * Validate page object (Playwright page)
+ * @param {import('playwright').Page} page - Playwright page object
  * @throws {TypeError} If page is invalid
  */
 function validatePage(page) {
   if (!page || typeof page.evaluate !== 'function') {
-    throw new TypeError('Invalid page object: must be a Puppeteer page');
+    throw new TypeError('Invalid page object: must be a Playwright page');
+  }
+  // Playwright-specific check
+  if (typeof page.context !== 'function') {
+    throw new TypeError('Invalid page object: missing context() method');
   }
 }
 
@@ -193,129 +193,134 @@ function validatePath(outputPath) {
 }
 
 // ============================================================================
-// Scroll Recording
+// Scroll Recording (Playwright Context-Level Video)
 // ============================================================================
 
 /**
- * Record page scroll interaction from top to bottom and back.
+ * Record page scroll interaction using Playwright context-level video.
  *
- * Uses Puppeteer's page.screencast() to capture the viewport as the page
- * scrolls. Creates smooth animation by calculating scroll steps based on
- * page height and desired duration.
+ * Creates a new browser context with video recording enabled, navigates to
+ * the page URL, performs scroll animation, then closes to finalize video.
  *
- * @param {Object} page - Puppeteer page object
- * @param {string} outputPath - Path for WebM output file
+ * @param {import('playwright').Browser} browser - Playwright browser instance
+ * @param {string} pageUrl - URL to navigate and record
+ * @param {string} outputDir - Directory for video output
  * @param {RecordOptions} [options={}] - Recording options
  * @returns {Promise<RecordResult>} Recording result with metadata
- *
- * @example
- * const result = await recordScroll(page, '/tmp/preview.webm', {
- *   duration: 8000,
- *   holdTopMs: 1000
- * });
- * console.log(`Recorded ${result.scrollSteps} scroll steps`);
  */
-export async function recordScroll(page, outputPath, options = {}) {
-  validatePage(page);
-  validatePath(outputPath);
+export async function recordScroll(browser, pageUrl, outputDir, options = {}) {
+  if (!browser || typeof browser.newContext !== 'function') {
+    throw new TypeError('Invalid browser: must be a Playwright browser instance');
+  }
+  validatePath(outputDir);
 
   const {
     duration = DEFAULT_DURATION,
     scrollPauseMs = 50,
     holdTopMs = DEFAULT_HOLD_MS,
-    holdBottomMs = DEFAULT_HOLD_MS
+    holdBottomMs = DEFAULT_HOLD_MS,
+    viewport = DEFAULT_VIDEO_VIEWPORT
   } = options;
 
-  // Get viewport dimensions (H2: validate viewport exists)
-  const viewport = page.viewportSize();
-  if (!viewport || !viewport.height) {
-    throw new Error(
-      'Page viewport not initialized. Call page.setViewportSize() before recording.'
-    );
-  }
-  const viewportHeight = viewport.height;
+  // Create context with video recording enabled
+  const context = await browser.newContext({
+    recordVideo: {
+      dir: outputDir,
+      size: viewport
+    },
+    viewport
+  });
 
-  // Get total page height
-  const totalHeight = await page.evaluate(() =>
-    Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight
-    )
-  );
-
-  // Calculate scroll parameters
-  const scrollDistance = Math.max(0, totalHeight - viewportHeight);
-
-  // M1: Handle zero-height/single-screen pages
-  const isScrollable = scrollDistance > 0;
-
-  // M2: Cap scroll steps to prevent memory exhaustion on very large pages
-  const rawScrollSteps = isScrollable
-    ? Math.ceil(scrollDistance / (viewportHeight * VIEWPORT_OVERLAP_FRACTION))
-    : 0;
-  const scrollSteps = Math.min(rawScrollSteps, MAX_SCROLL_STEPS);
-
-  // Distribute time: hold times + scroll down + scroll up
-  const scrollTime = duration - holdTopMs - holdBottomMs;
-  const scrollDelay = scrollSteps > 0
-    ? Math.max(scrollPauseMs, Math.floor(scrollTime / (scrollSteps * 2)))
-    : 0;
-
-  // Ensure page is at top
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-  await new Promise(r => setTimeout(r, 200));
-
-  // Start recording
-  const recorder = await page.screencast({ path: outputPath });
+  const page = await context.newPage();
   const startTime = Date.now();
 
-  // Hold at top
-  await new Promise(r => setTimeout(r, holdTopMs));
+  try {
+    // Navigate to page
+    await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 30000 });
 
-  // Only scroll if page is scrollable (M1: skip no-op scrolls)
-  if (isScrollable && scrollSteps > 0) {
-    // Scroll down
-    for (let i = 1; i <= scrollSteps; i++) {
-      const y = (i / scrollSteps) * scrollDistance;
-      await page.evaluate(
-        (scrollY) => window.scrollTo({ top: scrollY, behavior: 'instant' }),
-        y
-      );
-      await new Promise(r => setTimeout(r, scrollDelay));
-    }
+    // Get page dimensions
+    const totalHeight = await page.evaluate(() =>
+      Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+    );
 
-    // Hold at bottom
-    await new Promise(r => setTimeout(r, holdBottomMs));
+    const viewportHeight = viewport.height;
+    const scrollDistance = Math.max(0, totalHeight - viewportHeight);
+    const isScrollable = scrollDistance > 0;
 
-    // Scroll back up
-    for (let i = scrollSteps - 1; i >= 0; i--) {
-      const y = (i / scrollSteps) * scrollDistance;
-      await page.evaluate(
-        (scrollY) => window.scrollTo({ top: scrollY, behavior: 'instant' }),
-        y
-      );
-      await new Promise(r => setTimeout(r, scrollDelay));
-    }
+    const rawScrollSteps = isScrollable
+      ? Math.ceil(scrollDistance / (viewportHeight * VIEWPORT_OVERLAP_FRACTION))
+      : 0;
+    const scrollSteps = Math.min(rawScrollSteps, MAX_SCROLL_STEPS);
+
+    const scrollTime = duration - holdTopMs - holdBottomMs;
+    const scrollDelay = scrollSteps > 0
+      ? Math.max(scrollPauseMs, Math.floor(scrollTime / (scrollSteps * 2)))
+      : 0;
+
+    // Ensure at top
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await new Promise(r => setTimeout(r, 200));
 
     // Hold at top
     await new Promise(r => setTimeout(r, holdTopMs));
-  } else {
-    // Single-screen page: just hold for the duration
-    await new Promise(r => setTimeout(r, scrollTime + holdBottomMs));
+
+    if (isScrollable && scrollSteps > 0) {
+      // Scroll down
+      for (let i = 1; i <= scrollSteps; i++) {
+        const y = (i / scrollSteps) * scrollDistance;
+        await page.evaluate(scrollY => window.scrollTo({ top: scrollY, behavior: 'instant' }), y);
+        await new Promise(r => setTimeout(r, scrollDelay));
+      }
+
+      // Hold at bottom
+      await new Promise(r => setTimeout(r, holdBottomMs));
+
+      // Scroll back up
+      for (let i = scrollSteps - 1; i >= 0; i--) {
+        const y = (i / scrollSteps) * scrollDistance;
+        await page.evaluate(scrollY => window.scrollTo({ top: scrollY, behavior: 'instant' }), y);
+        await new Promise(r => setTimeout(r, scrollDelay));
+      }
+
+      // Hold at top
+      await new Promise(r => setTimeout(r, holdTopMs));
+    } else {
+      // Single-screen: hold for duration
+      await new Promise(r => setTimeout(r, scrollTime + holdBottomMs));
+    }
+
+    const actualDuration = Date.now() - startTime;
+
+    // IMPORTANT: Close page before getting video path (Playwright requirement)
+    await page.close();
+
+    // Get video path (only available after page close)
+    const video = page.video();
+    const videoPath = video ? await video.path() : null;
+
+    // Cleanup context
+    await context.close();
+
+    if (!videoPath) {
+      throw new Error('Video recording failed - no path returned');
+    }
+
+    return {
+      path: videoPath,
+      format: 'webm',
+      duration: actualDuration,
+      scrollSteps,
+      pageHeight: totalHeight
+    };
+
+  } catch (error) {
+    // Cleanup on error
+    try {
+      await page.close().catch(() => {});
+      await context.close().catch(() => {});
+    } catch { /* ignore cleanup errors */ }
+    throw error;
   }
-
-  // Stop recording
-  await recorder.stop();
-
-  const actualDuration = Date.now() - startTime;
-
-  return {
-    path: outputPath,
-    format: 'webm',
-    duration: actualDuration,
-    scrollSteps,
-    pageHeight: totalHeight
-  };
 }
 
 // ============================================================================
@@ -335,9 +340,6 @@ export async function recordScroll(page, outputPath, options = {}) {
  * @param {string} outputPath - Path for MP4 output
  * @returns {Promise<ConvertResult>} Conversion result
  * @throws {Error} If ffmpeg is not available or conversion fails
- *
- * @example
- * const result = await convertToMp4('/tmp/preview.webm', '/tmp/preview.mp4');
  */
 export async function convertToMp4(inputPath, outputPath) {
   validatePath(inputPath);
@@ -380,12 +382,6 @@ export async function convertToMp4(inputPath, outputPath) {
  * @param {number} [options.width=640] - Output width (height auto-calculated)
  * @returns {Promise<ConvertResult>} Conversion result
  * @throws {Error} If ffmpeg is not available or conversion fails
- *
- * @example
- * const result = await convertToGif('/tmp/preview.webm', '/tmp/preview.gif', {
- *   fps: 15,
- *   width: 800
- * });
  */
 export async function convertToGif(inputPath, outputPath, options = {}) {
   validatePath(inputPath);
@@ -432,11 +428,10 @@ export async function convertToGif(inputPath, outputPath, options = {}) {
 
     return { path: outputPath, format: 'gif' };
   } finally {
-    // H1: Cleanup palette file with debug logging for failures
+    // Cleanup palette file
     try {
       await fs.unlink(palettePath);
     } catch (cleanupErr) {
-      // Log cleanup failures in debug mode (when process.env.DEBUG is set)
       if (process.env.DEBUG) {
         console.error(`[video-capture] Palette cleanup failed: ${cleanupErr.message}`);
       }
@@ -451,25 +446,14 @@ export async function convertToGif(inputPath, outputPath, options = {}) {
 /**
  * Capture video of page scroll interaction.
  *
- * Records page scrolling and optionally converts to MP4 or GIF.
- * WebM is always created first (native Puppeteer screencast format).
+ * Creates a new browser context for recording (Playwright requirement),
+ * records page scrolling, and optionally converts to MP4 or GIF.
+ * WebM is always created first (native Playwright format).
  *
- * @param {Object} page - Puppeteer page object
+ * @param {import('playwright').Page} page - Playwright page (used for browser reference and URL)
  * @param {string} outputDir - Directory for output files
  * @param {CaptureOptions} [options={}] - Capture options
  * @returns {Promise<CaptureResult>} Capture result with file paths
- *
- * @example
- * // WebM only (no ffmpeg needed)
- * const result = await captureVideo(page, './output', { format: 'webm' });
- *
- * @example
- * // MP4 with custom duration
- * const result = await captureVideo(page, './output', {
- *   format: 'mp4',
- *   duration: 15000,
- *   filename: 'scroll-demo'
- * });
  */
 export async function captureVideo(page, outputDir, options = {}) {
   validatePage(page);
@@ -481,28 +465,50 @@ export async function captureVideo(page, outputDir, options = {}) {
     filename = 'preview'
   } = options;
 
-  const webmPath = path.join(outputDir, `${filename}.webm`);
+  // Get browser and current URL from page
+  const browser = page.context().browser();
+  const pageUrl = page.url();
+  const viewport = page.viewportSize() || DEFAULT_VIDEO_VIEWPORT;
 
-  // Record WebM
+  if (!browser) {
+    throw new Error('Cannot get browser from page. Ensure page has browser context.');
+  }
+
+  // Record using new context (Playwright context-level video)
   log('[video] Recording scroll...');
-  const recordResult = await recordScroll(page, webmPath, { duration });
+  const recordResult = await recordScroll(browser, pageUrl, outputDir, {
+    duration,
+    viewport
+  });
   log(`[video] Recorded ${(recordResult.duration / 1000).toFixed(1)}s`);
+
+  // Rename video file to expected name (Playwright auto-generates random name)
+  const expectedPath = path.join(outputDir, `${filename}.webm`);
+  if (recordResult.path !== expectedPath) {
+    try {
+      await fs.rename(recordResult.path, expectedPath);
+      recordResult.path = expectedPath;
+    } catch (renameErr) {
+      // If rename fails, keep original path
+      log(`[video] Could not rename video: ${renameErr.message}`);
+    }
+  }
 
   /** @type {CaptureResult} */
   const result = {
-    webm: webmPath,
+    webm: recordResult.path,
     duration: recordResult.duration,
     pageHeight: recordResult.pageHeight,
-    output: webmPath
+    output: recordResult.path
   };
 
-  // Convert if needed
+  // Convert if needed (ffmpeg logic unchanged)
   if (format === 'mp4') {
     const mp4Path = path.join(outputDir, `${filename}.mp4`);
     log('[video] Converting to MP4...');
 
     try {
-      await convertToMp4(webmPath, mp4Path);
+      await convertToMp4(recordResult.path, mp4Path);
       result.mp4 = mp4Path;
       result.output = mp4Path;
       log('[video] MP4 conversion complete');
@@ -515,7 +521,7 @@ export async function captureVideo(page, outputDir, options = {}) {
     log('[video] Converting to GIF...');
 
     try {
-      await convertToGif(webmPath, gifPath);
+      await convertToGif(recordResult.path, gifPath);
       result.gif = gifPath;
       result.output = gifPath;
       log('[video] GIF conversion complete');
