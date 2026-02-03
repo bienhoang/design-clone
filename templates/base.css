@@ -1,0 +1,705 @@
+/**
+ * Base Styles - Design Clone Template
+ *
+ * Japanese Design Principles:
+ * - Ma (間) - Negative space, breathing room
+ * - Kanso (簡素) - Simplicity, elimination of clutter
+ * - Shibui (渋い) - Subtle, understated elegance
+ * - Seijaku (静寂) - Tranquility, calm atmosphere
+ *
+ * Uses CSS Variables from tokens.css
+ * Follows BEM naming convention
+ * Mobile-first responsive approach
+ */
+
+/* ==========================================================================
+   Reset & Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+}
+
+body.no-scroll {
+  overflow: hidden;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+  object-fit: cover;
+}
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+
+@media (min-width: 768px) {
+  h1 { font-size: var(--font-size-4xl); }
+  h2 { font-size: var(--font-size-3xl); }
+  h3 { font-size: var(--font-size-2xl); }
+}
+
+p {
+  margin-bottom: var(--space-4);
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-accent);
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ==========================================================================
+   Buttons - With Font Awesome Icons
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn i {
+  font-size: 0.9em;
+}
+
+.btn--primary {
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.btn--primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn--secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+.btn--lg {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-base);
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  height: 60px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.header__logo:hover {
+  color: var(--color-primary);
+}
+
+.header__logo-icon {
+  font-size: 1.25em;
+  color: var(--color-primary);
+}
+
+.header__nav {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .header__nav {
+    display: block;
+  }
+}
+
+.nav__list {
+  display: flex;
+  gap: var(--space-6);
+}
+
+.nav__link {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  transition: color 0.2s ease;
+}
+
+.nav__link:hover {
+  color: var(--color-primary);
+}
+
+.header__cta {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .header__cta {
+    display: inline-flex;
+  }
+}
+
+.header__menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-xl);
+}
+
+@media (min-width: 1024px) {
+  .header__menu-toggle {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Mobile Navigation
+   ========================================================================== */
+
+.mobile-nav {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-background);
+  z-index: 90;
+  padding: var(--space-6) var(--space-4);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.mobile-nav.is-active {
+  transform: translateX(0);
+}
+
+.mobile-nav__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.mobile-nav__link {
+  display: block;
+  padding: var(--space-4);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  transition: color 0.2s ease;
+}
+
+.mobile-nav__link:hover {
+  color: var(--color-primary);
+}
+
+.mobile-nav__cta {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Main Content
+   ========================================================================== */
+
+.main {
+  padding-top: 60px; /* Header height */
+}
+
+/* ==========================================================================
+   Hero Section - Ma (negative space)
+   ========================================================================== */
+
+.hero {
+  padding: var(--space-12) var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .hero {
+    padding: var(--space-16) var(--space-4);
+  }
+}
+
+.hero__container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .hero__container {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-12);
+  }
+}
+
+.hero__content {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .hero__content {
+    text-align: left;
+  }
+}
+
+.hero__title {
+  margin-bottom: var(--space-4);
+}
+
+.hero__subtitle {
+  max-width: 500px;
+  margin: 0 auto var(--space-8);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+@media (min-width: 768px) {
+  .hero__subtitle {
+    margin-left: 0;
+  }
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .hero__actions {
+    justify-content: flex-start;
+  }
+}
+
+.hero__image {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.hero__image img {
+  width: 100%;
+  aspect-ratio: 4/3;
+}
+
+/* ==========================================================================
+   Features Section - Kanso (simplicity)
+   ========================================================================== */
+
+.features {
+  padding: var(--space-16) var(--space-4);
+  background-color: var(--color-surface);
+}
+
+.features__container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.features__title {
+  text-align: center;
+  margin-bottom: var(--space-2);
+}
+
+.features__subtitle {
+  text-align: center;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-12);
+}
+
+.features__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .features__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+.feature-card {
+  padding: var(--space-8);
+  background-color: var(--color-background);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-4);
+  color: var(--color-primary);
+  font-size: 2rem;
+}
+
+.feature-card__title {
+  margin-bottom: var(--space-3);
+}
+
+.feature-card__description {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ==========================================================================
+   About Section - Shibui (understated elegance)
+   ========================================================================== */
+
+.about {
+  padding: var(--space-16) var(--space-4);
+}
+
+.about__container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .about__container {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-12);
+  }
+}
+
+.about__title {
+  margin-bottom: var(--space-4);
+}
+
+.about__text {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+  line-height: var(--line-height-relaxed);
+}
+
+.about__image {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.about__image img {
+  width: 100%;
+  aspect-ratio: 4/3;
+}
+
+/* ==========================================================================
+   CTA Section - Seijaku (tranquility)
+   ========================================================================== */
+
+.cta-section {
+  padding: var(--space-16) var(--space-4);
+  background-color: var(--color-primary);
+  color: #fff;
+  text-align: center;
+}
+
+.cta-section__container {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.cta-section__title {
+  color: #fff;
+  margin-bottom: var(--space-3);
+}
+
+.cta-section__subtitle {
+  opacity: 0.9;
+  margin-bottom: var(--space-8);
+  font-size: var(--font-size-lg);
+}
+
+.cta-section__button {
+  background-color: #fff;
+  color: var(--color-primary);
+  border-color: #fff;
+}
+
+.cta-section__button:hover {
+  opacity: 0.95;
+  background-color: #fff;
+  color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+.footer {
+  padding: var(--space-12) var(--space-4) var(--space-6);
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.footer__container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .footer__grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: var(--space-12);
+  }
+}
+
+.footer__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+  margin-bottom: var(--space-4);
+}
+
+.footer__logo:hover {
+  color: var(--color-secondary);
+}
+
+.footer__logo i {
+  color: var(--color-primary);
+}
+
+.footer__tagline {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+  line-height: var(--line-height-relaxed);
+}
+
+.footer__social {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.footer__social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-lg);
+  border-radius: var(--radius-full);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.footer__social-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.footer__heading {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  margin-bottom: var(--space-4);
+}
+
+.footer__links li {
+  margin-bottom: var(--space-2);
+}
+
+.footer__link {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-sm);
+  transition: color 0.2s ease;
+}
+
+.footer__link:hover {
+  color: #fff;
+}
+
+.footer__bottom {
+  padding-top: var(--space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.footer__copyright {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: var(--font-size-xs);
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .header,
+  .footer__social,
+  .btn,
+  .mobile-nav {
+    display: none;
+  }
+
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+}

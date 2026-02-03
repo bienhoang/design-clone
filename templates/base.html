@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Generated design clone">
+  <title>Cloned Design</title>
+
+  <!-- Google Fonts - Replace with detected fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header__container">
+      <a href="/" class="header__logo">
+        <i class="fa-solid fa-feather-pointed header__logo-icon"></i>
+        <span>Logo</span>
+      </a>
+
+      <nav class="header__nav">
+        <ul class="nav__list">
+          <li class="nav__item"><a href="#" class="nav__link">Home</a></li>
+          <li class="nav__item"><a href="#features" class="nav__link">Features</a></li>
+          <li class="nav__item"><a href="#about" class="nav__link">About</a></li>
+          <li class="nav__item"><a href="#contact" class="nav__link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <a href="#" class="header__cta btn btn--primary">
+        <i class="fa-solid fa-paper-plane"></i>
+        Get Started
+      </a>
+
+      <button class="header__menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation -->
+  <div class="mobile-nav" aria-hidden="true">
+    <nav class="mobile-nav__inner">
+      <ul class="mobile-nav__list">
+        <li><a href="#" class="mobile-nav__link">Home</a></li>
+        <li><a href="#features" class="mobile-nav__link">Features</a></li>
+        <li><a href="#about" class="mobile-nav__link">About</a></li>
+        <li><a href="#contact" class="mobile-nav__link">Contact</a></li>
+      </ul>
+      <a href="#" class="mobile-nav__cta btn btn--primary">
+        <i class="fa-solid fa-paper-plane"></i>
+        Get Started
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero__container">
+        <div class="hero__content">
+          <h1 class="hero__title">Welcome to Our Platform</h1>
+          <p class="hero__subtitle">
+            A brief description of what this website offers and why visitors should stay.
+          </p>
+          <div class="hero__actions">
+            <a href="#" class="hero__cta btn btn--primary btn--lg">
+              <i class="fa-solid fa-rocket"></i>
+              Primary Action
+            </a>
+            <a href="#" class="hero__cta btn btn--secondary btn--lg">
+              <i class="fa-solid fa-circle-info"></i>
+              Learn More
+            </a>
+          </div>
+        </div>
+        <div class="hero__image">
+          <!-- Direct Unsplash URL - no API needed -->
+          <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop&q=80"
+               alt="Hero image"
+               loading="eager">
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <div class="features__container">
+        <h2 class="features__title">Our Features</h2>
+        <p class="features__subtitle">Discover what makes us different</p>
+
+        <div class="features__grid">
+          <article class="feature-card">
+            <div class="feature-card__icon">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <h3 class="feature-card__title">Feature One</h3>
+            <p class="feature-card__description">
+              Brief description of this feature and its benefits.
+            </p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-card__icon">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <h3 class="feature-card__title">Feature Two</h3>
+            <p class="feature-card__description">
+              Brief description of this feature and its benefits.
+            </p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-card__icon">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h3 class="feature-card__title">Feature Three</h3>
+            <p class="feature-card__description">
+              Brief description of this feature and its benefits.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+      <div class="about__container">
+        <div class="about__content">
+          <h2 class="about__title">About Us</h2>
+          <p class="about__text">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+            tempor incididunt ut labore et dolore magna aliqua.
+          </p>
+          <a href="#" class="about__cta btn btn--primary">
+            <i class="fa-solid fa-arrow-right"></i>
+            Learn More
+          </a>
+        </div>
+        <div class="about__image">
+          <!-- Direct Unsplash URL - no API needed -->
+          <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=450&fit=crop&q=80"
+               alt="About us"
+               loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+      <div class="cta-section__container">
+        <h2 class="cta-section__title">Ready to Get Started?</h2>
+        <p class="cta-section__subtitle">Join thousands of satisfied customers today.</p>
+        <a href="#" class="cta-section__button btn btn--primary btn--lg">
+          <i class="fa-solid fa-bolt"></i>
+          Start Free Trial
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__grid">
+        <!-- Brand Column -->
+        <div class="footer__column footer__column--brand">
+          <a href="/" class="footer__logo">
+            <i class="fa-solid fa-feather-pointed"></i>
+            <span>Logo</span>
+          </a>
+          <p class="footer__tagline">
+            Brief company description or tagline goes here.
+          </p>
+          <div class="footer__social">
+            <a href="#" class="footer__social-link" aria-label="Twitter">
+              <i class="fa-brands fa-x-twitter"></i>
+            </a>
+            <a href="#" class="footer__social-link" aria-label="LinkedIn">
+              <i class="fa-brands fa-linkedin-in"></i>
+            </a>
+            <a href="#" class="footer__social-link" aria-label="GitHub">
+              <i class="fa-brands fa-github"></i>
+            </a>
+            <a href="#" class="footer__social-link" aria-label="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Links Columns -->
+        <div class="footer__column">
+          <h4 class="footer__heading">Product</h4>
+          <ul class="footer__links">
+            <li><a href="#" class="footer__link">Features</a></li>
+            <li><a href="#" class="footer__link">Pricing</a></li>
+            <li><a href="#" class="footer__link">Documentation</a></li>
+            <li><a href="#" class="footer__link">Changelog</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__column">
+          <h4 class="footer__heading">Company</h4>
+          <ul class="footer__links">
+            <li><a href="#" class="footer__link">About</a></li>
+            <li><a href="#" class="footer__link">Blog</a></li>
+            <li><a href="#" class="footer__link">Careers</a></li>
+            <li><a href="#" class="footer__link">Contact</a></li>
+          </ul>
+        </div>
+
+        <div class="footer__column">
+          <h4 class="footer__heading">Legal</h4>
+          <ul class="footer__links">
+            <li><a href="#" class="footer__link">Privacy</a></li>
+            <li><a href="#" class="footer__link">Terms</a></li>
+            <li><a href="#" class="footer__link">Cookie Policy</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p class="footer__copyright">
+          &copy; 2026 Company Name. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    const toggle = document.querySelector('.header__menu-toggle');
+    const mobileNav = document.querySelector('.mobile-nav');
+    const mobileLinks = document.querySelectorAll('.mobile-nav__link, .mobile-nav__cta');
+
+    toggle?.addEventListener('click', () => {
+      const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', !isExpanded);
+      toggle.classList.toggle('is-active');
+      mobileNav.classList.toggle('is-active');
+      mobileNav.setAttribute('aria-hidden', isExpanded);
+      document.body.classList.toggle('no-scroll');
+
+      // Toggle icon
+      const icon = toggle.querySelector('i');
+      icon.classList.toggle('fa-bars');
+      icon.classList.toggle('fa-xmark');
+    });
+
+    // Close mobile menu on link click
+    mobileLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.classList.remove('is-active');
+        mobileNav.classList.remove('is-active');
+        mobileNav.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('no-scroll');
+
+        const icon = toggle.querySelector('i');
+        icon.classList.add('fa-bars');
+        icon.classList.remove('fa-xmark');
+      });
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        if (href === '#') return;
+
+        const target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

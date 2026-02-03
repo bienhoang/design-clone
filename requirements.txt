@@ -1,0 +1,5 @@
+# Design Clone Skill - Python Dependencies
+# Install: pip install -r requirements.txt
+
+# Gemini AI for structure analysis and token extraction
+google-genai>=1.0.0

@@ -1,0 +1,57 @@
+{
+  "name": "design-clone-skill",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis",
+  "bin": {
+    "design-clone": "./bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "templates/",
+    "docs/",
+    "SKILL.md",
+    "requirements.txt",
+    ".env.example"
+  ],
+  "scripts": {
+    "screenshot": "node src/core/screenshot.js",
+    "filter-css": "node src/core/filter-css.js",
+    "extract-assets": "node src/core/extract-assets.js",
+    "verify-menu": "node src/verification/verify-menu.js",
+    "verify-layout": "node src/verification/verify-layout.js",
+    "test": "node tests/run-all-tests.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "skill",
+    "design",
+    "clone",
+    "screenshot",
+    "puppeteer",
+    "gemini",
+    "website"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/design-clone-skill"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "css-tree": "^2.3.1"
+  },
+  "peerDependencies": {
+    "puppeteer": ">=21.0.0"
+  },
+  "peerDependenciesMeta": {
+    "puppeteer": {
+      "optional": true
+    }
+  }
+}
