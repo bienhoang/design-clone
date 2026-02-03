@@ -18,6 +18,7 @@ const tests = [
   { name: 'state-capture.js tests', cmd: 'node', args: ['test-state-capture.js'] },
   { name: 'video-capture.js tests', cmd: 'node', args: ['test-video-capture.js'] },
   { name: 'framework-detector.js tests', cmd: 'node', args: ['test-framework-detector.js'] },
+  { name: 'route-discoverers tests', cmd: 'node', args: ['test-route-discoverers.js'] },
   { name: 'Python imports tests', cmd: 'python3', args: ['test-python-imports.py'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
   { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] }
