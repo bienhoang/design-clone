@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-02-03
+
+### Fixed
+- `design-clone init` now installs `/design:clone-site` slash command to `~/.claude/commands/`
+- Updated success message to list all available slash commands
+
+### Added
+- `commands/design/clone-site.md` slash command file included in npm package
+
 ## [1.1.0] - 2026-02-03
 
 ### Added

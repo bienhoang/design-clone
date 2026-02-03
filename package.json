@@ -1,6 +1,6 @@
 {
   "name": "design-clone",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis",
   "bin": {
@@ -9,6 +9,7 @@
   "files": [
     "bin/",
     "src/",
+    "commands/",
     "templates/",
     "docs/",
     "SKILL.md",

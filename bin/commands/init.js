@@ -17,6 +17,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_SOURCE = path.resolve(__dirname, '../..');
 // Destination: ~/.claude/skills/design-clone
 const getSkillDest = () => path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude/skills/design-clone');
+// Commands destination: ~/.claude/commands/design/
+const getCommandsDest = () => path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude/commands/design');
 
 /**
  * Install skill to Claude Code skills directory
@@ -93,6 +95,29 @@ export async function init(args) {
     process.exit(1);
   }
 
+  // Copy slash commands to ~/.claude/commands/design/
+  console.log('Installing slash commands...');
+  try {
+    const COMMANDS_DEST = getCommandsDest();
+    const COMMANDS_SOURCE = path.join(SKILL_SOURCE, 'commands/design');
+
+    // Ensure commands directory exists
+    await fs.mkdir(COMMANDS_DEST, { recursive: true });
+
+    // Copy command files
+    const commandFiles = await fs.readdir(COMMANDS_SOURCE).catch(() => []);
+    for (const file of commandFiles) {
+      if (file.endsWith('.md')) {
+        const src = path.join(COMMANDS_SOURCE, file);
+        const dest = path.join(COMMANDS_DEST, file);
+        await fs.copyFile(src, dest);
+        console.log(`  Installed: /design:${file.replace('.md', '')}`);
+      }
+    }
+  } catch (error) {
+    console.warn(`  Warning: Could not install slash commands: ${error.message}`);
+  }
+
   // Install dependencies
   if (!skipDeps) {
     // Node.js dependencies
@@ -156,6 +181,9 @@ export async function init(args) {
   console.log('\n✓ design-clone skill installed successfully!\n');
   console.log('Next steps:');
   console.log('  1. (Optional) Set GEMINI_API_KEY in ~/.claude/.env for AI analysis');
-  console.log('  2. Use /design:clone or /design:clone-px in Claude Code');
+  console.log('  2. Use slash commands in Claude Code:');
+  console.log('     /design:clone      - Clone single page');
+  console.log('     /design:clone-site - Clone multiple pages');
+  console.log('     /design:clone-px   - Pixel-perfect clone');
   console.log('\nRun "design-clone verify" to check installation status.');
 }
