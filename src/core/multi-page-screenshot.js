@@ -91,7 +91,7 @@ async function captureSinglePage(page, pageInfo, outputDir, options) {
   try {
     // Navigate to page
     await page.goto(pageInfo.url, {
-      waitUntil: ['load', 'networkidle0'],
+      waitUntil: 'networkidle',
       timeout: options.timeout
     });
 

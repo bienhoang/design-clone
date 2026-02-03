@@ -81,27 +81,11 @@ const MENU_SELECTORS = {
 };
 
 /**
- * Check if element is visible
+ * Check if element is visible using Playwright locator API
  */
 async function isElementVisible(page, selector) {
   try {
-    const element = await page.$(selector);
-    if (!element) return false;
-
-    const isVisible = await page.evaluate(el => {
-      const style = window.getComputedStyle(el);
-      const rect = el.getBoundingClientRect();
-
-      return (
-        style.display !== 'none' &&
-        style.visibility !== 'hidden' &&
-        style.opacity !== '0' &&
-        rect.width > 0 &&
-        rect.height > 0
-      );
-    }, element);
-
-    return isVisible;
+    return await page.locator(selector).isVisible();
   } catch {
     return false;
   }
@@ -158,7 +142,7 @@ async function countVisibleMenuItems(page) {
  */
 async function testViewport(page, viewportName, verbose = false) {
   const viewport = VIEWPORTS[viewportName];
-  await page.setViewport(viewport);
+  await page.setViewportSize(viewport);
   await new Promise(r => setTimeout(r, 500)); // Wait for CSS to apply
 
   const result = {

@@ -102,7 +102,7 @@ async function compressIfNeeded(filePath, maxSizeMB = 5) {
  * Capture screenshot for a single viewport
  */
 async function captureViewport(page, viewport, outputPath, fullPage = true, maxSize = 5, scrollDelay = DEFAULT_SCROLL_DELAY) {
-  await page.setViewport(VIEWPORTS[viewport]);
+  await page.setViewportSize(VIEWPORTS[viewport]);
   await new Promise(r => setTimeout(r, VIEWPORT_SETTLE_DELAY));
   await waitForDomStable(page, 300, 5000);
   await waitForFontsLoaded(page, 3000);
@@ -116,7 +116,7 @@ async function captureViewport(page, viewport, outputPath, fullPage = true, maxS
   const imageStats = await waitForAllImages(page, 15000);
 
   try {
-    await page.waitForNetworkIdle({ timeout: NETWORK_IDLE_TIMEOUT });
+    await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_TIMEOUT });
   } catch {
     // Timeout ok
   }
@@ -214,8 +214,8 @@ async function captureMultiViewport() {
         currentHeadless = headless;
 
         if (navigateUrl) {
-          await page.setViewport(VIEWPORTS.desktop);
-          await page.goto(navigateUrl, { waitUntil: ['load', 'networkidle0'], timeout: 60000 });
+          await page.setViewportSize(VIEWPORTS.desktop);
+          await page.goto(navigateUrl, { waitUntil: 'networkidle', timeout: 60000 });
           await new Promise(r => setTimeout(r, 3000));
           cookieResult = await dismissCookieBanner(page);
           await waitForPageReady(page);
@@ -449,7 +449,7 @@ async function captureMultiViewport() {
         }
 
         // Use desktop viewport for video
-        await page.setViewport(VIEWPORTS.desktop);
+        await page.setViewportSize(VIEWPORTS.desktop);
         await new Promise(r => setTimeout(r, 1000));
 
         if (process.stderr.isTTY) {

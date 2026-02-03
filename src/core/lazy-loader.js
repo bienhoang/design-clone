@@ -178,7 +178,7 @@ export async function waitForAllImages(page, timeout = IMAGE_LOAD_TIMEOUT) {
   }, timeout);
 
   try {
-    await page.waitForNetworkIdle({ timeout: Math.min(timeout, 10000) });
+    await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 10000) });
   } catch {
     // Network didn't become idle, continue anyway
   }

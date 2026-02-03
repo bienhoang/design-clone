@@ -415,22 +415,18 @@ export async function captureHoverState(page, selector, outputDir, index) {
   }
 
   try {
-    // Find element
-    const element = await page.$(selector);
-    if (!element) {
-      result.error = 'Element not found';
-      return result;
-    }
+    // Use Playwright locator API for reliability
+    const locator = page.locator(selector);
 
-    // Check visibility
-    const isVisible = await element.isVisible().catch(() => false);
+    // Check visibility via locator
+    const isVisible = await locator.isVisible().catch(() => false);
     if (!isVisible) {
       result.error = 'Element not visible';
       return result;
     }
 
-    // Get bounding box
-    const box = await element.boundingBox();
+    // Get bounding box via locator
+    const box = await locator.boundingBox();
     if (!box) {
       result.error = 'No bounding box';
       return result;
@@ -450,8 +446,8 @@ export async function captureHoverState(page, selector, outputDir, index) {
     await page.screenshot({ path: normalPath, clip });
     result.normalScreenshot = normalPath;
 
-    // Hover and wait for transition
-    await page.hover(selector);
+    // Hover via locator (more reliable in Playwright)
+    await locator.hover();
     await new Promise(r => setTimeout(r, HOVER_SETTLE_DELAY));
 
     // Capture hover state using same helper

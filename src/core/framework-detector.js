@@ -402,7 +402,7 @@ if (isMainModule) {
     const browser = await getBrowser({ headless: true });
     const page = await getPage(browser);
 
-    await page.goto(url, { waitUntil: ['load', 'networkidle0'], timeout: 30000 });
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
     // Wait for hydration
     await new Promise(r => setTimeout(r, 2000));

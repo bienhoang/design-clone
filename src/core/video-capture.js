@@ -227,10 +227,10 @@ export async function recordScroll(page, outputPath, options = {}) {
   } = options;
 
   // Get viewport dimensions (H2: validate viewport exists)
-  const viewport = page.viewport();
+  const viewport = page.viewportSize();
   if (!viewport || !viewport.height) {
     throw new Error(
-      'Page viewport not initialized. Call page.setViewport() before recording.'
+      'Page viewport not initialized. Call page.setViewportSize() before recording.'
     );
   }
   const viewportHeight = viewport.height;

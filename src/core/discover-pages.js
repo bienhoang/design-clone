@@ -4,6 +4,11 @@
  * Extracts navigation links from a website to discover cloneable pages.
  * Handles SPA hydration, filters external links, and normalizes URLs.
  *
+ * Enhanced with SPA/Framework support (v1.3):
+ * - Framework detection (Next.js, Nuxt, Vue, React, Angular, Svelte, Astro)
+ * - Framework-specific route discovery
+ * - App state capture (optional)
+ *
  * Usage:
  *   import { discoverPages } from './discover-pages.js';
  *   const result = await discoverPages('https://example.com', { maxPages: 10 });
@@ -12,6 +17,11 @@
 import { getBrowser, getPage, disconnectBrowser } from '../utils/browser.js';
 import { waitForDomStable, waitForPageReady } from './page-readiness.js';
 import { dismissCookieBanner } from './cookie-handler.js';
+
+// SPA/Framework support imports
+import { detectFramework, formatDetectionResult } from './framework-detector.js';
+import { discoverRoutes as discoverFrameworkRoutes } from '../route-discoverers/index.js';
+import { captureAppState, formatStateSnapshot } from './app-state-snapshot.js';
 
 // Navigation selectors in priority order
 const NAV_SELECTORS = [
@@ -46,7 +56,12 @@ const DEFAULT_OPTIONS = {
   maxPages: 10,
   selectors: null,  // Use default NAV_SELECTORS if null
   includeSubdomains: false,
-  timeout: 30000
+  timeout: 30000,
+  // SPA/Framework options (v1.3)
+  spaMode: true,         // Enable SPA detection and route discovery
+  framework: null,       // Force specific framework (skip detection)
+  noSpaDetect: false,    // Disable SPA/framework detection entirely
+  captureState: false    // Capture app state (Redux/Vuex/Pinia/Zustand)
 };
 
 /**
@@ -141,6 +156,65 @@ function shouldExclude(href) {
 }
 
 /**
+ * Merge framework-discovered routes with link-scraped pages
+ * Prioritizes framework routes (higher quality), fills gaps with link-scraped
+ * @param {Array} frameworkRoutes - Routes from framework discoverer
+ * @param {Array} linkScrapedPages - Pages from link scraping
+ * @param {string} baseDomain - Base domain for URL normalization
+ * @param {string} baseUrl - Base URL for resolving paths
+ * @returns {Array} Merged and deduplicated pages
+ */
+function mergeRoutes(frameworkRoutes, linkScrapedPages, baseDomain, baseUrl) {
+  const seenPaths = new Set();
+  const merged = [];
+
+  // Add framework routes first (higher quality, more accurate)
+  if (Array.isArray(frameworkRoutes)) {
+    for (const route of frameworkRoutes) {
+      const path = route.path || '/';
+      const normalizedPath = path.endsWith('/') && path !== '/'
+        ? path.slice(0, -1)
+        : path;
+
+      if (seenPaths.has(normalizedPath)) continue;
+      seenPaths.add(normalizedPath);
+
+      const url = normalizeUrl(baseUrl, normalizedPath) || route.url;
+
+      merged.push({
+        path: normalizedPath,
+        name: route.name || extractPageName('', normalizedPath),
+        url,
+        source: route.source || 'framework',
+        dynamic: route.dynamic || false
+      });
+    }
+  }
+
+  // Add link-scraped pages (fill gaps)
+  if (Array.isArray(linkScrapedPages)) {
+    for (const page of linkScrapedPages) {
+      const path = page.path || '/';
+      const normalizedPath = path.endsWith('/') && path !== '/'
+        ? path.slice(0, -1)
+        : path;
+
+      if (seenPaths.has(normalizedPath)) continue;
+      seenPaths.add(normalizedPath);
+
+      merged.push({
+        ...page,
+        path: normalizedPath,
+        source: 'link-scrape',
+        dynamic: false
+      });
+    }
+  }
+
+  return merged;
+}
+
+/**
  * Discover pages from a website by extracting navigation links
  * @param {string} baseUrl - Starting URL to discover from
  * @param {Object} options - Discovery options
@@ -164,7 +238,7 @@ export async function discoverPages(baseUrl, options = {}) {
 
     // Navigate to page
     await page.goto(baseUrl, {
-      waitUntil: ['load', 'networkidle0'],
+      waitUntil: 'networkidle',
       timeout: opts.timeout
     });
 

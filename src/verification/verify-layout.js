@@ -36,7 +36,7 @@ const VIEWPORTS = {
  * Capture screenshot of generated HTML at specific viewport
  */
 async function captureGeneratedScreenshot(page, viewport, outputPath) {
-  await page.setViewport(viewport);
+  await page.setViewportSize(viewport);
   await new Promise(r => setTimeout(r, 500)); // Wait for CSS to apply
 
   await page.screenshot({
