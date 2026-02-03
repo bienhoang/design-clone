@@ -516,11 +516,10 @@ export async function discoverPages(baseUrl, options = {}) {
   }
 }
 
-// CLI support
-const isMainModule = process.argv[1] && (
-  process.argv[1].endsWith('discover-pages.js') ||
-  process.argv[1].includes('discover-pages')
-);
+// CLI support - use exact file match to avoid triggering when imported
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const isMainModule = process.argv[1] === __filename;
 
 if (isMainModule) {
   const url = process.argv[2];

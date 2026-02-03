@@ -20,6 +20,7 @@ const tests = [
   { name: 'framework-detector.js tests', cmd: 'node', args: ['test-framework-detector.js'] },
   { name: 'route-discoverers tests', cmd: 'node', args: ['test-route-discoverers.js'] },
   { name: 'app-state-snapshot.js tests', cmd: 'node', args: ['test-app-state-snapshot.js'] },
+  { name: 'discover-pages SPA tests', cmd: 'node', args: ['test-discover-pages-spa.js'] },
   { name: 'Python imports tests', cmd: 'python3', args: ['test-python-imports.py'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
   { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] }
