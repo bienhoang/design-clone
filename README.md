@@ -1,10 +1,15 @@
-# Design Clone Skill for Claude Code
+<div align="center">
+  <img src="logo.svg" alt="design-clone" width="120" height="120">
+  <h1>Design Clone</h1>
+  <p><strong>Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis.</strong></p>
+  <p>
+    <a href="https://www.npmjs.com/package/design-clone"><img src="https://img.shields.io/npm/v/design-clone" alt="npm"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+    <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node"></a>
+  </p>
+</div>
 
-Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis.
-
-[![npm](https://img.shields.io/npm/v/design-clone)](https://www.npmjs.com/package/design-clone)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org)
+---
 
 ## Features
 
@@ -112,7 +117,7 @@ Get your API key at: https://aistudio.google.com/apikey
 
 - Node.js 18+
 - Python 3.9+ (for AI analysis)
-- Chrome or Chromium (auto-detected)
+- Playwright (auto-installed with browsers)
 
 ## CLI Commands
 
@@ -145,14 +150,17 @@ pip install google-genai
 pip3 install -r requirements.txt
 ```
 
-### Puppeteer issues
+### Playwright issues
 
 ```bash
-# Install Puppeteer if not present
-npm install puppeteer
+# Install Playwright if not present
+npm install playwright
+
+# Install browsers
+npx playwright install chromium
 
 # For Docker/CI environments
-export PUPPETEER_NO_SANDBOX=1
+export PLAYWRIGHT_BROWSERS_PATH=/tmp/pw-browsers
 ```
 
 See full troubleshooting guide: [docs/troubleshooting.md](docs/troubleshooting.md)
@@ -172,3 +180,9 @@ MIT - See [LICENSE](LICENSE)
 ## Credits
 
 Built for use with [Claude Code](https://claude.ai/code) by Anthropic.
+
+---
+
+<div align="center">
+  <sub>Made with ❤️ for the Claude Code community</sub>
+</div>

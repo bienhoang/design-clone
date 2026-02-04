@@ -94,15 +94,31 @@ export async function checkChrome() {
 }
 
 /**
- * Check Puppeteer
+ * Check Playwright
  * @returns {Promise<{ok: boolean, message: string}>}
  */
-export async function checkPuppeteer() {
+export async function checkPlaywright() {
   try {
-    await import('puppeteer');
-    return { ok: true, message: 'Puppeteer installed' };
+    const playwright = await import('playwright');
+    // Check if browsers are installed by checking chromium executable
+    if (playwright.chromium?.executablePath) {
+      try {
+        const fs = await import('fs/promises');
+        await fs.access(playwright.chromium.executablePath());
+        return { ok: true, message: 'Playwright installed with browsers' };
+      } catch {
+        return { ok: true, message: 'Playwright installed (browsers may need install)' };
+      }
+    }
+    return { ok: true, message: 'Playwright installed' };
   } catch {
-    return { ok: false, message: 'Puppeteer not installed (optional)' };
+    // Try playwright-core
+    try {
+      await import('playwright-core');
+      return { ok: true, message: 'playwright-core installed (needs Chrome)' };
+    } catch {
+      return { ok: false, message: 'Playwright not installed' };
+    }
   }
 }
 
@@ -111,12 +127,12 @@ export async function checkPuppeteer() {
  * @returns {Promise<Object>}
  */
 export async function runAllChecks() {
-  const [node, python, chrome, puppeteer] = await Promise.all([
+  const [node, python, chrome, playwright] = await Promise.all([
     checkNode(),
     checkPython(),
     checkChrome(),
-    checkPuppeteer()
+    checkPlaywright()
   ]);
 
-  return { node, python, chrome, puppeteer };
+  return { node, python, chrome, playwright };
 }

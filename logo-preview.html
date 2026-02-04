@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>design-clone Logo Preview</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #64748B;
+      margin-bottom: 40px;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .preview-card {
+      border-radius: 16px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .preview-card.dark {
+      background: #0F172A;
+    }
+
+    .preview-card.light {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+    }
+
+    .preview-card h3 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .preview-card.dark h3 {
+      color: #94A3B8;
+    }
+
+    .preview-card.light h3 {
+      color: #64748B;
+    }
+
+    .preview-card img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .size-info {
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .dark .size-info {
+      background: #1E293B;
+      color: #94A3B8;
+    }
+
+    .light .size-info {
+      background: #E2E8F0;
+      color: #64748B;
+    }
+
+    .icon-row {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-item span {
+      font-size: 0.75rem;
+    }
+
+    .dark .icon-item span {
+      color: #64748B;
+    }
+
+    .light .icon-item span {
+      color: #94A3B8;
+    }
+
+    .download-section {
+      margin-top: 60px;
+      text-align: center;
+    }
+
+    .download-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #1E293B;
+    }
+
+    .download-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .download-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #3B82F6;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+
+    .download-links a:hover {
+      background: #2563EB;
+    }
+
+    .download-links a svg {
+      width: 18px;
+      height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>design-clone Logo</h1>
+  <p>Logo assets for the design-clone project</p>
+
+  <div class="preview-grid">
+    <!-- Main Logo - Dark -->
+    <div class="preview-card dark">
+      <h3>Main Logo (Dark)</h3>
+      <img src="logo.svg" alt="Logo Dark" style="width: 200px;">
+      <span class="size-info">512x512 SVG</span>
+    </div>
+
+    <!-- Main Logo - Light -->
+    <div class="preview-card light">
+      <h3>Main Logo (Light)</h3>
+      <img src="logo-light.svg" alt="Logo Light" style="width: 200px;">
+      <span class="size-info">512x512 SVG</span>
+    </div>
+
+    <!-- Wordmark - Dark -->
+    <div class="preview-card dark">
+      <h3>Wordmark (Dark)</h3>
+      <img src="logo-wordmark.svg" alt="Wordmark" style="width: 280px;">
+      <span class="size-info">400x80 SVG</span>
+    </div>
+
+    <!-- Icons - Dark -->
+    <div class="preview-card dark">
+      <h3>Icons (Dark)</h3>
+      <div class="icon-row">
+        <div class="icon-item">
+          <img src="logo-icon.svg" alt="Icon 64" style="width: 64px; height: 64px;">
+          <span>64px</span>
+        </div>
+        <div class="icon-item">
+          <img src="favicon.svg" alt="Favicon" style="width: 32px; height: 32px;">
+          <span>32px</span>
+        </div>
+        <div class="icon-item">
+          <img src="favicon.svg" alt="Favicon 16" style="width: 16px; height: 16px;">
+          <span>16px</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Icons - Light -->
+    <div class="preview-card light">
+      <h3>Icons (Light)</h3>
+      <div class="icon-row">
+        <div class="icon-item">
+          <img src="logo-icon.svg" alt="Icon 64" style="width: 64px; height: 64px;">
+          <span>64px</span>
+        </div>
+        <div class="icon-item">
+          <img src="favicon.svg" alt="Favicon" style="width: 32px; height: 32px;">
+          <span>32px</span>
+        </div>
+        <div class="icon-item">
+          <img src="favicon.svg" alt="Favicon 16" style="width: 16px; height: 16px;">
+          <span>16px</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage Example -->
+    <div class="preview-card dark" style="grid-column: span 2;">
+      <h3>Usage in Navbar</h3>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 16px 24px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+        <img src="logo-icon.svg" alt="Icon" style="width: 40px; height: 40px;">
+        <span style="font-size: 1.25rem; font-weight: 600; color: #F1F5F9;">design-clone</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="download-section">
+    <h2>Download Assets</h2>
+    <div class="download-links">
+      <a href="logo.svg" download>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Logo (Dark)
+      </a>
+      <a href="logo-light.svg" download>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Logo (Light)
+      </a>
+      <a href="logo-wordmark.svg" download>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Wordmark
+      </a>
+      <a href="logo-icon.svg" download>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Icon (64px)
+      </a>
+      <a href="favicon.svg" download>
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Favicon
+      </a>
+    </div>
+  </div>
+</body>
+</html>

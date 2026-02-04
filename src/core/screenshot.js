@@ -35,6 +35,7 @@ import { waitForDomStable, waitForFontsLoaded, waitForStylesStable, waitForPageR
 import { dismissCookieBanner } from './cookie-handler.js';
 import { forceLazyImages, forceAnimatedElementsVisible, triggerLazyLoad, waitForAllImages, LAZY_LOAD_MAX_ITERATIONS } from './lazy-loader.js';
 import { extractCleanHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
+import { extractContentCounts, generateContentSummary } from './content-counter.js';
 import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
 import { extractComponentDimensions } from './dimension-extractor.js';
 import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
@@ -215,7 +216,7 @@ async function captureMultiViewport() {
 
         if (navigateUrl) {
           await page.setViewportSize(VIEWPORTS.desktop);
-          await page.goto(navigateUrl, { waitUntil: 'networkidle', timeout: 60000 });
+          await page.goto(navigateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
           await new Promise(r => setTimeout(r, 3000));
           cookieResult = await dismissCookieBanner(page);
           await waitForPageReady(page);
@@ -233,6 +234,32 @@ async function captureMultiViewport() {
 
     if (extractHtml || extractCss) {
       extraction = { html: null, css: null, warnings: [] };
+
+      // Extract content counts BEFORE cleaning HTML (to count hidden items too)
+      if (extractHtml) {
+        try {
+          const contentCounts = await extractContentCounts(page);
+          const countsPath = path.join(args.output, 'content-counts.json');
+          await fs.writeFile(countsPath, JSON.stringify(contentCounts, null, 2), 'utf-8');
+
+          // Generate summary for structure analysis
+          const contentSummary = generateContentSummary(contentCounts);
+          const summaryPath = path.join(args.output, 'content-summary.md');
+          await fs.writeFile(summaryPath, contentSummary, 'utf-8');
+
+          extraction.contentCounts = {
+            path: path.resolve(countsPath),
+            summaryPath: path.resolve(summaryPath),
+            summary: contentCounts.summary
+          };
+
+          if (process.stderr.isTTY) {
+            console.error(`[INFO] Content counts: ${contentCounts.grids.total} grids, ${contentCounts.repeatedItems.total} items`);
+          }
+        } catch (error) {
+          extractionWarnings.push(`Content counting failed: ${error.message}`);
+        }
+      }
 
       if (extractHtml) {
         try {

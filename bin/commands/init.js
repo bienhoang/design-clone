@@ -50,7 +50,7 @@ export async function init(args) {
   }
 
   if (!checks.chrome.ok) {
-    console.warn('Warning: Chrome not found. Screenshots may not work without Puppeteer\'s bundled Chromium.');
+    console.warn('Warning: Chrome not found. Playwright will download Chromium during installation.');
   }
 
   // Check existing installation
@@ -127,6 +127,38 @@ export async function init(args) {
       console.log('  npm packages installed');
     } catch (error) {
       console.warn(`  Warning: npm install failed: ${error.message}`);
+    }
+
+    // Install Playwright
+    console.log('Installing Playwright...');
+    try {
+      // Check if playwright is already installed
+      let playwrightInstalled = false;
+      try {
+        await exec('node -e "require.resolve(\'playwright\')"', { cwd: SKILL_DEST });
+        playwrightInstalled = true;
+        console.log('  Playwright already installed');
+      } catch {
+        // Need to install
+      }
+
+      if (!playwrightInstalled) {
+        await exec('npm install playwright', { cwd: SKILL_DEST });
+        console.log('  Playwright installed');
+      }
+
+      // Install Playwright browsers (chromium only for smaller footprint)
+      console.log('Installing Playwright browsers...');
+      try {
+        await exec('npx playwright install chromium', { cwd: SKILL_DEST, timeout: 300000 });
+        console.log('  Chromium browser installed');
+      } catch (browserError) {
+        console.warn(`  Warning: Browser install failed: ${browserError.message}`);
+        console.warn('  Run manually: npx playwright install chromium');
+      }
+    } catch (error) {
+      console.warn(`  Warning: Playwright install failed: ${error.message}`);
+      console.warn('  Run manually: npm install playwright && npx playwright install chromium');
     }
 
     // Python dependencies

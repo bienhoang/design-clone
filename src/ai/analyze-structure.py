@@ -131,6 +131,38 @@ def load_dimensions(output_dir: str) -> dict:
     return None
 
 
+def load_content_counts(output_dir: str) -> tuple:
+    """Load content counts and summary if available.
+
+    Args:
+        output_dir: Directory containing content-counts.json and content-summary.md
+
+    Returns:
+        Tuple of (counts_dict, summary_text) or (None, None) if not found
+    """
+    counts_path = Path(output_dir) / "content-counts.json"
+    summary_path = Path(output_dir) / "content-summary.md"
+
+    counts = None
+    summary = None
+
+    if counts_path.exists():
+        try:
+            with open(counts_path, 'r', encoding='utf-8') as f:
+                counts = json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Failed to load content counts: {e}", file=sys.stderr)
+
+    if summary_path.exists():
+        try:
+            with open(summary_path, 'r', encoding='utf-8') as f:
+                summary = f.read()
+        except IOError as e:
+            print(f"Warning: Failed to load content summary: {e}", file=sys.stderr)
+
+    return counts, summary
+
+
 def analyze_structure(
     screenshot_path: str,
     output_dir: str = None,
@@ -172,6 +204,13 @@ def analyze_structure(
         if dimensions and verbose:
             print(f"Loaded extracted dimensions from {output_dir}/dimensions-summary.json")
 
+    # Load content counts if available
+    content_counts, content_summary = None, None
+    if output_dir:
+        content_counts, content_summary = load_content_counts(output_dir)
+        if content_counts and verbose:
+            print(f"Loaded content counts: {content_counts.get('summary', {}).get('totalRepeatedItems', 0)} items")
+
     # Load HTML/CSS if provided
     html_content = None
     css_content = None
@@ -188,12 +227,14 @@ def analyze_structure(
         if verbose:
             print(f"Loaded CSS: {len(css_content)} chars")
 
-    # Build prompt with context (dimensions have highest priority)
-    prompt = build_structure_prompt(html_content, css_content, dimensions)
+    # Build prompt with context (dimensions have highest priority, then content counts)
+    prompt = build_structure_prompt(html_content, css_content, dimensions, content_summary)
 
     if verbose:
         if dimensions:
             print("Using ENHANCED prompt with EXACT extracted dimensions")
+        if content_summary:
+            print("Using prompt with EXACT content counts")
         elif html_content and css_content:
             print("Using prompt with HTML/CSS context")
 

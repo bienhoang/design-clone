@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-02-04
+
+### Changed
+- **Auto-install Playwright**: `design-clone init` now automatically installs Playwright and Chromium browser
+- Updated validation to check Playwright instead of Puppeteer
+- Updated verify command to show Playwright status
+- Updated README troubleshooting for Playwright
+
+### Fixed
+- Warning message now correctly references Playwright instead of Puppeteer
+
+## [2.0.0] - 2026-02-03
+
+### Changed
+- **BREAKING**: Migrated from Puppeteer to Playwright for browser automation
+- Playwright is now a peer dependency (optional)
+- All browser operations use Playwright API
+
+### Added
+- `src/utils/playwright.js` - Playwright wrapper with Chrome auto-detection
+- Support for both `playwright` (bundled browsers) and `playwright-core` (system Chrome)
+
+### Removed
+- `src/utils/puppeteer.js` - Replaced by Playwright wrapper
+- Direct Puppeteer dependency
+
 ## [1.2.0] - 2026-02-03
 
 ### Added

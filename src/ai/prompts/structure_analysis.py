@@ -220,14 +220,22 @@ For each section describe:
 [Suggest semantic class names for main components]"""
 
 
-def build_structure_prompt(html_content: str = None, css_content: str = None, dimensions: dict = None) -> str:
+def build_structure_prompt(html_content: str = None, css_content: str = None, dimensions: dict = None, content_summary: str = None) -> str:
     """Build the appropriate prompt based on available context.
 
     Priority:
     1. With dimensions (most accurate - uses exact extracted values)
     2. With HTML/CSS (accurate - extracts from source)
     3. Screenshot only (least accurate - estimates)
+
+    content_summary is appended to any prompt type for exact item counts.
     """
+
+    # Helper to append content summary
+    def append_content_counts(prompt: str) -> str:
+        if content_summary:
+            return prompt + "\n\n---\n\n" + content_summary + "\n\nIMPORTANT: Use the EXACT item counts above when describing sections. Do NOT estimate."
+        return prompt
 
     # Priority 1: Use dimensions if available (highest accuracy)
     if dimensions:
@@ -237,7 +245,7 @@ def build_structure_prompt(html_content: str = None, css_content: str = None, di
         card = exact.get('card_dimensions', {})
         scaling = resp.get('typography_scaling', {})
 
-        return STRUCTURE_PROMPT_WITH_DIMENSIONS.format(
+        return append_content_counts(STRUCTURE_PROMPT_WITH_DIMENSIONS.format(
             container_max_width=exact.get('container_max_width', '1200px'),
             section_padding=exact.get('section_padding', '64px 0'),
             gap=exact.get('gap', '24px'),
@@ -255,7 +263,7 @@ def build_structure_prompt(html_content: str = None, css_content: str = None, di
             h1_mobile=scaling.get('h1', {}).get('mobile', '28px') if isinstance(scaling.get('h1'), dict) else '28px',
             h2_tablet=scaling.get('h2', {}).get('tablet', '28px') if isinstance(scaling.get('h2'), dict) else '28px',
             h2_mobile=scaling.get('h2', {}).get('mobile', '24px') if isinstance(scaling.get('h2'), dict) else '24px'
-        )
+        ))
 
     # Priority 2: Use HTML/CSS if available
     if html_content and css_content:
@@ -264,10 +272,10 @@ def build_structure_prompt(html_content: str = None, css_content: str = None, di
         html_snippet = html_content[:100000] if len(html_content) > 100000 else html_content
         css_snippet = css_content[:100000] if len(css_content) > 100000 else css_content
 
-        return STRUCTURE_PROMPT_WITH_CONTEXT.format(
+        return append_content_counts(STRUCTURE_PROMPT_WITH_CONTEXT.format(
             html_snippet=html_snippet,
             css_snippet=css_snippet
-        )
+        ))
 
     # Priority 3: Screenshot only (fallback)
-    return STRUCTURE_PROMPT
+    return append_content_counts(STRUCTURE_PROMPT)

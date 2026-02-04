@@ -63,11 +63,13 @@ export async function verify() {
   console.log('\nEnvironment:');
   const checks = await runAllChecks();
 
-  console.log(`  Node.js: ${checks.node.ok ? '✓' : '✗'} ${checks.node.message}`);
-  console.log(`  Python:  ${checks.python.ok ? '✓' : '✗'} ${checks.python.message}`);
-  console.log(`  Chrome:  ${checks.chrome.ok ? '✓' : '✗'} ${checks.chrome.message}`);
+  console.log(`  Node.js:    ${checks.node.ok ? '✓' : '✗'} ${checks.node.message}`);
+  console.log(`  Python:     ${checks.python.ok ? '✓' : '✗'} ${checks.python.message}`);
+  console.log(`  Playwright: ${checks.playwright.ok ? '✓' : '✗'} ${checks.playwright.message}`);
+  console.log(`  Chrome:     ${checks.chrome.ok ? '✓' : '○'} ${checks.chrome.message}${checks.playwright.ok ? ' (optional with Playwright)' : ''}`);
 
   if (!checks.node.ok) allOk = false;
+  if (!checks.playwright.ok && !checks.chrome.ok) allOk = false;
 
   // Check Gemini API key
   console.log('\nOptional:');
