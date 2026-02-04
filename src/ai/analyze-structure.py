@@ -131,6 +131,25 @@ def load_dimensions(output_dir: str) -> dict:
     return None
 
 
+def load_dom_hierarchy(output_dir: str) -> dict:
+    """Load extracted DOM hierarchy if available.
+
+    Args:
+        output_dir: Directory containing dom-hierarchy.json
+
+    Returns:
+        Hierarchy dict or None if not found
+    """
+    hierarchy_path = Path(output_dir) / "dom-hierarchy.json"
+    if hierarchy_path.exists():
+        try:
+            with open(hierarchy_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Warning: Failed to load DOM hierarchy: {e}", file=sys.stderr)
+    return None
+
+
 def load_content_counts(output_dir: str) -> tuple:
     """Load content counts and summary if available.
 
@@ -204,6 +223,14 @@ def analyze_structure(
         if dimensions and verbose:
             print(f"Loaded extracted dimensions from {output_dir}/dimensions-summary.json")
 
+    # Load DOM hierarchy if available (enhances dimensions)
+    hierarchy = None
+    if output_dir:
+        hierarchy = load_dom_hierarchy(output_dir)
+        if hierarchy and verbose:
+            stats = hierarchy.get('stats', {})
+            print(f"Loaded DOM hierarchy: {stats.get('totalNodes', 0)} nodes, depth {stats.get('maxDepth', 0)}")
+
     # Load content counts if available
     content_counts, content_summary = None, None
     if output_dir:
@@ -227,11 +254,13 @@ def analyze_structure(
         if verbose:
             print(f"Loaded CSS: {len(css_content)} chars")
 
-    # Build prompt with context (dimensions have highest priority, then content counts)
-    prompt = build_structure_prompt(html_content, css_content, dimensions, content_summary)
+    # Build prompt with context (hierarchy+dimensions have highest priority)
+    prompt = build_structure_prompt(html_content, css_content, dimensions, content_summary, hierarchy)
 
     if verbose:
-        if dimensions:
+        if hierarchy and dimensions:
+            print("Using HIERARCHY prompt with DOM structure + EXACT dimensions")
+        elif dimensions:
             print("Using ENHANCED prompt with EXACT extracted dimensions")
         if content_summary:
             print("Using prompt with EXACT content counts")
