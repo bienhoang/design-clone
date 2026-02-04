@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-02-04
+
+### Added
+- **DOM Hierarchy Analysis** - Extract and analyze DOM tree structure for better AI understanding
+  - `src/core/dom-tree-analyzer.js` - Hierarchical DOM structure extraction
+  - Section context mapping to dimension extraction
+  - DOM hierarchy integrated into screenshot pipeline
+  - DOM hierarchy added to structure analysis prompts
+- **Section-based Screenshot Analysis** - Detect and crop semantic sections for targeted analysis
+  - `src/core/section-detector.js` - Detect semantic sections from DOM hierarchy
+  - `src/core/section-cropper.js` - Crop screenshots into section images using Sharp
+  - `--section-mode` flag for section-based token extraction
+  - Sequential Gemini calls per section with result merging
+- **UX Audit Integration** - AI-powered UX analysis via Gemini Vision
+  - `src/ai/ux-audit.py` - Comprehensive UX audit with heuristic evaluation
+- **Component Verification** - Automated component testing scripts
+  - `src/verification/verify-components.js` - Component validation
+- **WordPress Enhancement** - Improved semantic HTML extraction for WordPress sites
+- **SPA Support** - Single Page Application detection and route discovery
+  - `src/spa/framework-detector.js` - Detect React, Vue, Angular, Svelte frameworks
+  - `src/spa/route-discoverers.js` - Discover SPA routes dynamically
+  - `src/spa/app-state-snapshot.js` - Capture application state
+  - SPA modules integrated into discover-pages.js
+
+### Changed
+- Landing page reorganized to `landing-page/` directory
+- Logo assets moved to `assets/images/`
+
+### Fixed
+- `fix(playwright)`: Wrap page.evaluate args in single object for Playwright compatibility
+
 ## [2.0.1] - 2026-02-04
 
 ### Changed
