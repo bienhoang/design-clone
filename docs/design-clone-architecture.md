@@ -132,6 +132,53 @@ Both Node.js and Python share same resolution order:
 - Windows: Uses `USERPROFILE` when `HOME` unavailable
 - Python 3.9+: Uses `List[Path]` from typing module
 
+### 2.3 Semantic HTML Enhancement (Phase 3)
+
+**Purpose**: Inject WordPress-compatible semantic IDs, classes, and ARIA roles into extracted HTML while preserving original styling.
+
+**Location**: `src/core/semantic-enhancer.js`
+
+**Key Functions**:
+
+1. **detectSectionType(element)** - Detect section type via priority:
+   - Priority 1: Semantic HTML tags (`<header>`, `<nav>`, `<main>`, `<aside>`, `<footer>`)
+   - Priority 2: ARIA role attributes (`banner`, `navigation`, `main`, `complementary`, `contentinfo`)
+   - Priority 3: Class pattern matching (header, nav, main, sidebar, footer, hero)
+
+2. **applySemanticAttributes(element, sectionType, options)** - Apply enhancements:
+   - Add ID only if none exists (avoid duplicates)
+   - Append classes (preserve existing)
+   - Set role only if not present
+
+3. **handleMultipleNavs(navElements, usedIds)** - Label multiple navigations:
+   - Primary nav in header: `aria-label="Primary Menu"`
+   - Footer navs: `aria-label="Footer Menu"`
+   - Other navs: `aria-label="Navigation 2"`, etc.
+
+4. **enhanceSemanticHTML(html, domHierarchy)** - Browser-context enhancement:
+   - Uses DOMParser (requires browser environment)
+   - Optimized selector combining 8 queries → 1
+   - Detects hero sections via class patterns
+
+5. **enhanceSemanticHTMLInPage(page, html)** - Playwright-context enhancement:
+   - Recommended for Node.js/Playwright workflows
+   - Uses page.evaluate() for secure execution
+   - Returns enhancement stats (sections enhanced, IDs/classes/roles added)
+
+**Semantic Mappings**:
+```javascript
+{
+  header: { id: 'site-header', classes: ['site-header'], role: 'banner' },
+  nav: { id: 'site-navigation', classes: ['main-navigation', 'nav-menu'], role: 'navigation' },
+  main: { id: 'main-content', classes: ['site-main', 'content-area'], role: 'main' },
+  sidebar: { id: 'primary-sidebar', classes: ['widget-area', 'sidebar'], role: 'complementary' },
+  footer: { id: 'site-footer', classes: ['site-footer'], role: 'contentinfo' },
+  hero: { id: 'hero-section', classes: ['hero'], role: null }
+}
+```
+
+**Integration**: Used by `extractAndEnhanceHtml()` in html-extractor.js when `enhanceSemantic=true`
+
 ### 2.5 DOM Tree Analyzer
 
 **Purpose**: Extract DOM tree hierarchy with semantic landmarks and heading structure.
@@ -170,6 +217,8 @@ export async function extractDOMHierarchy(page, options = {})
 | Script | Location | Language | Purpose |
 |--------|----------|----------|---------|
 | screenshot.js | src/core/ | Node.js | Screenshot capture, HTML/CSS extraction |
+| html-extractor.js | src/core/ | Node.js | Extract and clean HTML, optionally enhance with semantic structure |
+| semantic-enhancer.js | src/core/ | Node.js | WordPress semantic HTML enhancement (Phase 3) |
 | animation-extractor.js | src/core/ | Node.js | Extract @keyframes, transitions, animation properties |
 | state-capture.js | src/core/ | Node.js | Capture hover states for interactive elements |
 | framework-detector.js | src/core/ | Node.js | Detect framework (Next.js, Nuxt, Vue, React, Angular, Svelte, Astro) |
@@ -277,32 +326,40 @@ bin/
 ### design:clone
 
 ```
-URL → src/core/screenshot.js       → Screenshots (3 viewports)
-                                   → source.html (cleaned)
-                                   → source-raw.css
-    → src/core/filter-css.js       → source.css (filtered)
-    → src/core/animation-extractor → animations.css
-                                   → animation-tokens.json
-    → src/core/state-capture.js*   → hover-states/ (hover screenshots)
-                                   → hover.css (generated :hover rules)
+URL → src/core/screenshot.js            → Screenshots (3 viewports)
+                                        → source-raw.css
+    → src/core/html-extractor.js        → source.html (cleaned + enhanced)
+       ├─ extractCleanHtml()            → Remove scripts, framework attrs
+       └─ enhanceSemanticHTMLInPage()   → Add WordPress semantic IDs/classes/roles
+              (via semantic-enhancer.js)
+    → src/core/filter-css.js            → source.css (filtered)
+    → src/core/animation-extractor.js   → animations.css
+                                        → animation-tokens.json
+    → src/core/state-capture.js*        → hover-states/ (hover screenshots)
+                                        → hover.css (generated :hover rules)
 ```
 
 *Enabled with `--capture-hover true` flag
+**Note**: Semantic enhancement enabled by default, disable with `--no-semantic` flag
 
 ### design:clone-px
 
 ```
-URL → src/core/screenshot.js           → Screenshots + HTML/CSS
-    → src/core/filter-css.js           → Filtered CSS
-    → src/core/animation-extractor     → animations.css, animation-tokens.json
-    → src/core/state-capture.js*       → hover-states/, hover.css
-    → src/core/extract-assets.js       → assets/ (images, fonts, icons)
-    → src/ai/analyze-structure.py      → structure.md (AI analysis)
-    → src/ai/extract-design-tokens.py  → tokens.json, tokens.css
-    → src/verification/verify-menu.js  → Menu validation report
+URL → src/core/screenshot.js               → Screenshots + HTML/CSS
+    → src/core/html-extractor.js           → Clean + semantic enhancement
+       ├─ extractCleanHtml()               → Remove scripts, framework attrs
+       └─ enhanceSemanticHTMLInPage()      → Add WordPress semantic structure
+    → src/core/filter-css.js               → Filtered CSS
+    → src/core/animation-extractor.js      → animations.css, animation-tokens.json
+    → src/core/state-capture.js*           → hover-states/, hover.css
+    → src/core/extract-assets.js           → assets/ (images, fonts, icons)
+    → src/ai/analyze-structure.py          → structure.md (AI analysis)
+    → src/ai/extract-design-tokens.py      → tokens.json, tokens.css
+    → src/verification/verify-menu.js      → Menu validation report
 ```
 
 *Hover state capture enabled by default in design:clone-px workflow
+**Note**: Semantic enhancement enabled by default, disable with `--no-semantic` flag
 
 ### clone-site (with --ux-audit, Phase 2)
 

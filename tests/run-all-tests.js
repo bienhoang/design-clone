@@ -25,6 +25,7 @@ const tests = [
   { name: 'enhanced-ai-prompt tests', cmd: 'python3', args: ['test-enhanced-ai-prompt.py'] },
   { name: 'dom-hierarchy-integration tests', cmd: 'node', args: ['test-dom-hierarchy-integration.js'] },
   { name: 'UX audit module tests', cmd: 'node', args: ['test-ux-audit.js'] },
+  { name: 'semantic-enhancer.js tests', cmd: 'node', args: ['test-semantic-enhancer.js'] },
   { name: 'Python imports tests', cmd: 'python3', args: ['test-python-imports.py'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
   { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] }

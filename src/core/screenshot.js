@@ -21,6 +21,8 @@
  *   --video         Record scroll preview video (default: false)
  *   --video-format  Video format: webm, mp4, gif (default: webm)
  *   --video-duration Video duration in ms (default: 12000)
+ *   --section-mode  Enable section-based capture for AI analysis (default: false)
+ *   --no-semantic   Disable WordPress semantic HTML enhancement (default: false)
  */
 
 import path from 'path';
@@ -34,7 +36,7 @@ import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, output
 import { waitForDomStable, waitForFontsLoaded, waitForStylesStable, waitForPageReady } from './page-readiness.js';
 import { dismissCookieBanner } from './cookie-handler.js';
 import { forceLazyImages, forceAnimatedElementsVisible, triggerLazyLoad, waitForAllImages, LAZY_LOAD_MAX_ITERATIONS } from './lazy-loader.js';
-import { extractCleanHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
+import { extractCleanHtml, extractAndEnhanceHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
 import { extractContentCounts, generateContentSummary } from './content-counter.js';
 import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
 import { extractComponentDimensions } from './dimension-extractor.js';
@@ -192,6 +194,7 @@ async function captureMultiViewport() {
   const videoDuration = args['video-duration']
     ? parseInt(args['video-duration'], 10)
     : 12000;
+  const sectionMode = args['section-mode'] === 'true';
 
   for (const vp of requestedViewports) {
     if (!VIEWPORTS[vp]) {
@@ -275,7 +278,12 @@ async function captureMultiViewport() {
 
       if (extractHtml) {
         try {
-          const htmlResult = await extractCleanHtml(page, JS_FRAMEWORK_PATTERNS);
+          // Use semantic enhancement unless --no-semantic flag is set
+          const enhanceSemantic = args['no-semantic'] !== 'true';
+          const htmlResult = enhanceSemantic
+            ? await extractAndEnhanceHtml(page, { enhanceSemantic: true })
+            : await extractCleanHtml(page, JS_FRAMEWORK_PATTERNS);
+
           const html = htmlResult.html;
           const htmlSize = Buffer.byteLength(html, 'utf-8');
 
@@ -285,7 +293,13 @@ async function captureMultiViewport() {
 
           const htmlPath = path.join(args.output, 'source.html');
           await fs.writeFile(htmlPath, html, 'utf-8');
-          extraction.html = { path: path.resolve(htmlPath), size: htmlSize, elementCount: htmlResult.elementCount };
+          extraction.html = {
+            path: path.resolve(htmlPath),
+            size: htmlSize,
+            elementCount: htmlResult.elementCount,
+            semanticEnhanced: enhanceSemantic,
+            semanticStats: htmlResult.semanticStats || null
+          };
           if (htmlResult.warnings.length > 0) extractionWarnings.push(...htmlResult.warnings);
         } catch (error) {
           extraction.html = { error: error.message, failed: true };
@@ -542,6 +556,64 @@ async function captureMultiViewport() {
       }
     }
 
+    // Section-based capture (for improved AI analysis)
+    let sectionResult = null;
+    if (sectionMode && desktopScreenshot) {
+      try {
+        // Lazy import section modules
+        const { detectSections } = await import('./section-detector.js');
+        const { cropSections } = await import('./section-cropper.js');
+
+        // Reset to desktop viewport for section detection
+        await page.setViewportSize(VIEWPORTS.desktop);
+        await new Promise(r => setTimeout(r, 500));
+
+        if (process.stderr.isTTY) {
+          console.error('[INFO] Detecting sections...');
+        }
+
+        const sections = await detectSections(page, {
+          padding: 40,
+          minSections: 3,
+          fallbackToViewport: true
+        });
+
+        if (process.stderr.isTTY) {
+          console.error(`[INFO] Found ${sections.length} sections, cropping...`);
+        }
+
+        const croppedResult = await cropSections(
+          desktopScreenshot.path,
+          sections,
+          args.output
+        );
+
+        sectionResult = {
+          enabled: true,
+          count: croppedResult.sections.length,
+          skipped: croppedResult.skipped.length,
+          sections: croppedResult.sections.map(s => ({
+            index: s.index,
+            name: s.name,
+            path: s.relativePath,
+            bounds: s.bounds,
+            role: s.role
+          })),
+          directory: croppedResult.directory,
+          summary: croppedResult.summary
+        };
+
+        if (process.stderr.isTTY) {
+          console.error(`[INFO] Sections: ${croppedResult.sections.length} cropped, ${croppedResult.skipped.length} skipped`);
+        }
+      } catch (err) {
+        sectionResult = { enabled: true, error: err.message };
+        if (process.stderr.isTTY) {
+          console.error(`[WARN] Section processing failed: ${err.message}`);
+        }
+      }
+    }
+
     const totalContainers = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.containers?.length || 0), 0);
     const totalCards = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.cards?.length || 0), 0);
     const totalGrids = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.gridLayouts?.length || 0), 0);
@@ -584,6 +656,7 @@ async function captureMultiViewport() {
         path: path.resolve(hierarchyPath),
         stats: desktopScreenshot.domHierarchy.stats
       } : undefined,
+      sections: sectionResult,
       screenshots,
       browserRestarts: browserRestarts.length > 0 ? browserRestarts : undefined,
       scrollDelay,

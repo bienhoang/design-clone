@@ -25,11 +25,49 @@ node src/core/screenshot.js [options]
 | --extract-animations | bool | true* | Extract @keyframes and transitions (enabled with --extract-css) |
 | --filter-unused | bool | true | Filter CSS to remove unused selectors |
 | --capture-hover | bool | false | Capture hover state screenshots and generate :hover CSS |
+| --no-semantic | bool | false | Disable WordPress semantic HTML enhancement (Phase 3) |
 | --verbose | bool | false | Verbose logging |
 
 *Default true when --extract-css is enabled, can be disabled with `--extract-animations false`
 
-**Output**: JSON with screenshot paths and metadata. Includes `browserRestarts` count tracking for stability monitoring. When `--capture-hover` is enabled, also includes hover state results in output.
+**Output**: JSON with screenshot paths and metadata. Includes `browserRestarts` count tracking for stability monitoring. When `--capture-hover` is enabled, also includes hover state results in output. When semantic enhancement is enabled (default), output includes `semanticStats` with enhancement details (sections enhanced, IDs/classes/roles added).
+
+### Semantic HTML Enhancement (Phase 3)
+
+Semantic HTML enhancement is enabled by default when extracting HTML. It injects WordPress-compatible semantic IDs, classes, and ARIA roles into the extracted HTML.
+
+**What's Added**:
+- **IDs**: `site-header`, `main-content`, `site-footer`, `site-navigation`, `primary-sidebar`, `hero-section`
+- **Classes**: `site-header`, `main-navigation`, `nav-menu`, `site-main`, `content-area`, `widget-area`, `sidebar`, `site-footer`, `hero`
+- **ARIA Roles**: `banner` (header), `navigation` (nav), `main`, `complementary` (sidebar), `contentinfo` (footer)
+
+**Detection Priority**:
+1. Semantic HTML tags (`<header>`, `<nav>`, `<main>`, `<aside>`, `<footer>`)
+2. ARIA role attributes (`banner`, `navigation`, `main`, `complementary`, `contentinfo`)
+3. Class patterns (header, nav, main, sidebar, footer, hero)
+
+**Usage**:
+```bash
+# Enable semantic enhancement (default)
+node src/core/screenshot.js --url https://example.com --output ./out --extract-html
+
+# Disable semantic enhancement
+node src/core/screenshot.js --url https://example.com --output ./out --extract-html --no-semantic
+```
+
+**Example Output Metadata**:
+```json
+{
+  "html": "path/to/source.html",
+  "semanticStats": {
+    "sectionsEnhanced": 5,
+    "idsAdded": 3,
+    "classesAdded": 4,
+    "rolesAdded": 2,
+    "warnings": []
+  }
+}
+```
 
 ## filter-css.js
 

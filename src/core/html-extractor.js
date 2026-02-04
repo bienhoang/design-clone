@@ -3,9 +3,11 @@
  *
  * Extract and clean HTML from page, removing scripts,
  * event handlers, and framework-specific attributes.
+ * Optionally enhances with WordPress-compatible semantic structure.
  */
 
 import { LAYOUT_PROPERTIES } from './css-extractor.js';
+import { enhanceSemanticHTMLInPage } from './semantic-enhancer.js';
 
 // Size limits
 export const MAX_HTML_SIZE = 10 * 1024 * 1024; // 10MB limit
@@ -172,4 +174,39 @@ export async function extractCleanHtml(page, frameworkPatterns = JS_FRAMEWORK_PA
     criticalDisplay: CRITICAL_DISPLAY,
     criticalPosition: CRITICAL_POSITION
   });
+}
+
+/**
+ * Extract, clean, and optionally enhance HTML with semantic structure
+ * @param {Page} page - Playwright page
+ * @param {Object} options - Configuration options
+ * @param {boolean} [options.enhanceSemantic=true] - Add WordPress semantic IDs/classes/roles
+ * @param {Array} [options.frameworkPatterns] - Custom framework patterns to remove
+ * @returns {Promise<{html: string, warnings: string[], elementCount: number, semanticStats?: Object}>}
+ */
+export async function extractAndEnhanceHtml(page, options = {}) {
+  const {
+    enhanceSemantic = true,
+    frameworkPatterns = JS_FRAMEWORK_PATTERNS
+  } = options;
+
+  // First extract clean HTML
+  const result = await extractCleanHtml(page, frameworkPatterns);
+
+  // Apply semantic enhancement if enabled
+  if (enhanceSemantic) {
+    try {
+      const enhanced = await enhanceSemanticHTMLInPage(page, result.html);
+      return {
+        ...result,
+        html: enhanced.html,
+        semanticStats: enhanced.stats
+      };
+    } catch (err) {
+      result.warnings.push(`Semantic enhancement failed: ${err.message}`);
+      return result;
+    }
+  }
+
+  return result;
 }

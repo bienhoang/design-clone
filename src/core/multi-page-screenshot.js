@@ -16,7 +16,7 @@ import { getBrowser, getPage, disconnectBrowser } from '../utils/browser.js';
 import { captureViewport, VIEWPORTS, DEFAULT_SCROLL_DELAY } from './screenshot.js';
 import { waitForDomStable, waitForPageReady } from './page-readiness.js';
 import { dismissCookieBanner } from './cookie-handler.js';
-import { extractCleanHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
+import { extractAndEnhanceHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
 import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
 import { filterCssFile } from './filter-css.js';
 
@@ -104,10 +104,11 @@ async function captureSinglePage(page, pageInfo, outputDir, options) {
     // Extra stabilization
     await waitForDomStable(page, 300, 3000);
 
-    // Extract HTML
+    // Extract HTML with semantic enhancement
     if (options.extractHtml) {
       try {
-        const htmlResult = await extractCleanHtml(page, JS_FRAMEWORK_PATTERNS);
+        const enhanceSemantic = options.enhanceSemantic !== false;
+        const htmlResult = await extractAndEnhanceHtml(page, { enhanceSemantic });
         const htmlSize = Buffer.byteLength(htmlResult.html, 'utf-8');
 
         if (htmlSize > MAX_HTML_SIZE) {
@@ -118,7 +119,9 @@ async function captureSinglePage(page, pageInfo, outputDir, options) {
           result.html = {
             path: htmlPath,
             size: htmlSize,
-            elementCount: htmlResult.elementCount
+            elementCount: htmlResult.elementCount,
+            semanticEnhanced: enhanceSemantic,
+            semanticStats: htmlResult.semanticStats || null
           };
           if (htmlResult.warnings.length > 0) {
             result.warnings.push(...htmlResult.warnings);
