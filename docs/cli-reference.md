@@ -86,8 +86,61 @@ node src/core/extract-assets.js --url URL --output DIR
 Validate navigation structure.
 
 ```bash
-node src/verification/verify-menu.js --html FILE
+node src/verification/verify-menu.js --html FILE [--url URL] [--output DIR] [--verbose]
 ```
+
+| Option | Description |
+|--------|-------------|
+| --html | Path to HTML file |
+| --url | URL to test (alternative to --html) |
+| --output | Output directory for screenshots |
+| --verbose | Show detailed progress |
+
+## verify-header.js
+
+Verify header components (Phase 1).
+
+```bash
+node src/verification/verify-header.js --html FILE [--url URL] [--output DIR] [--verbose]
+```
+
+Tests: logo presence, navigation visibility, CTA buttons, sticky/fixed behavior, z-index layering, height consistency.
+
+## verify-footer.js
+
+Verify footer components (Phase 1).
+
+```bash
+node src/verification/verify-footer.js --html FILE [--url URL] [--output DIR] [--verbose]
+```
+
+Tests: position at bottom, multi-column layout, link sections, copyright text, social icons, background contrast.
+
+## verify-slider.js
+
+Verify slider/carousel components (Phase 1).
+
+```bash
+node src/verification/verify-slider.js --html FILE [--url URL] [--output DIR] [--verbose]
+```
+
+Tests: library detection (Swiper, Slick, Owl, native), navigation arrows, pagination dots, autoplay behavior, current slide indicator.
+
+## generate-audit-report.js
+
+Aggregate verification results into consolidated report (Phase 1).
+
+```bash
+node src/verification/generate-audit-report.js --dir DIR [--output FILE] [--verbose]
+```
+
+| Option | Description |
+|--------|-------------|
+| --dir | Directory containing verification JSON results |
+| --output | Output path for report (default: component-audit.md) |
+| --verbose | Show detailed progress |
+
+Output: Markdown report with summary table, side-by-side screenshots, responsive analysis, CSS suggestions.
 
 ## verify-layout.js
 

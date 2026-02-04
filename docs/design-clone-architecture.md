@@ -172,8 +172,12 @@ export async function extractDOMHierarchy(page, options = {})
 | dom-tree-analyzer.js | src/core/ | Node.js | DOM hierarchy extraction with semantic landmarks and heading tree |
 | analyze-structure.py | src/ai/ | Python | Gemini AI structure analysis |
 | extract-design-tokens.py | src/ai/ | Python | Color, typography, spacing extraction |
-| verify-menu.js | src/verification/ | Node.js | Test responsive navigation |
-| verify-layout.js | src/verification/ | Node.js | Verify layout consistency |
+| verify-header.js | src/verification/ | Node.js | Verify header components (logo, nav, CTA, sticky behavior) |
+| verify-footer.js | src/verification/ | Node.js | Verify footer layout, links, copyright, social icons |
+| verify-slider.js | src/verification/ | Node.js | Detect slider library, test navigation and autoplay |
+| verify-menu.js | src/verification/ | Node.js | Test responsive navigation functionality |
+| verify-layout.js | src/verification/ | Node.js | Verify layout consistency across viewports |
+| generate-audit-report.js | src/verification/ | Node.js | Aggregate verification results into markdown report |
 
 ### 4. Post-Processing
 

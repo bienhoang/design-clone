@@ -63,13 +63,39 @@ python src/ai/extract-design-tokens.py \
 
 Output: `./clone/tokens.json` with colors, typography, spacing.
 
-### Step 6: Verify Menu
+### Step 6: Component Verification
 
+**Verify Menu**
 ```bash
 node src/verification/verify-menu.js --html ./clone/source.html
 ```
-
 Reports: missing links, broken structure, accessibility issues.
+
+**Verify Header** (Phase 1)
+```bash
+node src/verification/verify-header.js --html ./clone/source.html
+```
+Tests: logo, navigation, CTA buttons, sticky behavior, z-index, height consistency.
+
+**Verify Footer** (Phase 1)
+```bash
+node src/verification/verify-footer.js --html ./clone/source.html
+```
+Tests: position, layout, link sections, copyright, social icons, contrast.
+
+**Verify Slider** (Phase 1)
+```bash
+node src/verification/verify-slider.js --html ./clone/source.html
+```
+Tests: library detection (Swiper, Slick, Owl), navigation, pagination, autoplay.
+
+### Step 7: Generate Audit Report
+
+```bash
+node src/verification/generate-audit-report.js --dir ./clone
+```
+
+Aggregates all verification results into `component-audit.md` with summary table, side-by-side screenshots, and CSS fix suggestions.
 
 ## Output Structure
 
@@ -77,8 +103,13 @@ Reports: missing links, broken structure, accessibility issues.
 ./clone/
 ├── desktop.png, tablet.png, mobile.png
 ├── source.html, source.css
-├── structure.md      # AI analysis
-├── tokens.json       # Design tokens
+├── structure.md              # AI analysis
+├── tokens.json               # Design tokens
+├── component-audit.md        # Verification report (Phase 1)
+├── header-results.json       # Header verification details
+├── footer-results.json       # Footer verification details
+├── slider-results.json       # Slider verification details
+├── menu-results.json         # Menu verification details
 └── assets/
     ├── images/
     ├── fonts/
