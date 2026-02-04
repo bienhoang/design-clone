@@ -39,6 +39,7 @@ import { extractContentCounts, generateContentSummary } from './content-counter.
 import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
 import { extractComponentDimensions } from './dimension-extractor.js';
 import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
+import { extractDOMHierarchy } from './dom-tree-analyzer.js';
 import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
 import { captureAllHoverStates, generateHoverCss } from './state-capture.js';
 import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from './video-capture.js';
@@ -111,6 +112,16 @@ async function captureViewport(page, viewport, outputPath, fullPage = true, maxS
 
   const componentDimensions = await extractComponentDimensions(page, viewport);
 
+  // Extract DOM hierarchy (desktop only for efficiency)
+  let domHierarchy = null;
+  if (viewport === 'desktop') {
+    try {
+      domHierarchy = await extractDOMHierarchy(page, { maxDepth: 8 });
+    } catch (err) {
+      console.error(`[WARN] DOM hierarchy extraction failed: ${err.message}`);
+    }
+  }
+
   const lazyStats = await forceLazyImages(page);
   const scrollInfo = await triggerLazyLoad(page, LAZY_LOAD_MAX_ITERATIONS, scrollDelay);
   await forceLazyImages(page);
@@ -143,6 +154,7 @@ async function captureViewport(page, viewport, outputPath, fullPage = true, maxS
     path: path.resolve(outputPath),
     dimensions: VIEWPORTS[viewport],
     componentDimensions,
+    domHierarchy,  // DOM hierarchy (desktop only)
     scrollInfo,
     imageStats,
     size: compression.finalSize,
@@ -517,6 +529,19 @@ async function captureMultiViewport() {
     const summaryPath = path.join(args.output, 'dimensions-summary.json');
     await fs.writeFile(summaryPath, JSON.stringify(aiSummary, null, 2));
 
+    // Write DOM hierarchy if available (from desktop capture)
+    const desktopScreenshot = screenshots.find(s => s.viewport === 'desktop');
+    let hierarchyPath = null;
+    if (desktopScreenshot?.domHierarchy) {
+      hierarchyPath = path.join(args.output, 'dom-hierarchy.json');
+      await fs.writeFile(hierarchyPath, JSON.stringify(desktopScreenshot.domHierarchy, null, 2));
+
+      if (process.stderr.isTTY) {
+        const stats = desktopScreenshot.domHierarchy.stats || {};
+        console.error(`[INFO] DOM hierarchy: ${stats.totalNodes || 0} nodes, ${stats.landmarkCount || 0} landmarks, ${stats.extractionTimeMs || 0}ms`);
+      }
+    }
+
     const totalContainers = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.containers?.length || 0), 0);
     const totalCards = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.cards?.length || 0), 0);
     const totalGrids = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.gridLayouts?.length || 0), 0);
@@ -555,6 +580,10 @@ async function captureMultiViewport() {
         stats: { containers: totalContainers, cards: totalCards, gridLayouts: totalGrids,
           typography: Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.typography?.length || 0), 0) }
       },
+      domHierarchy: desktopScreenshot?.domHierarchy ? {
+        path: path.resolve(hierarchyPath),
+        stats: desktopScreenshot.domHierarchy.stats
+      } : undefined,
       screenshots,
       browserRestarts: browserRestarts.length > 0 ? browserRestarts : undefined,
       scrollDelay,
