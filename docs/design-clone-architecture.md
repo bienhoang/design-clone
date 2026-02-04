@@ -10,16 +10,22 @@ design-clone/
 ├── bin/                     # npm CLI tool
 │   ├── cli.js
 │   ├── commands/
+│   │   └── clone-site.js    # Multi-page clone with integrated UX audit (Phase 2)
 │   └── utils/
 ├── src/
 │   ├── core/                # Core scripts
 │   ├── ai/                  # AI analysis
+│   │   ├── prompts/
+│   │   │   └── ux_audit.py  # UX audit prompts (Phase 2)
+│   │   └── ux-audit.js      # UX audit runner with Gemini Vision (Phase 2)
 │   ├── verification/        # Verification scripts
 │   ├── post-process/        # Post-processing
 │   └── utils/               # Shared utilities
 ├── docs/                    # Documentation
 ├── templates/               # Output templates
-└── tests/                   # Test files
+├── tests/
+│   └── test-ux-audit.js     # UX audit module tests (Phase 2)
+└── package.json             # Now includes @google/generative-ai optionalDependency
 ```
 
 ## Architecture Diagram
@@ -172,6 +178,8 @@ export async function extractDOMHierarchy(page, options = {})
 | dom-tree-analyzer.js | src/core/ | Node.js | DOM hierarchy extraction with semantic landmarks and heading tree |
 | analyze-structure.py | src/ai/ | Python | Gemini AI structure analysis |
 | extract-design-tokens.py | src/ai/ | Python | Color, typography, spacing extraction |
+| ux-audit.js | src/ai/ | Node.js | UX quality assessment via Gemini Vision (Phase 2) |
+| ux_audit.py | src/ai/prompts/ | Python | UX audit prompts for viewport-specific analysis (Phase 2) |
 | verify-header.js | src/verification/ | Node.js | Verify header components (logo, nav, CTA, sticky behavior) |
 | verify-footer.js | src/verification/ | Node.js | Verify footer layout, links, copyright, social icons |
 | verify-slider.js | src/verification/ | Node.js | Detect slider library, test navigation and autoplay |
@@ -201,7 +209,55 @@ docs/
 └── troubleshooting.md   # Common issues
 ```
 
-### 6. CLI Tool
+### 6. AI Analysis - UX Audit (Phase 2)
+
+**Purpose**: Automated UX quality assessment across multiple viewports using Gemini Vision AI.
+
+**Architecture**:
+```
+src/ai/ux-audit.js             # Main runner (Node.js)
+├── parseArgs()                # CLI argument parsing
+├── analyzeViewport()          # Gemini Vision analysis per viewport
+├── aggregateResults()         # Weighted score aggregation
+├── generateReport()           # Markdown report generation
+└── runUXAudit() [export]      # Main async function
+
+src/ai/prompts/ux_audit.py     # Prompt templates (Python)
+├── UX_AUDIT_PROMPT            # Base 6-category evaluation
+├── VIEWPORT_CONTEXT{}         # Mobile/tablet/desktop specific checks
+├── AGGREGATION_PROMPT         # Viewport result combining
+├── build_ux_audit_prompt()    # Build viewport-specific prompt
+└── build_aggregation_prompt() # Build aggregation prompt
+
+bin/commands/clone-site.js     # Integration point
+├── parseArgs() --ux-audit     # New flag support
+└── cloneSite()                # Step 5: Run UX audit if enabled
+```
+
+**Evaluation Model**:
+- **Categories** (0-100 each): Visual Hierarchy, Navigation, Typography, Spacing, Interactive Elements, Responsive
+- **Viewports**: Desktop (1920×1080), Tablet (768×1024), Mobile (375×812)
+- **Weighting**: Desktop 40%, Tablet 30%, Mobile 30%
+- **Severity Levels**: Critical (0-30), Major (31-60), Minor (61-80)
+- **Output**: Markdown report + JSON results with aggregated scores, per-viewport breakdown, prioritized issues
+
+**Integration with clone-site Workflow**:
+```
+clone-site workflow (7 steps):
+  Step 1: Discover pages
+  Step 2: Capture screenshots
+  Step 3: Merge CSS
+  Step 4: Extract tokens (--ai)
+  Step 5: Run UX audit (--ux-audit) ← NEW
+  Step 6: Rewrite links
+  Step 7: Generate manifest
+```
+
+**Dependencies**:
+- `@google/generative-ai`: Gemini API client (added to optionalDependencies)
+- `GEMINI_API_KEY` or `GOOGLE_API_KEY` environment variable required
+
+### 7. CLI Tool
 
 ```
 bin/
@@ -209,7 +265,8 @@ bin/
 ├── commands/
 │   ├── init.js          # Install skill to ~/.claude/skills/
 │   ├── verify.js        # Check installation status
-│   └── help.js          # Usage information
+│   ├── help.js          # Usage information
+│   └── clone-site.js    # Multi-page clone with UX audit (Phase 2)
 └── utils/
     ├── copy.js          # Recursive file copy
     └── validate.js      # Environment checks
@@ -247,7 +304,28 @@ URL → src/core/screenshot.js           → Screenshots + HTML/CSS
 
 *Hover state capture enabled by default in design:clone-px workflow
 
+### clone-site (with --ux-audit, Phase 2)
+
+```
+URL → discover pages
+    → capture multi-page screenshots (all viewports)
+    → merge CSS
+    → extract design tokens (--ai)
+    → src/ai/ux-audit.js                      → analysis/ux-audit.md
+       (analyzes homepage screenshots)         → analysis/ux-audit.json
+       ├─ desktop.png  → Gemini Vision        → Overall UX score
+       ├─ tablet.png   → Gemini Vision        → Per-category scores
+       └─ mobile.png   → Gemini Vision        → Viewport breakdown
+                                                → Issues & recommendations
+    → rewrite links
+    → generate manifest
+```
+
+**Requires**: GEMINI_API_KEY environment variable, `--ux-audit` flag
+
 ## Output Structure
+
+### Single Page Clone (design:clone, design:clone-px)
 
 ```
 cloned-design/
@@ -275,6 +353,45 @@ cloned-design/
     └── icons/
 ```
 
+### Multi-Page Clone (clone-site, Phase 2)
+
+```
+cloned-site/
+├── screenshots/
+│   ├── index-desktop.png
+│   ├── index-tablet.png
+│   ├── index-mobile.png
+│   ├── about-desktop.png
+│   ├── about-tablet.png
+│   ├── about-mobile.png
+│   └── ... (more pages)
+├── html/
+│   ├── index.html
+│   ├── about.html
+│   └── ... (source HTML files)
+├── pages/
+│   ├── index.html            # Rewritten with proper links
+│   ├── about.html
+│   └── ... (final HTML with nav working)
+├── styles.css                # Merged and optimized CSS
+├── tokens.json               # Design tokens (with --ai)
+├── tokens.css                # CSS variables (with --ai)
+├── manifest.json             # Page manifest and metadata
+├── analysis/                 # UX Audit output (with --ux-audit, Phase 2)
+│   ├── ux-audit.md           # Markdown report with scores & recommendations
+│   └── ux-audit.json         # Structured audit results
+│       ├── overall_scores (6 categories)
+│       ├── overall_ux_score (0-100)
+│       ├── accessibility_score (0-100)
+│       ├── viewport_breakdown {desktop, tablet, mobile}
+│       ├── top_issues (with severity)
+│       └── prioritized_recommendations
+└── assets/                   # Extracted images, fonts, icons
+    ├── images/
+    ├── fonts/
+    └── icons/
+```
+
 **Hover State Output** (when `--capture-hover true`):
 - `hover-states/`: Directory containing hover state captures
   - `hover-N-normal.png`: Screenshot of element in normal state
@@ -286,10 +403,14 @@ cloned-design/
 
 ### Node.js (package.json)
 - `css-tree`: CSS parsing and filtering
+- `sharp`: Image processing and optimization
 - `playwright` or `playwright-core`: Browser automation (peerDep, optional)
+- `@google/generative-ai`: Gemini API client (optionalDep, required for UX audit, Phase 2)
+- `fluent-ffmpeg` + `@ffmpeg-installer/ffmpeg`: Video/animation processing (optional)
 
 ### Python (requirements.txt)
 - `google-genai`: Gemini AI for vision analysis
+- Standard: `os`, `sys`, `json`, `subprocess`, `re`, `pathlib`
 
 ## Installation Methods
 

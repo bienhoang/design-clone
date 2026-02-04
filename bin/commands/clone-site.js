@@ -12,6 +12,7 @@
  *   --viewports <list>  Viewport list (default: desktop,tablet,mobile)
  *   --yes               Skip confirmation prompt
  *   --output <dir>      Custom output directory
+ *   --ux-audit          Run UX audit using Gemini Vision (requires GEMINI_API_KEY)
  */
 
 import fs from 'fs/promises';
@@ -23,6 +24,7 @@ import { captureMultiplePages } from '../../src/core/multi-page-screenshot.js';
 import { mergeCssFiles } from '../../src/core/merge-css.js';
 import { rewriteLinks, createPageManifest, rewriteAllLinks } from '../../src/core/rewrite-links.js';
 import { extractDesignTokens } from '../../src/core/design-tokens.js';
+import { runUXAudit } from '../../src/ai/ux-audit.js';
 
 /**
  * Generate output directory name
@@ -53,7 +55,8 @@ export function parseArgs(args) {
     viewports: ['desktop', 'tablet', 'mobile'],
     skipConfirm: false,
     output: null,
-    ai: false
+    ai: false,
+    uxAudit: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -71,6 +74,8 @@ export function parseArgs(args) {
       options.output = args[++i];
     } else if (arg === '--ai') {
       options.ai = true;
+    } else if (arg === '--ux-audit') {
+      options.uxAudit = true;
     } else if (!arg.startsWith('--') && !options.url) {
       options.url = arg;
     }
@@ -93,7 +98,8 @@ export async function cloneSite(url, options = {}) {
     viewports = ['desktop', 'tablet', 'mobile'],
     skipConfirm = false,
     output,
-    ai = false
+    ai = false,
+    uxAudit = false
   } = options;
 
   // Validate URL
@@ -111,7 +117,7 @@ export async function cloneSite(url, options = {}) {
   console.error(`[clone-site] Output: ${outputDir}`);
 
   // Step 1: Discover or use manual pages
-  console.error('\n[1/6] Discovering pages...');
+  console.error('\n[1/7] Discovering pages...');
 
   let pageList;
   if (manualPages && manualPages.length > 0) {
@@ -141,7 +147,7 @@ export async function cloneSite(url, options = {}) {
   }
 
   // Step 2: Capture all pages
-  console.error('\n[2/6] Capturing pages...');
+  console.error('\n[2/7] Capturing pages...');
 
   const captureResult = await captureMultiplePages(pageList.pages, {
     outputDir,
@@ -159,7 +165,7 @@ export async function cloneSite(url, options = {}) {
   console.error(`   Screenshots: ${captureResult.stats.totalScreenshots}`);
 
   // Step 3: Merge CSS files (prefer filtered CSS)
-  console.error('\n[3/6] Merging CSS...');
+  console.error('\n[3/7] Merging CSS...');
 
   const mergedCssPath = path.join(outputDir, 'styles.css');
   let mergeResult = { success: false };
@@ -184,7 +190,7 @@ export async function cloneSite(url, options = {}) {
   }
 
   // Step 4: Extract design tokens (if --ai flag)
-  console.error('\n[4/6] Extracting design tokens...');
+  console.error('\n[4/7] Extracting design tokens...');
 
   let hasTokens = false;
   if (ai) {
@@ -207,8 +213,64 @@ export async function cloneSite(url, options = {}) {
     console.error('   Skipped (use --ai flag to enable)');
   }
 
-  // Step 5: Rewrite links
-  console.error('\n[5/6] Rewriting links...');
+  // Step 5: UX Audit (if --ux-audit flag)
+  console.error('\n[5/7] Running UX audit...');
+
+  let uxAuditResult = null;
+  if (uxAudit) {
+    if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
+      // Find homepage screenshots for audit
+      const screenshotDir = path.join(outputDir, 'screenshots');
+      const screenshotPaths = {};
+
+      for (const viewport of viewports) {
+        const screenshotPath = path.join(screenshotDir, `index-${viewport}.png`);
+        try {
+          await fs.access(screenshotPath);
+          screenshotPaths[viewport] = screenshotPath;
+        } catch {
+          // Try alternative naming
+          const altPath = path.join(screenshotDir, `${viewport}.png`);
+          try {
+            await fs.access(altPath);
+            screenshotPaths[viewport] = altPath;
+          } catch {
+            // Skip this viewport
+          }
+        }
+      }
+
+      if (Object.keys(screenshotPaths).length > 0) {
+        const analysisDir = path.join(outputDir, 'analysis');
+        await fs.mkdir(analysisDir, { recursive: true });
+
+        uxAuditResult = await runUXAudit(screenshotPaths, {
+          output: analysisDir,
+          verbose: true,
+          url
+        });
+
+        if (uxAuditResult.success) {
+          console.error(`   UX Score: ${uxAuditResult.summary.uxScore}%`);
+          console.error(`   Accessibility: ${uxAuditResult.summary.accessibilityScore}%`);
+          console.error(`   Issues: ${uxAuditResult.summary.issueCount} (${uxAuditResult.summary.criticalCount} critical)`);
+          console.error(`   Report: analysis/ux-audit.md`);
+        } else {
+          console.error(`   Warning: UX audit failed - ${uxAuditResult.error}`);
+        }
+      } else {
+        console.error('   Skipped: No screenshots found for audit');
+      }
+    } else {
+      console.error('   Skipped: GEMINI_API_KEY not set');
+      console.error('   Hint: Set GEMINI_API_KEY in ~/.claude/.env for UX audit');
+    }
+  } else {
+    console.error('   Skipped (use --ux-audit flag to enable)');
+  }
+
+  // Step 6: Rewrite links
+  console.error('\n[6/7] Rewriting links...');
 
   const manifest = createPageManifest(pageList.pages, {
     hasTokens,
@@ -241,8 +303,8 @@ export async function cloneSite(url, options = {}) {
     }
   }
 
-  // Step 6: Generate manifest
-  console.error('\n[6/6] Generating manifest...');
+  // Step 7: Generate manifest
+  console.error('\n[7/7] Generating manifest...');
 
   const manifestPath = path.join(outputDir, 'manifest.json');
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
@@ -261,6 +323,7 @@ export async function cloneSite(url, options = {}) {
     manifest,
     captureResult,
     mergeResult,
+    uxAuditResult,
     totalTimeMs: totalTime
   };
 }
@@ -281,12 +344,14 @@ Options:
   --yes               Skip confirmation prompt
   --output <dir>      Custom output directory
   --ai                Extract design tokens using Gemini AI (requires GEMINI_API_KEY)
+  --ux-audit          Run UX audit using Gemini Vision (requires GEMINI_API_KEY)
 
 Examples:
   design-clone clone-site https://example.com
   design-clone clone-site https://example.com --max-pages 5
   design-clone clone-site https://example.com --pages /,/about,/contact
   design-clone clone-site https://example.com --ai
+  design-clone clone-site https://example.com --ux-audit
 `);
 }
 

@@ -169,3 +169,110 @@ Used internally by screenshot.js with `--capture-hover` flag.
 - Automatic screenshot pair generation (normal + hover states)
 - CSS rule generation from detected style changes
 - Validates selectors and skips hidden/invisible elements
+
+## ux-audit.js
+
+UX quality assessment using Gemini Vision AI (Phase 2).
+
+```bash
+node src/ai/ux-audit.js --screenshots <dir> [--output <dir>] [--url <url>] [--verbose]
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| --screenshots | yes | Directory containing viewport screenshots (desktop.png, tablet.png, mobile.png) |
+| --output | no | Output directory for report and JSON results (default: same as screenshots) |
+| --url | no | Original URL (for report metadata) |
+| --verbose | no | Show detailed progress |
+
+**Requires**: GEMINI_API_KEY or GOOGLE_API_KEY environment variable
+
+**Output**:
+- `ux-audit.md`: Markdown report with scores, issues, and recommendations
+- `ux-audit.json`: Structured results (aggregated scores, viewport breakdown, issues, recommendations)
+
+**Evaluation Categories** (0-100 score each):
+1. Visual Hierarchy - Content prominence, scanning patterns, call-to-action visibility
+2. Navigation - Touch targets, menu discoverability, current page indicator
+3. Typography - Text size, line height, contrast ratio, readability
+4. Spacing - Padding/margins, element breathing room, touch target spacing
+5. Interactive Elements - Button affordance, link distinguishability, focus states
+6. Responsive - Content reflow, no horizontal scroll, text truncation, breakpoint transitions
+
+**Viewport Analysis**: Evaluates all three viewports (desktop: 1920×1080, tablet: 768×1024, mobile: 375×812) and generates weighted scores (desktop 40%, tablet 30%, mobile 30%).
+
+**Issue Severity Levels**:
+- Critical (0-30 score): Blocks tasks or causes confusion
+- Major (31-60 score): Degrades experience significantly
+- Minor (61-80 score): Polish improvements
+
+**Scoring Scale**:
+- 90-100: Excellent, industry-leading UX
+- 70-89: Good, meets modern standards
+- 50-69: Adequate, room for improvement
+- 30-49: Poor, significant issues
+- 0-29: Critical, requires immediate attention
+
+## clone-site.js
+
+Clone multiple pages from website with integrated UX audit (Phase 2).
+
+```bash
+design-clone clone-site <url> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| --pages <paths> | Comma-separated paths (e.g., /,/about,/contact) |
+| --max-pages <n> | Maximum pages to auto-discover (default: 10) |
+| --viewports <list> | Viewport list (default: desktop,tablet,mobile) |
+| --output <dir> | Custom output directory |
+| --ai | Extract design tokens using Gemini AI (requires GEMINI_API_KEY) |
+| --ux-audit | Run UX audit using Gemini Vision (requires GEMINI_API_KEY) |
+| --yes, -y | Skip confirmation prompt |
+
+**Integrated Workflow** (when using --ux-audit):
+1. Discover or use manual pages
+2. Capture screenshots across viewports
+3. Merge CSS files
+4. Extract design tokens (with --ai)
+5. **Run UX audit** (with --ux-audit) - Analyzes homepage screenshots via Gemini Vision
+6. Rewrite links
+7. Generate manifest
+
+**UX Audit Output**: When enabled, generates `analysis/ux-audit.md` and `analysis/ux-audit.json` in output directory.
+
+**Examples**:
+```bash
+design-clone clone-site https://example.com --ux-audit
+design-clone clone-site https://example.com --pages /,/about,/contact --ux-audit
+design-clone clone-site https://example.com --ai --ux-audit
+```
+
+## ux_audit.py
+
+Python module providing UX audit prompts for Gemini Vision integration.
+
+```python
+from src.ai.prompts.ux_audit import build_ux_audit_prompt, build_aggregation_prompt
+
+# Build viewport-specific prompt
+prompt = build_ux_audit_prompt(viewport='mobile')
+
+# Build aggregation prompt for multiple viewports
+aggregation = build_aggregation_prompt(desktop_results, tablet_results, mobile_results)
+```
+
+**Functions**:
+- `build_ux_audit_prompt(viewport)` - Build prompt with viewport-specific checks (mobile/tablet/desktop)
+- `build_aggregation_prompt(desktop, tablet, mobile)` - Combine viewport results into unified assessment
+
+**Constants**:
+- `UX_AUDIT_PROMPT` - Base UX evaluation prompt (6 categories)
+- `VIEWPORT_CONTEXT` - Dictionary of viewport-specific evaluation criteria
+- `AGGREGATION_PROMPT` - Template for combining viewport results with weighted averaging
+
+**Viewport Weighting**:
+- Desktop: 40% (primary interaction model)
+- Tablet: 30% (hybrid interaction)
+- Mobile: 30% (touch-first)
