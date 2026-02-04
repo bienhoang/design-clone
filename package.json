@@ -22,7 +22,10 @@
     "extract-assets": "node src/core/extract-assets.js",
     "verify-menu": "node src/verification/verify-menu.js",
     "verify-layout": "node src/verification/verify-layout.js",
-    "test": "node tests/run-all-tests.js"
+    "test": "node tests/run-all-tests.js",
+    "docs:dev": "npm run docs:dev --prefix docs",
+    "docs:build": "npm run docs:build --prefix docs",
+    "docs:preview": "npm run docs:preview --prefix docs"
   },
   "keywords": [
     "claude",

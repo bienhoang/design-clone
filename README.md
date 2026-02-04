@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.svg" alt="design-clone" width="120" height="120">
+  <img src="./assets/images/logo.svg" alt="design-clone" width="120" height="120">
   <h1>Design Clone</h1>
   <p><strong>Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis.</strong></p>
   <p>
