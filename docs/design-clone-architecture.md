@@ -126,6 +126,39 @@ Both Node.js and Python share same resolution order:
 - Windows: Uses `USERPROFILE` when `HOME` unavailable
 - Python 3.9+: Uses `List[Path]` from typing module
 
+### 2.5 DOM Tree Analyzer
+
+**Purpose**: Extract DOM tree hierarchy with semantic landmarks and heading structure.
+
+**Location**: `src/core/dom-tree-analyzer.js`
+
+**Key Features**:
+- PreOrder DOM traversal (parent before children)
+- W3C landmark detection (`<header>`, `<main>`, `<footer>`, `<nav>`, `<aside>`)
+- Section context mapping (hero, header, content, sidebar, footer)
+- Heading tree with section context and Y-position
+- Configurable max depth (default: 8 levels)
+- Hidden element filtering (optional inclusion)
+- Performance tracking with warnings for extraction >500ms
+
+**API**:
+```javascript
+export async function extractDOMHierarchy(page, options = {})
+// @param {Object} options - { maxDepth: 8, includeHidden: false }
+// @returns {Promise<Object>} - { root, landmarks, headingTree, stats }
+```
+
+**Output Structure**:
+- `root`: Complete DOM tree starting from `<body>`
+- `landmarks`: Object with header, main, footer, nav[], aside[]
+- `headingTree`: Array of headings with level, section, text, fontSize, Y-position
+- `stats`: Metrics (totalNodes, maxDepth, landmarkCount, pageHeight, pageWidth, extractionTimeMs)
+
+**Detection Priority**:
+- **Role**: ARIA role attribute > semantic tag > class pattern
+- **Section**: Semantic tag (header/footer/aside/nav) > Y-position > computed style
+- **Landmarks**: Only top-level header/footer elements marked as "-landmark" role
+
 ### 3. Core Scripts
 
 | Script | Location | Language | Purpose |
@@ -136,6 +169,7 @@ Both Node.js and Python share same resolution order:
 | framework-detector.js | src/core/ | Node.js | Detect framework (Next.js, Nuxt, Vue, React, Angular, Svelte, Astro) |
 | filter-css.js | src/core/ | Node.js | Remove unused CSS selectors |
 | extract-assets.js | src/core/ | Node.js | Download images, fonts, icons |
+| dom-tree-analyzer.js | src/core/ | Node.js | DOM hierarchy extraction with semantic landmarks and heading tree |
 | analyze-structure.py | src/ai/ | Python | Gemini AI structure analysis |
 | extract-design-tokens.py | src/ai/ | Python | Color, typography, spacing extraction |
 | verify-menu.js | src/verification/ | Node.js | Test responsive navigation |
