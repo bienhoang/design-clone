@@ -5,6 +5,7 @@ Extract design tokens from website screenshots using Gemini Vision API.
 Usage:
   python extract-design-tokens.py --screenshots ./analysis --output ./output
   python extract-design-tokens.py -s ./analysis -o ./out --css source.css
+  python extract-design-tokens.py -s ./analysis -o ./out --section-mode
 
 Options:
   --screenshots   Directory containing desktop.png, tablet.png, mobile.png
@@ -12,12 +13,15 @@ Options:
   --css           Path to filtered CSS file for exact token extraction (optional)
   --model         Gemini model (default: gemini-2.5-flash)
   --verbose       Enable verbose output
+  --section-mode  Analyze sections instead of viewports (sections/*.png)
 
 Output:
   - design-tokens.json: Machine-readable tokens
   - tokens.css: CSS custom properties
+  - section-analysis/*.json: Per-section tokens (section-mode only)
 
 When CSS provided, extracts EXACT colors/fonts from source instead of estimating.
+Section mode analyzes each section separately for better detail accuracy.
 """
 
 import argparse
@@ -25,8 +29,9 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 # Add src directory to path for local imports
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -55,7 +60,7 @@ except ImportError:
     sys.exit(1)
 
 # Import prompts from extracted module
-from prompts.design_tokens import build_extraction_prompt
+from prompts.design_tokens import build_extraction_prompt, build_section_prompt
 
 
 # Default tokens (fallback)
@@ -166,6 +171,235 @@ def merge_with_defaults(tokens: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
     return deep_merge(DEFAULT_TOKENS.copy(), tokens)
+
+
+def extract_section_tokens(
+    section_path: str,
+    css_content: Optional[str],
+    client,
+    model: str,
+    verbose: bool = False
+) -> Dict[str, Any]:
+    """Extract tokens from a single section image.
+
+    Args:
+        section_path: Path to section image
+        css_content: Optional CSS content for context
+        client: Gemini client instance
+        model: Model name to use
+        verbose: Enable verbose output
+
+    Returns:
+        Extracted tokens for this section
+    """
+    section_name = Path(section_path).stem  # e.g., section-0-header
+
+    # Build section-specific prompt
+    prompt = build_section_prompt(section_name, css_content)
+
+    # Load image
+    with open(section_path, 'rb') as f:
+        img_bytes = f.read()
+
+    content = [
+        prompt,
+        types.Part.from_bytes(data=img_bytes, mime_type='image/png')
+    ]
+
+    try:
+        config = types.GenerateContentConfig(
+            response_mime_type='application/json'
+        )
+
+        response = client.models.generate_content(
+            model=model,
+            contents=content,
+            config=config
+        )
+
+        if hasattr(response, 'text') and response.text:
+            tokens = json.loads(response.text)
+            tokens['_section'] = section_name
+            return tokens
+        else:
+            return {'_section': section_name, 'error': 'Empty response'}
+
+    except Exception as e:
+        if verbose:
+            print(f"Error extracting {section_name}: {e}", file=sys.stderr)
+        return {'_section': section_name, 'error': str(e)}
+
+
+def merge_section_tokens(section_tokens: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Merge tokens from multiple sections into unified set.
+
+    Strategy:
+    - Colors: First non-null occurrence wins (header colors take priority)
+    - Typography: Collect all unique values
+    - Spacing: Merge unique values
+    - Notes: Collect all
+
+    Args:
+        section_tokens: List of per-section token dicts
+
+    Returns:
+        Merged token dictionary
+    """
+    merged = {
+        'colors': {
+            'primary': None,
+            'secondary': None,
+            'accent': None,
+            'background': None,
+            'surface': None,
+            'text': {
+                'primary': None,
+                'secondary': None,
+                'muted': None
+            },
+            'border': None
+        },
+        'typography': {
+            'fontFamily': {
+                'heading': None,
+                'body': None
+            },
+            'fontSize': {},
+            'fontWeight': {
+                'normal': None,
+                'medium': None,
+                'semibold': None,
+                'bold': None
+            },
+            'lineHeight': {}
+        },
+        'spacing': {},
+        'borderRadius': {},
+        'shadows': {},
+        'notes': [],
+        '_sections': [],
+        '_sectionCount': len(section_tokens)
+    }
+
+    # Track seen font sizes for deduplication
+    seen_sizes = set()
+
+    for tokens in section_tokens:
+        if 'error' in tokens:
+            merged['notes'].append(f"Section {tokens.get('_section', 'unknown')} failed: {tokens['error']}")
+            continue
+
+        section_name = tokens.get('_section', 'unknown')
+        merged['_sections'].append(section_name)
+
+        # Merge colors (first occurrence wins)
+        if 'colors' in tokens:
+            colors = tokens['colors']
+
+            # Direct color mappings
+            color_mappings = [
+                ('background', 'background'),
+                ('text', 'text.primary'),
+                ('heading', 'text.secondary'),
+                ('accent', 'accent'),
+                ('border', 'border')
+            ]
+
+            for src_key, dest_key in color_mappings:
+                if src_key in colors and colors[src_key] and colors[src_key] != 'null':
+                    value = colors[src_key]
+                    if validate_hex_color(value):
+                        if '.' in dest_key:
+                            parent, child = dest_key.split('.')
+                            if merged['colors'][parent][child] is None:
+                                merged['colors'][parent][child] = value
+                        else:
+                            if merged['colors'][dest_key] is None:
+                                merged['colors'][dest_key] = value
+
+            # Infer primary from accent if not set
+            if merged['colors']['primary'] is None and 'accent' in colors:
+                if colors['accent'] and validate_hex_color(colors['accent']):
+                    merged['colors']['primary'] = colors['accent']
+
+        # Merge typography
+        if 'typography' in tokens:
+            typo = tokens['typography']
+
+            # Font family
+            if 'fontFamily' in typo and typo['fontFamily']:
+                font = typo['fontFamily']
+                if isinstance(font, str) and font != 'null':
+                    if merged['typography']['fontFamily']['heading'] is None:
+                        merged['typography']['fontFamily']['heading'] = font
+                    if merged['typography']['fontFamily']['body'] is None:
+                        merged['typography']['fontFamily']['body'] = font
+
+            # Font sizes - collect unique values
+            for key in ['headingSize', 'bodySize']:
+                if key in typo and typo[key] and typo[key] != 'null':
+                    size = typo[key]
+                    if size not in seen_sizes:
+                        seen_sizes.add(size)
+                        # Map to our size scale
+                        if 'heading' in key.lower():
+                            if '4xl' not in merged['typography']['fontSize']:
+                                merged['typography']['fontSize']['4xl'] = size
+                        else:
+                            if 'base' not in merged['typography']['fontSize']:
+                                merged['typography']['fontSize']['base'] = size
+
+            # Font weights
+            if 'fontWeight' in typo and isinstance(typo['fontWeight'], dict):
+                for key, val in typo['fontWeight'].items():
+                    if val and val != 'null':
+                        target_key = key.lower()
+                        if target_key in merged['typography']['fontWeight']:
+                            if merged['typography']['fontWeight'][target_key] is None:
+                                merged['typography']['fontWeight'][target_key] = val
+
+        # Merge spacing
+        if 'spacing' in tokens:
+            spacing = tokens['spacing']
+            if isinstance(spacing, dict):
+                for key, val in spacing.items():
+                    if val and val != 'null':
+                        # Map section spacing to our scale
+                        if 'section' in key.lower() or 'container' in key.lower():
+                            if '16' not in merged['spacing']:
+                                merged['spacing']['16'] = val
+                        elif 'gap' in key.lower():
+                            if '4' not in merged['spacing']:
+                                merged['spacing']['4'] = val
+
+        # Merge border radius
+        if 'borderRadius' in tokens and tokens['borderRadius'] and tokens['borderRadius'] != 'null':
+            radius = tokens['borderRadius']
+            if 'md' not in merged['borderRadius']:
+                merged['borderRadius']['md'] = radius
+
+        # Merge shadows
+        if 'shadow' in tokens and tokens['shadow'] and tokens['shadow'] != 'null':
+            shadow = tokens['shadow']
+            if 'md' not in merged['shadows']:
+                merged['shadows']['md'] = shadow
+
+        # Collect notes
+        if 'notes' in tokens and isinstance(tokens['notes'], list):
+            merged['notes'].extend(tokens['notes'])
+
+    # Clean up None values
+    def clean_nones(d):
+        if isinstance(d, dict):
+            return {k: clean_nones(v) for k, v in d.items() if v is not None}
+        return d
+
+    # Don't clean top-level structure, just nested Nones
+    for key in ['colors', 'typography']:
+        if key in merged:
+            merged[key] = clean_nones(merged[key])
+
+    return merged
 
 
 def generate_tokens_css(tokens: Dict[str, Any]) -> str:
@@ -391,6 +625,17 @@ def main():
         action='store_true',
         help='Enable verbose output'
     )
+    parser.add_argument(
+        '--section-mode',
+        action='store_true',
+        help='Analyze sections instead of viewports (looks for sections/*.png)'
+    )
+    parser.add_argument(
+        '--delay',
+        type=float,
+        default=1.0,
+        help='Delay between API calls in seconds (default: 1.0)'
+    )
 
     args = parser.parse_args()
 
@@ -398,13 +643,105 @@ def main():
     output_path = Path(args.output)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Extract tokens
-    tokens = extract_tokens(
-        screenshots_dir=args.screenshots,
-        css_path=args.css,
-        model=args.model,
-        verbose=args.verbose
-    )
+    # Section mode: analyze each section separately
+    if args.section_mode:
+        sections_dir = Path(args.screenshots) / 'sections'
+        if not sections_dir.exists():
+            print(json.dumps({
+                "success": False,
+                "error": f"Sections directory not found: {sections_dir}",
+                "hint": "Run screenshot.js with --section-mode true first"
+            }, indent=2))
+            sys.exit(1)
+
+        section_files = sorted(sections_dir.glob('section-*.png'))
+        if not section_files:
+            print(json.dumps({
+                "success": False,
+                "error": "No section images found in sections/ directory"
+            }, indent=2))
+            sys.exit(1)
+
+        # Limit sections to avoid excessive API calls
+        MAX_SECTIONS = 15
+        if len(section_files) > MAX_SECTIONS:
+            if args.verbose:
+                print(f"Warning: Limiting to {MAX_SECTIONS} sections (found {len(section_files)})", file=sys.stderr)
+            section_files = section_files[:MAX_SECTIONS]
+
+        if args.verbose:
+            print(f"Found {len(section_files)} sections to analyze", file=sys.stderr)
+
+        # Check API key
+        api_key = get_api_key()
+        if not api_key:
+            print(json.dumps({
+                "success": False,
+                "error": "GEMINI_API_KEY not set",
+                "hint": "Set GEMINI_API_KEY environment variable"
+            }, indent=2))
+            sys.exit(1)
+
+        # Load CSS if provided
+        css_content = None
+        if args.css and Path(args.css).exists():
+            with open(args.css, 'r', encoding='utf-8') as f:
+                css_content = f.read()
+            if args.verbose:
+                print(f"Loaded CSS: {len(css_content)} chars", file=sys.stderr)
+
+        # Initialize client
+        client = genai.Client(api_key=api_key)
+
+        # Create section-analysis directory
+        section_output_dir = output_path / 'section-analysis'
+        section_output_dir.mkdir(exist_ok=True)
+
+        # Process each section
+        section_results = []
+        for i, section_path in enumerate(section_files):
+            if args.verbose:
+                print(f"[{i+1}/{len(section_files)}] Analyzing {section_path.name}...", file=sys.stderr)
+
+            tokens = extract_section_tokens(
+                str(section_path),
+                css_content,
+                client,
+                args.model,
+                args.verbose
+            )
+            section_results.append(tokens)
+
+            # Save individual section result
+            section_out_path = section_output_dir / f'{section_path.stem}-tokens.json'
+            with open(section_out_path, 'w') as f:
+                json.dump(tokens, f, indent=2)
+
+            # Rate limiting delay (except for last section)
+            if i < len(section_files) - 1:
+                time.sleep(args.delay)
+
+        if args.verbose:
+            print(f"Merging tokens from {len(section_results)} sections...", file=sys.stderr)
+
+        # Merge all section tokens
+        merged_tokens = merge_section_tokens(section_results)
+
+        # Merge with defaults for complete token set
+        tokens = merge_with_defaults(merged_tokens)
+        tokens['_mode'] = 'section'
+        tokens['_sections'] = merged_tokens.get('_sections', [])
+        tokens['_sectionCount'] = merged_tokens.get('_sectionCount', 0)
+
+    else:
+        # Standard mode: analyze viewport screenshots
+        tokens = extract_tokens(
+            screenshots_dir=args.screenshots,
+            css_path=args.css,
+            model=args.model,
+            verbose=args.verbose
+        )
+        tokens['_mode'] = 'viewport'
 
     # Save design-tokens.json
     json_path = output_path / "design-tokens.json"
@@ -412,16 +749,16 @@ def main():
         json.dump(tokens, f, indent=2)
 
     if args.verbose:
-        print(f"Saved: {json_path}")
+        print(f"Saved: {json_path}", file=sys.stderr)
 
     # Generate and save tokens.css
-    css_content = generate_tokens_css(tokens)
+    css_output = generate_tokens_css(tokens)
     css_path = output_path / "tokens.css"
     with open(css_path, 'w') as f:
-        f.write(css_content)
+        f.write(css_output)
 
     if args.verbose:
-        print(f"Saved: {css_path}")
+        print(f"Saved: {css_path}", file=sys.stderr)
 
     # Output result as JSON
     result = {
@@ -429,8 +766,14 @@ def main():
         "tokens_json": str(json_path),
         "tokens_css": str(css_path),
         "model": args.model,
+        "mode": tokens.get('_mode', 'viewport'),
         "notes": tokens.get('notes', [])
     }
+
+    # Add section info if in section mode
+    if args.section_mode:
+        result["section_analysis"] = str(section_output_dir)
+        result["sections_processed"] = len(section_results)
 
     print(json.dumps(result, indent=2))
 

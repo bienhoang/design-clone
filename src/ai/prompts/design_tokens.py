@@ -181,3 +181,136 @@ def build_extraction_prompt(css_content: str = None) -> str:
         css_snippet = css_content[:15000] if len(css_content) > 15000 else css_content
         return EXTRACTION_PROMPT_WITH_CSS.format(css_content=css_snippet)
     return EXTRACTION_PROMPT
+
+
+# Section-specific extraction prompt
+SECTION_EXTRACTION_PROMPT = """Analyze this {section_type} section screenshot and extract design tokens.
+
+Focus on elements visible in THIS section only:
+- Background colors and gradients
+- Text colors (headings, body, links)
+- Typography (font family, sizes, weights)
+- Spacing patterns (padding, margins, gaps)
+- Border radius and shadows
+- Any accent or highlight colors
+
+Return ONLY valid JSON:
+
+{{
+  "colors": {{
+    "background": "#hex or null if transparent",
+    "text": "#hex for main text",
+    "heading": "#hex for headings",
+    "accent": "#hex for buttons/links/highlights",
+    "border": "#hex if borders visible"
+  }},
+  "typography": {{
+    "fontFamily": "observed font or best guess",
+    "headingSize": "largest heading size in px",
+    "bodySize": "body text size in px",
+    "fontWeight": {{
+      "heading": 700,
+      "body": 400
+    }}
+  }},
+  "spacing": {{
+    "sectionPadding": "vertical padding estimate",
+    "elementGap": "gap between elements",
+    "containerPadding": "horizontal padding"
+  }},
+  "borderRadius": "observed radius or null",
+  "shadow": "observed shadow or null",
+  "notes": ["observations about this section"]
+}}
+
+RULES:
+1. Use exact 6-digit hex codes (#RRGGBB)
+2. If a value is not visible/applicable, use null
+3. Focus only on what's visible in this section image
+4. Add section-specific observations to notes"""
+
+
+SECTION_EXTRACTION_PROMPT_WITH_CSS = """Analyze this {section_type} section screenshot with CSS context.
+
+## Source CSS (excerpt)
+```css
+{css_content}
+```
+
+---
+
+Extract design tokens visible in THIS section. Use EXACT values from CSS when possible.
+
+Return ONLY valid JSON:
+
+{{
+  "colors": {{
+    "background": "#exact-hex from CSS or screenshot",
+    "text": "#exact-hex for text color",
+    "heading": "#exact-hex for heading color",
+    "accent": "#exact-hex for accent/CTA",
+    "border": "#exact-hex if borders visible"
+  }},
+  "typography": {{
+    "fontFamily": "exact font-family from CSS",
+    "headingSize": "exact font-size for headings",
+    "bodySize": "exact body font-size",
+    "fontWeight": {{
+      "heading": "exact weight from CSS",
+      "body": "exact weight from CSS"
+    }}
+  }},
+  "spacing": {{
+    "sectionPadding": "exact padding from CSS",
+    "elementGap": "exact gap/margin",
+    "containerPadding": "exact container padding"
+  }},
+  "borderRadius": "exact radius from CSS or null",
+  "shadow": "exact box-shadow from CSS or null",
+  "notes": ["list any CSS custom properties found"]
+}}
+
+RULES:
+1. Extract EXACT hex codes from CSS
+2. Use null for values not visible in this section
+3. Note any CSS variables (--color-*, --space-*)"""
+
+
+def build_section_prompt(section_name: str, css_content: str = None) -> str:
+    """Build prompt for single section analysis."""
+    # Extract section type from name (e.g., "section-0-header" -> "header")
+    parts = section_name.replace('.png', '').split('-')
+    section_type = parts[-1] if len(parts) > 2 else 'content'
+
+    # Map common section names to descriptive types
+    type_mapping = {
+        'header': 'header/navigation',
+        'footer': 'footer',
+        'hero': 'hero/banner',
+        'nav': 'navigation',
+        'cta': 'call-to-action',
+        'services': 'services/features',
+        'features': 'features',
+        'about': 'about',
+        'contact': 'contact',
+        'testimonials': 'testimonials',
+        'pricing': 'pricing',
+        'faq': 'FAQ',
+        'viewport': 'page content'
+    }
+
+    # Get descriptive type
+    for key, desc in type_mapping.items():
+        if key in section_type.lower():
+            section_type = desc
+            break
+
+    if css_content:
+        # Truncate CSS for section prompt (5KB limit per section)
+        css_snippet = css_content[:5000] if len(css_content) > 5000 else css_content
+        return SECTION_EXTRACTION_PROMPT_WITH_CSS.format(
+            section_type=section_type,
+            css_content=css_snippet
+        )
+
+    return SECTION_EXTRACTION_PROMPT.format(section_type=section_type)
