@@ -69,6 +69,59 @@ export async function extractComponentDimensions(page, viewportName) {
       );
     }
 
+    /**
+     * Section Detection Configuration
+     * These thresholds determine how elements are classified into page sections.
+     * Semantic tags (<header>, <footer>, etc.) always take priority over position.
+     * Position-based detection is used as fallback for non-semantic elements.
+     */
+    const HERO_THRESHOLD = 0.25;    // Elements in top 25% with height >300px → hero
+    const FOOTER_THRESHOLD = 0.85;  // Elements below 85% of page height → footer
+    const SIDEBAR_MAX_WIDTH = 400;  // Max px width for fixed/sticky sidebar detection
+
+    // Page dimensions for section context
+    const pageHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+    const pageWidth = document.documentElement.clientWidth;
+
+    /**
+     * Detect section context for an element.
+     *
+     * Priority order (per validation decision):
+     * 1. Semantic HTML tags: <header>, <footer>, <aside>, <nav> (highest priority)
+     * 2. Ancestor semantic tags: element inside <header>, <footer>, etc.
+     * 3. Position-based heuristics: hero (top 25%), footer (bottom 15%)
+     * 4. Layout-based: fixed/sticky narrow elements → sidebar
+     * 5. Default: 'content'
+     *
+     * @param {Element} el - DOM element to classify
+     * @returns {string} Section context: 'header' | 'hero' | 'content' | 'sidebar' | 'footer' | 'nav'
+     */
+    function detectSection(el) {
+      const rect = el.getBoundingClientRect();
+      const computed = window.getComputedStyle(el);
+      const yRatio = (rect.y + window.scrollY) / pageHeight;
+
+      // Semantic tags have priority (per validation decision)
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'header' || el.closest('header')) return 'header';
+      if (tag === 'footer' || el.closest('footer')) return 'footer';
+      if (tag === 'aside' || el.closest('aside')) return 'sidebar';
+      if (tag === 'nav' || el.closest('nav')) return 'nav';
+
+      // Hero detection (large element in top 25%)
+      if (yRatio < HERO_THRESHOLD && rect.height > 300) return 'hero';
+
+      // Footer detection (bottom 15%)
+      if (yRatio > FOOTER_THRESHOLD) return 'footer';
+
+      // Sidebar detection (narrow fixed/sticky)
+      if ((computed.position === 'fixed' || computed.position === 'sticky') && rect.width < SIDEBAR_MAX_WIDTH) {
+        return 'sidebar';
+      }
+
+      return 'content';
+    }
+
     // 1. Extract containers
     const containerSelectors = [
       'section', 'main', 'article', 'header', 'footer',
@@ -98,6 +151,7 @@ export async function extractComponentDimensions(page, viewportName) {
               ? `.${el.className.split(' ').filter(c => c && !c.includes(':')).slice(0, 2).join('.')}`
               : el.tagName.toLowerCase();
             dims.childCount = children.length;
+            dims.section = detectSection(el);  // Add section context
 
             if (children.length >= 2 && (dims.display === 'flex' || dims.display === 'grid')) {
               const firstRect = children[0].getBoundingClientRect();
@@ -118,34 +172,52 @@ export async function extractComponentDimensions(page, viewportName) {
       } catch (e) { /* ignore */ }
     });
 
-    // 2. Extract typography
+    // 2. Extract typography (grouped by section context)
     const typographySelectors = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'];
     typographySelectors.forEach(tag => {
       try {
         const elements = document.querySelectorAll(tag);
-        if (elements.length > 0) {
-          for (const el of elements) {
-            const rect = el.getBoundingClientRect();
-            if (rect.width > 50 && rect.height > 10) {
-              const dims = extractDimensions(el);
-              results.typography.push({
-                selector: tag,
-                fontSize: dims.fontSize,
-                fontWeight: dims.fontWeight,
-                lineHeight: dims.lineHeight,
-                letterSpacing: dims.letterSpacing,
-                color: dims.color,
-                marginTop: dims.marginTop,
-                marginBottom: dims.marginBottom,
-                textSample: el.textContent?.trim().slice(0, 40),
-                count: elements.length
-              });
-              break;
-            }
+        if (elements.length === 0) return;
+
+        const bySection = {};  // Group by section
+
+        for (const el of elements) {
+          const rect = el.getBoundingClientRect();
+          if (rect.width < 50 || rect.height < 10) continue;
+
+          const section = detectSection(el);
+          const dims = extractDimensions(el);
+
+          // Create section group if not exists
+          if (!bySection[section]) bySection[section] = [];
+
+          // Add to section group (limit 2 per section per tag for token efficiency)
+          if (bySection[section].length < 2) {
+            bySection[section].push({
+              selector: tag,
+              section,
+              fontSize: dims.fontSize,
+              fontWeight: dims.fontWeight,
+              lineHeight: dims.lineHeight,
+              letterSpacing: dims.letterSpacing,
+              color: dims.color,
+              marginTop: dims.marginTop,
+              marginBottom: dims.marginBottom,
+              textSample: el.textContent?.trim().slice(0, 40),
+              y: Math.round(rect.y + window.scrollY)
+            });
           }
+        }
+
+        // Flatten section groups into typography array
+        for (const items of Object.values(bySection)) {
+          results.typography.push(...items);
         }
       } catch (e) { /* ignore */ }
     });
+
+    // Sort typography by position for consistent output
+    results.typography.sort((a, b) => a.y - b.y);
 
     // 3. Extract buttons
     const buttonSelectors = [

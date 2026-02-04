@@ -89,7 +89,18 @@ export function sanitizeViewportData(data, vpName) {
 }
 
 /**
- * Build cross-viewport summary for AI consumption
+ * Build cross-viewport summary for AI consumption.
+ * Includes section-aware typography and container data.
+ *
+ * @param {Object} viewports - Viewport data keyed by name (desktop, tablet, mobile)
+ * @returns {Object} Summary with:
+ *   - maxContainerWidth: Largest container width across all viewports
+ *   - commonGap: Average gap from card patterns
+ *   - breakpoints: Viewport width breakpoints
+ *   - typography: Flat h1/h2/h3/body sizes by viewport (backward compat)
+ *   - typographyBySection: Typography grouped by section context (hero h1 != content h1)
+ *   - cardPatterns: Card group statistics
+ *   - sections: Section detection summary (found flag + width/containerWidth)
  */
 export function buildCrossViewportSummary(viewports) {
   const summary = {
@@ -100,31 +111,83 @@ export function buildCrossViewportSummary(viewports) {
       tablet: VIEWPORTS.tablet.width,
       mobile: VIEWPORTS.mobile.width
     },
+    // Flat typography for backward compatibility
     typography: { h1: {}, h2: {}, h3: {}, body: {} },
-    cardPatterns: { totalGroups: 0, avgCardSize: null }
+    // NEW: Typography by section context
+    typographyBySection: {
+      hero: {},
+      content: {},
+      header: {},
+      footer: {},
+      sidebar: {}
+    },
+    cardPatterns: { totalGroups: 0, avgCardSize: null },
+    // NEW: Section summary
+    sections: {
+      hero: { found: false, containerWidth: null },
+      content: { found: false, containerWidth: null },
+      header: { found: false, containerWidth: null },
+      footer: { found: false, containerWidth: null },
+      sidebar: { found: false, width: null }
+    }
   };
 
   for (const [vpName, vpData] of Object.entries(viewports)) {
     if (!vpData) continue;
 
+    // Container section mapping
     if (vpData.containers) {
       for (const container of vpData.containers) {
         if (container.width > summary.maxContainerWidth) {
           summary.maxContainerWidth = container.width;
         }
+        // Track section widths
+        const section = container.section || 'content';
+        if (summary.sections[section]) {
+          summary.sections[section].found = true;
+          // Sidebar uses 'width' field, others use 'containerWidth'
+          if (section === 'sidebar') {
+            if (!summary.sections[section].width ||
+                container.width > summary.sections[section].width) {
+              summary.sections[section].width = container.width;
+            }
+          } else {
+            if (!summary.sections[section].containerWidth ||
+                container.width > summary.sections[section].containerWidth) {
+              summary.sections[section].containerWidth = container.width;
+            }
+          }
+        }
       }
     }
 
+    // Typography by section
     if (vpData.typography) {
       for (const typo of vpData.typography) {
         const tag = typo.selector?.toLowerCase();
-        if (tag === 'h1') summary.typography.h1[vpName] = typo.fontSize;
-        if (tag === 'h2') summary.typography.h2[vpName] = typo.fontSize;
-        if (tag === 'h3') summary.typography.h3[vpName] = typo.fontSize;
-        if (tag === 'p') summary.typography.body[vpName] = typo.fontSize;
+        const section = typo.section || 'content';
+
+        // Flat typography (backward compat) - take first found
+        if (tag === 'h1' && !summary.typography.h1[vpName]) summary.typography.h1[vpName] = typo.fontSize;
+        if (tag === 'h2' && !summary.typography.h2[vpName]) summary.typography.h2[vpName] = typo.fontSize;
+        if (tag === 'h3' && !summary.typography.h3[vpName]) summary.typography.h3[vpName] = typo.fontSize;
+        if (tag === 'p' && !summary.typography.body[vpName]) summary.typography.body[vpName] = typo.fontSize;
+
+        // Typography by section
+        if (!summary.typographyBySection[section]) {
+          summary.typographyBySection[section] = {};
+        }
+        if (!summary.typographyBySection[section][tag]) {
+          summary.typographyBySection[section][tag] = {};
+        }
+        // Take first found per section/tag/viewport
+        if (!summary.typographyBySection[section][tag][vpName]) {
+          summary.typographyBySection[section][tag][vpName] = typo.fontSize;
+        }
       }
     }
 
+    // Card patterns (unchanged)
     if (vpData.cards && vpData.cards.length > 0) {
       summary.cardPatterns.totalGroups += vpData.cards.length;
       if (vpName === 'desktop' && vpData.cards[0]?.avgDimensions) {
@@ -143,6 +206,7 @@ export function buildCrossViewportSummary(viewports) {
 
 /**
  * Generate AI-friendly summary (compact, <5KB)
+ * Includes section-aware typography for accurate reconstruction
  * @param {Object} fullOutput - Full component-dimensions.json
  * @returns {Object} Compact summary for AI prompts
  */
@@ -173,6 +237,29 @@ export function generateAISummary(fullOutput) {
     };
   }
 
+  /**
+   * Convert typographyBySection to AI-friendly format with px units
+   */
+  function inferTypographyBySection(typographyBySection) {
+    const result = {};
+    for (const [section, tags] of Object.entries(typographyBySection || {})) {
+      if (!tags || Object.keys(tags).length === 0) continue;
+      result[section] = {};
+      for (const [tag, sizes] of Object.entries(tags)) {
+        // Use desktop first, then tablet, then mobile
+        const size = sizes.desktop || sizes.tablet || sizes.mobile || 0;
+        if (size > 0) {
+          result[section][tag] = size + "px";
+        }
+      }
+      // Remove empty sections
+      if (Object.keys(result[section]).length === 0) {
+        delete result[section];
+      }
+    }
+    return result;
+  }
+
   return {
     _comment: "USE THESE EXACT VALUES - DO NOT ESTIMATE",
     EXACT_DIMENSIONS: {
@@ -186,6 +273,16 @@ export function generateAISummary(fullOutput) {
       h2: (summary.typography.h2.desktop || 36) + "px",
       h3: (summary.typography.h3.desktop || 24) + "px",
       body: (summary.typography.body.desktop || 16) + "px"
+    },
+    // NEW: Section-aware typography (hero h1 != content h1)
+    TYPOGRAPHY_BY_SECTION: inferTypographyBySection(summary.typographyBySection),
+    // NEW: Section info
+    SECTIONS: {
+      hero: summary.sections?.hero || { found: false },
+      content: summary.sections?.content || { found: false },
+      header: summary.sections?.header || { found: false },
+      footer: summary.sections?.footer || { found: false },
+      sidebar: summary.sections?.sidebar || { found: false }
     },
     RESPONSIVE: {
       desktop_breakpoint: summary.breakpoints.desktop + "px",
