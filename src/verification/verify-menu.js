@@ -24,13 +24,7 @@ import { fileURLToPath } from 'url';
 
 // Import browser abstraction (auto-detects chrome-devtools or standalone)
 import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../utils/browser.js';
-
-// Viewport configurations
-const VIEWPORTS = {
-  mobile: { width: 375, height: 812, deviceScaleFactor: 2 },
-  tablet: { width: 768, height: 1024, deviceScaleFactor: 1 },
-  desktop: { width: 1920, height: 1080, deviceScaleFactor: 1 }
-};
+import { VIEWPORTS_HD as VIEWPORTS } from '../shared/viewports.js';
 
 // Common menu element selectors
 const MENU_SELECTORS = {
@@ -138,12 +132,131 @@ async function countVisibleMenuItems(page) {
 }
 
 /**
+ * Test desktop menu visibility
+ */
+async function testDesktopMenu(page, result, menuItems, verbose) {
+  if (menuItems.count >= 2) {
+    result.tests.push({
+      name: 'Desktop menu items visible',
+      passed: true,
+      count: menuItems.count,
+      selector: menuItems.selector
+    });
+    result.passed++;
+    if (verbose) console.error(`  ✓ ${menuItems.count} menu items visible`);
+  } else {
+    result.tests.push({
+      name: 'Desktop menu items visible',
+      passed: false,
+      count: menuItems.count,
+      error: 'Expected at least 2 visible menu items on desktop'
+    });
+    result.failed++;
+    if (verbose) console.error(`  ✗ Only ${menuItems.count} menu items visible (expected >= 2)`);
+  }
+}
+
+/**
+ * Test toggle button functionality
+ */
+async function testToggleFunctionality(page, toggleElement, result, verbose) {
+  try {
+    const initialMenuItems = await countVisibleMenuItems(page);
+    await toggleElement.click();
+    await new Promise(r => setTimeout(r, 500));
+    const afterClickItems = await countVisibleMenuItems(page);
+
+    const stateChanged = afterClickItems.count !== initialMenuItems.count;
+    const hasEnoughItems = afterClickItems.count >= 2;
+
+    if (stateChanged || hasEnoughItems) {
+      result.tests.push({
+        name: 'Menu toggle functionality',
+        passed: true,
+        before: initialMenuItems.count,
+        after: afterClickItems.count
+      });
+      result.passed++;
+      if (verbose) console.error(`  ✓ Toggle works: ${initialMenuItems.count} -> ${afterClickItems.count} items`);
+      await toggleElement.click();
+      await new Promise(r => setTimeout(r, 300));
+    } else {
+      result.tests.push({
+        name: 'Menu toggle functionality',
+        passed: false,
+        before: initialMenuItems.count,
+        after: afterClickItems.count,
+        warning: 'Toggle may not be functional - no state change detected'
+      });
+      result.warnings.push('Menu toggle click did not change visible items');
+      if (verbose) console.error(`  ⚠ Toggle click had no effect`);
+    }
+  } catch (err) {
+    result.tests.push({
+      name: 'Menu toggle functionality',
+      passed: false,
+      error: err.message
+    });
+    result.failed++;
+    if (verbose) console.error(`  ✗ Toggle click failed: ${err.message}`);
+  }
+}
+
+/**
+ * Test mobile/tablet hamburger menu
+ */
+async function testMobileMenu(page, result, menuItems, verbose) {
+  const toggleResult = await findElement(page, MENU_SELECTORS.toggleButtons);
+
+  // No toggle found - check if menu is visible anyway
+  if (!toggleResult) {
+    if (menuItems.count >= 2) {
+      result.tests.push({
+        name: 'Mobile menu visible without toggle',
+        passed: true,
+        count: menuItems.count,
+        note: 'Menu shows items without hamburger toggle'
+      });
+      result.passed++;
+      if (verbose) console.error(`  ✓ ${menuItems.count} menu items visible (no toggle needed)`);
+    } else {
+      result.tests.push({
+        name: 'Mobile menu accessibility',
+        passed: false,
+        error: 'No hamburger toggle found and menu items hidden'
+      });
+      result.failed++;
+      if (verbose) console.error(`  ✗ No hamburger toggle and menu items hidden`);
+    }
+    return;
+  }
+
+  // Toggle found - test visibility and functionality
+  const isToggleVisible = await isElementVisible(page, toggleResult.selector);
+  if (!isToggleVisible) {
+    result.warnings.push('Menu toggle found but not visible');
+    if (verbose) console.error(`  ⚠ Menu toggle found but not visible`);
+    return;
+  }
+
+  result.tests.push({
+    name: 'Mobile menu toggle visible',
+    passed: true,
+    selector: toggleResult.selector
+  });
+  result.passed++;
+  if (verbose) console.error(`  ✓ Menu toggle visible: ${toggleResult.selector}`);
+
+  await testToggleFunctionality(page, toggleResult.element, result, verbose);
+}
+
+/**
  * Test menu at specific viewport
  */
 async function testViewport(page, viewportName, verbose = false) {
   const viewport = VIEWPORTS[viewportName];
   await page.setViewportSize(viewport);
-  await new Promise(r => setTimeout(r, 500)); // Wait for CSS to apply
+  await new Promise(r => setTimeout(r, 500));
 
   const result = {
     viewport: viewportName,
@@ -156,138 +269,26 @@ async function testViewport(page, viewportName, verbose = false) {
 
   if (verbose) console.error(`\n📱 Testing ${viewportName} (${viewport.width}x${viewport.height})...`);
 
-  // Test 1: Navigation container exists
+  // Test navigation container
   const navResult = await findElement(page, MENU_SELECTORS.navContainers);
   if (navResult) {
-    result.tests.push({
-      name: 'Navigation container exists',
-      passed: true,
-      selector: navResult.selector
-    });
+    result.tests.push({ name: 'Navigation container exists', passed: true, selector: navResult.selector });
     result.passed++;
     if (verbose) console.error(`  ✓ Navigation container found: ${navResult.selector}`);
   } else {
-    result.tests.push({
-      name: 'Navigation container exists',
-      passed: false,
-      error: 'No navigation container found'
-    });
+    result.tests.push({ name: 'Navigation container exists', passed: false, error: 'No navigation container found' });
     result.failed++;
     if (verbose) console.error(`  ✗ Navigation container not found`);
   }
 
-  // Test 2: Menu items visibility
+  // Get menu items count
   const menuItems = await countVisibleMenuItems(page);
 
-  // Different expectations based on viewport
+  // Delegate to viewport-specific tests
   if (viewportName === 'desktop') {
-    // Desktop should have visible menu items
-    if (menuItems.count >= 2) {
-      result.tests.push({
-        name: 'Desktop menu items visible',
-        passed: true,
-        count: menuItems.count,
-        selector: menuItems.selector
-      });
-      result.passed++;
-      if (verbose) console.error(`  ✓ ${menuItems.count} menu items visible`);
-    } else {
-      result.tests.push({
-        name: 'Desktop menu items visible',
-        passed: false,
-        count: menuItems.count,
-        error: 'Expected at least 2 visible menu items on desktop'
-      });
-      result.failed++;
-      if (verbose) console.error(`  ✗ Only ${menuItems.count} menu items visible (expected >= 2)`);
-    }
+    await testDesktopMenu(page, result, menuItems, verbose);
   } else {
-    // Mobile/Tablet - check for hamburger menu
-    const toggleResult = await findElement(page, MENU_SELECTORS.toggleButtons);
-
-    if (toggleResult) {
-      const isToggleVisible = await isElementVisible(page, toggleResult.selector);
-
-      if (isToggleVisible) {
-        result.tests.push({
-          name: 'Mobile menu toggle visible',
-          passed: true,
-          selector: toggleResult.selector
-        });
-        result.passed++;
-        if (verbose) console.error(`  ✓ Menu toggle visible: ${toggleResult.selector}`);
-
-        // Test toggle functionality
-        try {
-          // Get initial menu state
-          const initialMenuItems = await countVisibleMenuItems(page);
-
-          // Click toggle
-          await toggleResult.element.click();
-          await new Promise(r => setTimeout(r, 500)); // Wait for animation
-
-          // Check menu state after click
-          const afterClickItems = await countVisibleMenuItems(page);
-
-          // Menu should either show more items or we can detect state change
-          if (afterClickItems.count !== initialMenuItems.count || afterClickItems.count >= 2) {
-            result.tests.push({
-              name: 'Menu toggle functionality',
-              passed: true,
-              before: initialMenuItems.count,
-              after: afterClickItems.count
-            });
-            result.passed++;
-            if (verbose) console.error(`  ✓ Toggle works: ${initialMenuItems.count} -> ${afterClickItems.count} items`);
-
-            // Click again to close
-            await toggleResult.element.click();
-            await new Promise(r => setTimeout(r, 300));
-          } else {
-            result.tests.push({
-              name: 'Menu toggle functionality',
-              passed: false,
-              before: initialMenuItems.count,
-              after: afterClickItems.count,
-              warning: 'Toggle may not be functional - no state change detected'
-            });
-            result.warnings.push('Menu toggle click did not change visible items');
-            if (verbose) console.error(`  ⚠ Toggle click had no effect`);
-          }
-        } catch (err) {
-          result.tests.push({
-            name: 'Menu toggle functionality',
-            passed: false,
-            error: err.message
-          });
-          result.failed++;
-          if (verbose) console.error(`  ✗ Toggle click failed: ${err.message}`);
-        }
-      } else {
-        result.warnings.push('Menu toggle found but not visible');
-        if (verbose) console.error(`  ⚠ Menu toggle found but not visible`);
-      }
-    } else {
-      // No hamburger - check if menu items are still visible (maybe it's a small visible menu)
-      if (menuItems.count >= 2) {
-        result.tests.push({
-          name: 'Mobile menu visible without toggle',
-          passed: true,
-          count: menuItems.count,
-          note: 'Menu shows items without hamburger toggle'
-        });
-        result.passed++;
-        if (verbose) console.error(`  ✓ ${menuItems.count} menu items visible (no toggle needed)`);
-      } else {
-        result.tests.push({
-          name: 'Mobile menu accessibility',
-          passed: false,
-          error: 'No hamburger toggle found and menu items hidden'
-        });
-        result.failed++;
-        if (verbose) console.error(`  ✗ No hamburger toggle and menu items hidden`);
-      }
-    }
+    await testMobileMenu(page, result, menuItems, verbose);
   }
 
   return result;

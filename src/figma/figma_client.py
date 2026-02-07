@@ -41,7 +41,7 @@ class FigmaClient:
     """Figma REST API client."""
 
     BASE_URL = "https://api.figma.com/v1"
-    DEFAULT_TIMEOUT = 10  # seconds (reduced from 30 for faster feedback)
+    DEFAULT_TIMEOUT = 30  # seconds
 
     def __init__(self, token: Optional[str] = None):
         """
@@ -61,19 +61,22 @@ class FigmaClient:
             )
         self.headers = {"X-Figma-Token": self.token}
 
-    def get_file(self, file_key: str, geometry: str = "paths") -> Dict[str, Any]:
+    def get_file(self, file_key: str, geometry: str = "paths", depth: Optional[int] = None) -> Dict[str, Any]:
         """
         Get full file data.
 
         Args:
             file_key: Figma file key
             geometry: Geometry type (paths, bounds)
+            depth: Limit tree depth (reduces response size for large files)
 
         Returns:
             File data including document tree
         """
         url = f"{self.BASE_URL}/files/{file_key}?geometry={geometry}"
-        return self._request(url)
+        if depth is not None:
+            url += f"&depth={depth}"
+        return self._request(url, timeout=120 if depth is None else self.DEFAULT_TIMEOUT)
 
     def get_nodes(self, file_key: str, node_ids: List[str]) -> Dict[str, Any]:
         """
@@ -126,12 +129,13 @@ class FigmaClient:
         url = f"{self.BASE_URL}/files/{file_key}/styles"
         return self._request(url)
 
-    def _request(self, url: str) -> Dict[str, Any]:
+    def _request(self, url: str, timeout: Optional[int] = None) -> Dict[str, Any]:
         """
         Make authenticated request to Figma API.
 
         Args:
             url: Full API URL
+            timeout: Override default timeout (seconds)
 
         Returns:
             Parsed JSON response
@@ -141,7 +145,7 @@ class FigmaClient:
         """
         req = Request(url, headers=self.headers)
         try:
-            with urlopen(req, timeout=self.DEFAULT_TIMEOUT) as response:
+            with urlopen(req, timeout=timeout or self.DEFAULT_TIMEOUT) as response:
                 return json.loads(response.read().decode('utf-8'))
         except HTTPError as e:
             error_body = e.read().decode('utf-8') if e.fp else ''

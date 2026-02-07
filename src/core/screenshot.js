@@ -45,6 +45,7 @@ import { extractDOMHierarchy } from './dom-tree-analyzer.js';
 import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
 import { captureAllHoverStates, generateHoverCss } from './state-capture.js';
 import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from './video-capture.js';
+import { VIEWPORTS } from '../shared/viewports.js';
 
 // Try to import Sharp for compression
 let sharp = null;
@@ -54,16 +55,108 @@ try {
   // Sharp not available
 }
 
-// Constants
-const VIEWPORTS = {
-  desktop: { width: 1440, height: 900, deviceScaleFactor: 1 },
-  tablet: { width: 768, height: 1024, deviceScaleFactor: 1 },
-  mobile: { width: 375, height: 812, deviceScaleFactor: 2 }
-};
-
 const VIEWPORT_SETTLE_DELAY = 1500;
 const NETWORK_IDLE_TIMEOUT = 8000;
 const DEFAULT_SCROLL_DELAY = 1500;
+
+/**
+ * Parse and validate screenshot command arguments
+ * @param {string[]} argv - Raw CLI arguments
+ * @returns {Object} Parsed and validated options
+ */
+function parseScreenshotArgs(argv) {
+  const args = parseArgs(argv);
+
+  if (!url) {
+    outputError(new Error('--url is required'));
+    process.exit(1);
+  }
+  if (!output) {
+    outputError(new Error('--output directory is required'));
+    process.exit(1);
+  }
+
+  const requestedViewports = args.viewports
+    ? args.viewports.split(',').map(v => v.trim().toLowerCase())
+    : ['desktop', 'tablet', 'mobile'];
+
+  for (const vp of requestedViewports) {
+    if (!VIEWPORTS[vp]) {
+      outputError(new Error(`Invalid viewport: ${vp}. Valid: desktop, tablet, mobile`));
+      process.exit(1);
+    }
+  }
+
+  return {
+    url: url,
+    output: output,
+    viewports: requestedViewports,
+    fullPage: args['full-page'] !== 'false',
+    maxSize: args['max-size'] ? parseFloat(args['max-size']) : 5,
+    scrollDelay: args['scroll-delay'] ? parseInt(args['scroll-delay'], 10) : DEFAULT_SCROLL_DELAY,
+    extractHtml: args['extract-html'] === 'true',
+    extractCss: args['extract-css'] === 'true',
+    filterUnused: args['filter-unused'] !== 'false',
+    captureHover: args['capture-hover'] === 'true',
+    captureVideo: args['video'] === 'true',
+    videoFormat: args['video-format'] || 'webm',
+    videoDuration: args['video-duration'] ? parseInt(args['video-duration'], 10) : 12000,
+    sectionMode: args['section-mode'] === 'true',
+    enhanceSemantic: args['no-semantic'] !== 'true',
+    extractAnimations: args['extract-animations'] !== 'false',
+    headless: args.headless === 'true',
+    close: args.close === 'true'
+  };
+}
+
+/**
+ * Create browser manager for handling browser lifecycle
+ * @param {boolean} cliHeadless - CLI headless flag
+ * @returns {Object} Browser manager with init/cleanup methods
+ */
+function createBrowserManager(cliHeadless) {
+  let browser = null;
+  let page = null;
+  let currentHeadless = null;
+  let cookieResult = null;
+
+  const getHeadlessForViewport = (viewport) => viewport === 'desktop' ? true : cliHeadless;
+
+  const init = async (headless, navigateUrl = null) => {
+    if (browser && currentHeadless !== headless) {
+      await closeBrowser();
+      browser = null;
+      page = null;
+    }
+
+    if (!browser) {
+      browser = await getBrowser({
+        headless,
+        args: headless ? [] : ['--start-maximized', '--window-position=0,0']
+      });
+      page = await getPage(browser);
+      currentHeadless = headless;
+
+      if (navigateUrl) {
+        await page.setViewportSize(VIEWPORTS.desktop);
+        await page.goto(navigateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
+        await new Promise(r => setTimeout(r, 3000));
+        cookieResult = await dismissCookieBanner(page);
+        await waitForPageReady(page);
+      }
+    }
+    return { browser, page };
+  };
+
+  return {
+    init,
+    getHeadlessForViewport,
+    getPage: () => page,
+    getCookieResult: () => cookieResult,
+    getCurrentHeadless: () => currentHeadless,
+    setCurrentHeadless: (val) => { currentHeadless = val; }
+  };
+}
 
 /**
  * Compress image if it exceeds max size
@@ -103,9 +196,30 @@ async function compressIfNeeded(filePath, maxSizeMB = 5) {
 }
 
 /**
- * Capture screenshot for a single viewport
+ * @typedef {Object} CaptureViewportOptions
+ * @property {import('playwright').Page} page - Playwright page object
+ * @property {string} viewport - Viewport name (desktop, tablet, mobile)
+ * @property {string} outputPath - Path for screenshot output
+ * @property {boolean} [fullPage=true] - Capture full page height
+ * @property {number} [maxSize=5] - Max file size in MB before compression
+ * @property {number} [scrollDelay] - Pause time in ms between scroll steps
  */
-async function captureViewport(page, viewport, outputPath, fullPage = true, maxSize = 5, scrollDelay = DEFAULT_SCROLL_DELAY) {
+
+/**
+ * Capture screenshot for a single viewport
+ * @param {CaptureViewportOptions} options - Capture options
+ * @returns {Promise<Object>} Viewport capture result
+ */
+async function captureViewport(options) {
+  const {
+    page,
+    viewport,
+    outputPath,
+    fullPage = true,
+    maxSize = 5,
+    scrollDelay = DEFAULT_SCROLL_DELAY
+  } = options;
+
   await page.setViewportSize(VIEWPORTS[viewport]);
   await new Promise(r => setTimeout(r, VIEWPORT_SETTLE_DELAY));
   await waitForDomStable(page, 300, 5000);
@@ -132,7 +246,7 @@ async function captureViewport(page, viewport, outputPath, fullPage = true, maxS
   try {
     await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_TIMEOUT });
   } catch {
-    // Timeout ok
+    // Network idle timeout is acceptable - page may have long-polling connections
   }
 
   await new Promise(r => setTimeout(r, 2000));
@@ -156,7 +270,7 @@ async function captureViewport(page, viewport, outputPath, fullPage = true, maxS
     path: path.resolve(outputPath),
     dimensions: VIEWPORTS[viewport],
     componentDimensions,
-    domHierarchy,  // DOM hierarchy (desktop only)
+    domHierarchy,
     scrollInfo,
     imageStats,
     size: compression.finalSize,
@@ -168,80 +282,28 @@ async function captureViewport(page, viewport, outputPath, fullPage = true, maxS
  * Main capture function
  */
 async function captureMultiViewport() {
-  const args = parseArgs(process.argv.slice(2));
-
-  if (!args.url) {
-    outputError(new Error('--url is required'));
-    process.exit(1);
-  }
-  if (!args.output) {
-    outputError(new Error('--output directory is required'));
-    process.exit(1);
-  }
-
-  const requestedViewports = args.viewports
-    ? args.viewports.split(',').map(v => v.trim().toLowerCase())
-    : ['desktop', 'tablet', 'mobile'];
-  const fullPage = args['full-page'] !== 'false';
-  const maxSize = args['max-size'] ? parseFloat(args['max-size']) : 5;
-  const scrollDelay = args['scroll-delay'] ? parseInt(args['scroll-delay'], 10) : DEFAULT_SCROLL_DELAY;
-  const extractHtml = args['extract-html'] === 'true';
-  const extractCss = args['extract-css'] === 'true';
-  const filterUnused = args['filter-unused'] !== 'false';
-  const captureHover = args['capture-hover'] === 'true';
-  const captureVideoFlag = args['video'] === 'true';
-  const videoFormat = args['video-format'] || 'webm';
-  const videoDuration = args['video-duration']
-    ? parseInt(args['video-duration'], 10)
-    : 12000;
-  const sectionMode = args['section-mode'] === 'true';
-
-  for (const vp of requestedViewports) {
-    if (!VIEWPORTS[vp]) {
-      outputError(new Error(`Invalid viewport: ${vp}. Valid: desktop, tablet, mobile`));
-      process.exit(1);
-    }
-  }
+  const options = parseScreenshotArgs(process.argv.slice(2));
+  const {
+    url, output, viewports: requestedViewports,
+    fullPage, maxSize, scrollDelay,
+    extractHtml, extractCss, filterUnused,
+    captureHover, captureVideo: captureVideoFlag,
+    videoFormat, videoDuration, sectionMode,
+    enhanceSemantic, extractAnimations: extractAnimationsFlag,
+    headless: cliHeadless, close: shouldClose
+  } = options;
 
   try {
-    await fs.mkdir(args.output, { recursive: true });
+    await fs.mkdir(output, { recursive: true });
 
-    const cliHeadless = args.headless === 'true';
-    const getHeadlessForViewport = (viewport) => viewport === 'desktop' ? true : cliHeadless;
-
-    let currentHeadless = null;
-    let browser = null;
-    let page = null;
-    let cookieResult = null;
-
-    const initBrowser = async (headless, navigateUrl = null) => {
-      if (browser && currentHeadless !== headless) {
-        await closeBrowser();
-        browser = null;
-        page = null;
-      }
-
-      if (!browser) {
-        browser = await getBrowser({
-          headless,
-          args: headless ? [] : ['--start-maximized', '--window-position=0,0']
-        });
-        page = await getPage(browser);
-        currentHeadless = headless;
-
-        if (navigateUrl) {
-          await page.setViewportSize(VIEWPORTS.desktop);
-          await page.goto(navigateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
-          await new Promise(r => setTimeout(r, 3000));
-          cookieResult = await dismissCookieBanner(page);
-          await waitForPageReady(page);
-        }
-      }
-      return { browser, page };
-    };
+    // Initialize browser manager
+    const browserMgr = createBrowserManager(cliHeadless);
+    const { getHeadlessForViewport, init: initBrowser } = browserMgr;
 
     const firstViewportHeadless = getHeadlessForViewport(requestedViewports[0]);
-    await initBrowser(firstViewportHeadless, args.url);
+    await initBrowser(firstViewportHeadless, url);
+    const page = browserMgr.getPage();
+    const cookieResult = browserMgr.getCookieResult();
 
     // Extract HTML/CSS
     let extraction = null;
@@ -254,12 +316,12 @@ async function captureMultiViewport() {
       if (extractHtml) {
         try {
           const contentCounts = await extractContentCounts(page);
-          const countsPath = path.join(args.output, 'content-counts.json');
+          const countsPath = path.join(output, 'content-counts.json');
           await fs.writeFile(countsPath, JSON.stringify(contentCounts, null, 2), 'utf-8');
 
           // Generate summary for structure analysis
           const contentSummary = generateContentSummary(contentCounts);
-          const summaryPath = path.join(args.output, 'content-summary.md');
+          const summaryPath = path.join(output, 'content-summary.md');
           await fs.writeFile(summaryPath, contentSummary, 'utf-8');
 
           extraction.contentCounts = {
@@ -279,7 +341,6 @@ async function captureMultiViewport() {
       if (extractHtml) {
         try {
           // Use semantic enhancement unless --no-semantic flag is set
-          const enhanceSemantic = args['no-semantic'] !== 'true';
           const htmlResult = enhanceSemantic
             ? await extractAndEnhanceHtml(page, { enhanceSemantic: true })
             : await extractCleanHtml(page, JS_FRAMEWORK_PATTERNS);
@@ -291,7 +352,7 @@ async function captureMultiViewport() {
             throw new Error(`HTML size exceeds ${MAX_HTML_SIZE / 1024 / 1024}MB limit`);
           }
 
-          const htmlPath = path.join(args.output, 'source.html');
+          const htmlPath = path.join(output, 'source.html');
           await fs.writeFile(htmlPath, html, 'utf-8');
           extraction.html = {
             path: path.resolve(htmlPath),
@@ -309,7 +370,7 @@ async function captureMultiViewport() {
 
       if (extractCss) {
         try {
-          const cssData = await extractAllCss(page, args.url);
+          const cssData = await extractAllCss(page, url);
           const rawCss = cssData.cssBlocks.map(b => `/* Source: ${b.source} */\n${b.css}`).join('\n\n');
           const cssSize = Buffer.byteLength(rawCss, 'utf-8');
 
@@ -317,7 +378,7 @@ async function captureMultiViewport() {
             throw new Error(`CSS size exceeds ${MAX_CSS_SIZE / 1024 / 1024}MB limit`);
           }
 
-          const rawCssPath = path.join(args.output, 'source-raw.css');
+          const rawCssPath = path.join(output, 'source-raw.css');
           await fs.writeFile(rawCssPath, rawCss, 'utf-8');
 
           extraction.css = {
@@ -330,7 +391,7 @@ async function captureMultiViewport() {
           };
 
           if (Object.keys(cssData.computedStyles).length > 0) {
-            const stylesPath = path.join(args.output, 'computed-styles.json');
+            const stylesPath = path.join(output, 'computed-styles.json');
             await fs.writeFile(stylesPath, JSON.stringify(cssData.computedStyles, null, 2));
           }
 
@@ -345,8 +406,8 @@ async function captureMultiViewport() {
       // Filter CSS
       if (filterUnused && extraction?.html?.path && extraction?.css?.path && !extraction.html.failed && !extraction.css.failed) {
         try {
-          const filteredCssPath = path.join(args.output, 'source.css');
-          const filterResult = await filterCssFile(extraction.html.path, extraction.css.path, filteredCssPath, false, args.output);
+          const filteredCssPath = path.join(output, 'source.css');
+          const filterResult = await filterCssFile(extraction.html.path, extraction.css.path, filteredCssPath, false, output);
           extraction.filtered = {
             path: filterResult.output.path,
             size: filterResult.output.size,
@@ -361,7 +422,6 @@ async function captureMultiViewport() {
       }
 
       // Extract animations (enabled by default with CSS extraction)
-      const extractAnimationsFlag = args['extract-animations'] !== 'false';
       if (extractCss && extractAnimationsFlag && extraction?.css?.path && !extraction.css.failed) {
         try {
           const rawCss = await fs.readFile(extraction.css.path, 'utf-8');
@@ -370,14 +430,14 @@ async function captureMultiViewport() {
           if (!animData.error) {
             // Write animations.css
             const animCss = generateAnimationsCss(animData);
-            const animPath = path.join(args.output, 'animations.css');
+            const animPath = path.join(output, 'animations.css');
             await fs.writeFile(animPath, animCss, 'utf-8');
 
             // Generate animation tokens
             const animTokens = generateAnimationTokens(animData);
 
             // Write animation-tokens.json
-            const animTokensPath = path.join(args.output, 'animation-tokens.json');
+            const animTokensPath = path.join(output, 'animation-tokens.json');
             await fs.writeFile(animTokensPath, JSON.stringify({
               keyframes: animData.keyframes,
               transitions: animData.transitions,
@@ -418,7 +478,7 @@ async function captureMultiViewport() {
     if (captureHover) {
       try {
         // Try headed mode first, fallback to headless (per validation decision)
-        const wasHeadless = currentHeadless;
+        const wasHeadless = browserMgr.getCurrentHeadless();
         let hoverCaptureSuccess = false;
 
         // Attempt headed mode first
@@ -427,7 +487,7 @@ async function captureMultiViewport() {
             const cssContent = extraction?.css?.path
               ? await fs.readFile(extraction.css.path, 'utf-8')
               : null;
-            hoverResult = await captureAllHoverStates(page, cssContent, args.output);
+            hoverResult = await captureAllHoverStates(page, cssContent, output);
             hoverCaptureSuccess = hoverResult.captured > 0;
           } catch (headedError) {
             if (process.stderr.isTTY) {
@@ -438,20 +498,20 @@ async function captureMultiViewport() {
 
         // Fallback to headless if headed failed or was already headless
         if (!hoverCaptureSuccess) {
-          if (!currentHeadless) {
-            await initBrowser(true, args.url);
+          if (!browserMgr.getCurrentHeadless()) {
+            await initBrowser(true, url);
           }
 
           const cssContent = extraction?.css?.path
             ? await fs.readFile(extraction.css.path, 'utf-8')
             : null;
-          hoverResult = await captureAllHoverStates(page, cssContent, args.output);
+          hoverResult = await captureAllHoverStates(browserMgr.getPage(), cssContent, output);
         }
 
         // Generate hover.css from captured diffs
         if (hoverResult && hoverResult.elements && hoverResult.captured > 0) {
           const hoverCss = generateHoverCss(hoverResult.elements);
-          const hoverCssPath = path.join(args.output, 'hover.css');
+          const hoverCssPath = path.join(output, 'hover.css');
           await fs.writeFile(hoverCssPath, hoverCss, 'utf-8');
           hoverResult.generatedCss = path.resolve(hoverCssPath);
         }
@@ -461,8 +521,8 @@ async function captureMultiViewport() {
         }
 
         // Restore browser mode for viewport captures if needed
-        if (!wasHeadless && currentHeadless && requestedViewports.some(v => !getHeadlessForViewport(v))) {
-          await initBrowser(false, args.url);
+        if (!wasHeadless && browserMgr.getCurrentHeadless() && requestedViewports.some(v => !getHeadlessForViewport(v))) {
+          await initBrowser(false, url);
         }
       } catch (error) {
         if (process.stderr.isTTY) {
@@ -477,14 +537,22 @@ async function captureMultiViewport() {
     const browserRestarts = [];
     for (const viewport of requestedViewports) {
       const viewportHeadless = getHeadlessForViewport(viewport);
+      const currentHeadless = browserMgr.getCurrentHeadless();
       if (currentHeadless !== viewportHeadless) {
         browserRestarts.push({ viewport, from: currentHeadless ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
         if (process.stderr.isTTY) console.error(`[INFO] Switching to ${viewportHeadless ? 'headless' : 'headed'} for ${viewport}`);
-        await initBrowser(viewportHeadless, args.url);
+        await initBrowser(viewportHeadless, url);
       }
 
-      const outputPath = path.join(args.output, `${viewport}.png`);
-      const result = await captureViewport(page, viewport, outputPath, fullPage, maxSize, scrollDelay);
+      const outputPath = path.join(output, `${viewport}.png`);
+      const result = await captureViewport({
+        page: browserMgr.getPage(),
+        viewport,
+        outputPath,
+        fullPage,
+        maxSize,
+        scrollDelay
+      });
       screenshots.push(result);
     }
 
@@ -502,14 +570,15 @@ async function captureMultiViewport() {
         }
 
         // Use desktop viewport for video
-        await page.setViewportSize(VIEWPORTS.desktop);
+        const videoPage = browserMgr.getPage();
+        await videoPage.setViewportSize(VIEWPORTS.desktop);
         await new Promise(r => setTimeout(r, 1000));
 
         if (process.stderr.isTTY) {
           console.error(`[INFO] Recording video (${videoDuration / 1000}s)...`);
         }
 
-        videoResult = await captureVideo(page, args.output, {
+        videoResult = await captureVideo(videoPage, output, {
           format: videoFormat,
           duration: videoDuration,
           filename: 'preview'
@@ -535,19 +604,19 @@ async function captureMultiViewport() {
       }
     }
 
-    const dimensionsOutput = buildDimensionsOutput(allViewportDimensions, args.url);
-    const dimensionsPath = path.join(args.output, 'component-dimensions.json');
+    const dimensionsOutput = buildDimensionsOutput(allViewportDimensions, url);
+    const dimensionsPath = path.join(output, 'component-dimensions.json');
     await fs.writeFile(dimensionsPath, JSON.stringify(dimensionsOutput, null, 2));
 
     const aiSummary = generateAISummary(dimensionsOutput);
-    const summaryPath = path.join(args.output, 'dimensions-summary.json');
+    const summaryPath = path.join(output, 'dimensions-summary.json');
     await fs.writeFile(summaryPath, JSON.stringify(aiSummary, null, 2));
 
     // Write DOM hierarchy if available (from desktop capture)
     const desktopScreenshot = screenshots.find(s => s.viewport === 'desktop');
     let hierarchyPath = null;
     if (desktopScreenshot?.domHierarchy) {
-      hierarchyPath = path.join(args.output, 'dom-hierarchy.json');
+      hierarchyPath = path.join(output, 'dom-hierarchy.json');
       await fs.writeFile(hierarchyPath, JSON.stringify(desktopScreenshot.domHierarchy, null, 2));
 
       if (process.stderr.isTTY) {
@@ -565,14 +634,15 @@ async function captureMultiViewport() {
         const { cropSections } = await import('./section-cropper.js');
 
         // Reset to desktop viewport for section detection
-        await page.setViewportSize(VIEWPORTS.desktop);
+        const sectionPage = browserMgr.getPage();
+        await sectionPage.setViewportSize(VIEWPORTS.desktop);
         await new Promise(r => setTimeout(r, 500));
 
         if (process.stderr.isTTY) {
           console.error('[INFO] Detecting sections...');
         }
 
-        const sections = await detectSections(page, {
+        const sections = await detectSections(sectionPage, {
           padding: 40,
           minSections: 3,
           fallbackToViewport: true
@@ -585,7 +655,7 @@ async function captureMultiViewport() {
         const croppedResult = await cropSections(
           desktopScreenshot.path,
           sections,
-          args.output
+          output
         );
 
         sectionResult = {
@@ -624,8 +694,8 @@ async function captureMultiViewport() {
 
     const result = {
       success: true,
-      url: args.url,
-      outputDir: path.resolve(args.output),
+      url: url,
+      outputDir: path.resolve(output),
       cookieHandling: cookieResult,
       extraction,
       hoverStates: hoverResult && !hoverResult.failed ? {
@@ -666,7 +736,7 @@ async function captureMultiViewport() {
 
     outputJSON(result);
 
-    if (args.close === 'true') {
+    if (shouldClose) {
       await closeBrowser();
     } else {
       await disconnectBrowser();

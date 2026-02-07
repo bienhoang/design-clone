@@ -22,12 +22,7 @@ import { fileURLToPath } from 'url';
 // API key detection
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-// Viewport configurations
-const VIEWPORTS = {
-  desktop: { width: 1920, height: 1080 },
-  tablet: { width: 768, height: 1024 },
-  mobile: { width: 375, height: 812 }
-};
+import { VIEWPORTS_UX as VIEWPORTS } from '../shared/viewports.js';
 
 // Score weights for aggregation
 const VIEWPORT_WEIGHTS = {

@@ -730,18 +730,64 @@ def extract_from_figma(
     if verbose:
         print(f"Fetching data for file: {file_key}")
 
+    def find_node_in_tree(root, target_id, depth=0):
+        """Find a node by ID in the document tree."""
+        if depth > MAX_RECURSION_DEPTH:
+            return None
+        if root.get('id') == target_id:
+            return root
+        for child in root.get('children', []):
+            found = find_node_in_tree(child, target_id, depth + 1)
+            if found:
+                return found
+        return None
+
     try:
         if node_id:
-            # Fetch specific node with retry
-            def fetch_nodes():
-                return client.get_nodes(file_key, [node_id])
+            # Try get_nodes first (faster, less data)
+            try:
+                def fetch_nodes():
+                    return client.get_nodes(file_key, [node_id])
+                result = retry_with_backoff(fetch_nodes)
+                nodes_data = result.get('nodes', {})
+                if node_id in nodes_data:
+                    root_node = nodes_data[node_id].get('document', {})
+                else:
+                    root_node = None
+            except HTTPError as e:
+                if e.code == 429:
+                    # Fallback: fetch full file and search for node
+                    if verbose:
+                        print(f"get_nodes rate-limited, falling back to get_file...")
+                    root_node = None
+                else:
+                    raise
 
-            result = retry_with_backoff(fetch_nodes)
-            nodes_data = result.get('nodes', {})
-            if node_id in nodes_data:
-                root_node = nodes_data[node_id].get('document', {})
-            else:
-                return {'success': False, 'error': f'Node {node_id} not found'}
+            # Fallback: use get_file and search for node in tree
+            if root_node is None:
+                def fetch_file():
+                    return client.get_file(file_key)
+                result = retry_with_backoff(fetch_file)
+                doc = result.get('document', {})
+                root_node = find_node_in_tree(doc, node_id)
+                if root_node is None:
+                    # Node not found - try closest frame match (Figma sections)
+                    # e.g., 3204:2 might map to first frame in page containing 3204:* IDs
+                    prefix = node_id.split(':')[0] + ':'
+                    if verbose:
+                        print(f"Node {node_id} not found, searching for frames with prefix {prefix}")
+                    for page in doc.get('children', []):
+                        for frame in page.get('children', []):
+                            if frame.get('id', '').startswith(prefix):
+                                root_node = frame
+                                node_id = frame.get('id')
+                                if verbose:
+                                    print(f"Using closest frame: {frame.get('name')} (id: {node_id})")
+                                break
+                        if root_node is not None:
+                            break
+                if root_node is None:
+                    return {'success': False, 'error': f'Node {node_id} not found in file'}
         else:
             # Fetch full file with retry
             def fetch_file():
@@ -757,6 +803,17 @@ def extract_from_figma(
                     root_node = frames[0]
                     node_id = root_node.get('id')
     except HTTPError as e:
+        # Include Retry-After info for rate limit errors
+        if e.code == 429:
+            retry_after = None
+            if hasattr(e, 'headers') and e.headers:
+                retry_after = e.headers.get('Retry-After')
+            msg = 'Figma API rate limit exceeded'
+            if retry_after:
+                hours = int(retry_after) // 3600
+                msg += f' (retry after ~{hours}h). Starter plans have strict Tier 1 limits.'
+                msg += ' Use --from-json with previously downloaded data, or upgrade Figma plan.'
+            return {'success': False, 'error': msg}
         return {'success': False, 'error': f'Figma API error: {sanitize_error(e)}'}
     except Exception as e:
         return {'success': False, 'error': f'Failed to fetch data: {sanitize_error(e)}'}
@@ -850,10 +907,66 @@ def main():
         action='store_true',
         help='Skip screenshot download (saves 1 API call)'
     )
+    parser.add_argument(
+        '--from-json',
+        help='Skip API call, use previously downloaded figma-nodes.json file'
+    )
 
     args = parser.parse_args()
 
-    # Get file key and node ID
+    # Offline mode: process from existing JSON
+    if args.from_json:
+        json_path = Path(args.from_json)
+        if not json_path.exists():
+            print(json.dumps({'success': False, 'error': f'File not found: {args.from_json}'}))
+            sys.exit(1)
+
+        output_path = Path(args.output)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        with open(json_path) as f:
+            root_node = json.load(f)
+
+        # Copy nodes file to output if not already there
+        nodes_path = output_path / 'figma-nodes.json'
+        if str(json_path.resolve()) != str(nodes_path.resolve()):
+            import shutil
+            shutil.copy2(json_path, nodes_path)
+
+        if args.verbose:
+            print(f"Processing from JSON: {json_path}")
+
+        # Extract and generate tokens
+        colors, typography, spacing, shadows, radii = [], [], set(), [], set()
+        traverse_nodes(root_node, colors, typography, spacing, shadows, radii)
+        tokens = generate_tokens(colors, typography, spacing, shadows, radii)
+
+        tokens_json_path = output_path / 'design-tokens.json'
+        with open(tokens_json_path, 'w') as f:
+            json.dump(tokens, f, indent=2)
+
+        tokens_css = generate_tokens_css(tokens)
+        tokens_css_path = output_path / 'tokens.css'
+        with open(tokens_css_path, 'w') as f:
+            f.write(tokens_css)
+
+        if args.verbose:
+            print(f"Extracted: {len(colors)} colors, {len(typography)} typography, {len(spacing)} spacing values")
+
+        result = {
+            'success': True,
+            'tokens': tokens,
+            'files': {
+                'nodes': str(nodes_path),
+                'tokensJson': str(tokens_json_path),
+                'tokensCss': str(tokens_css_path),
+                'screenshot': None
+            }
+        }
+        print(json.dumps(result, indent=2))
+        sys.exit(0)
+
+    # Online mode: fetch from Figma API
     file_key = args.file_key
     node_id = args.node_id
 

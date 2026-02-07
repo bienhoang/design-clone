@@ -25,12 +25,7 @@ import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, output
 // Import Gemini for vision comparison
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-// Viewport configurations matching original screenshots
-const VIEWPORTS = {
-  desktop: { width: 1920, height: 1080, deviceScaleFactor: 1 },
-  tablet: { width: 768, height: 1024, deviceScaleFactor: 1 },
-  mobile: { width: 375, height: 812, deviceScaleFactor: 2 }
-};
+import { VIEWPORTS_HD as VIEWPORTS } from '../shared/viewports.js';
 
 /**
  * Capture screenshot of generated HTML at specific viewport
