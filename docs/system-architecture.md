@@ -258,16 +258,17 @@ node src/verification/verify-menu.js --html output/source.html
 
 | Module | Function | Input | Output |
 |--------|----------|-------|--------|
-| fetch-images.js | Download images | Image URLs | assets/images/ |
-| inject-icons.js | Replace with Font Awesome | HTML | Updated HTML |
-| enhance-assets.js | Optimize images | images/ | Optimized images |
+| fetch-images.js | Download images from Unsplash | Image URLs | assets/images/ |
+| inject-icons.js | Replace with Japanese-style icons | HTML | Updated HTML |
+| inject-gosnap.js | Add gosnap-widget Web Component | pages/ | HTML with widget |
+| enhance-assets.js | Orchestrate 3-step enhancement | output/ | Enhanced HTML |
 
 **Pipeline:**
-1. Extract image URLs from HTML/CSS
-2. Download with original quality
-3. Convert to WebP where possible
+1. Fetch images from Unsplash (if UNSPLASH_ACCESS_KEY set)
+2. Inject Japanese-style SVG icons
+3. Inject gosnap-widget into pages/ directory
 4. Generate responsive srcset
-5. Inject Font Awesome CDN link
+5. Inject Font Awesome CDN link (step 2)
 
 ---
 
@@ -317,6 +318,8 @@ Output Directory
 └─ source.css
 ```
 
+Note: Use `--skip-gosnap` flag in `/design:clone-site` to disable gosnap injection.
+
 ### Pixel-Perfect Workflow (/design:clone-px)
 
 ```
@@ -352,6 +355,73 @@ Basic Clone Output
     ↓
 Output + Assets + Analysis
 ```
+
+### Multi-Page Clone Workflow (/design:clone-site)
+
+```
+User Input (URL + options)
+    ↓
+┌─────────────────────────────────────┐
+│ 1. Discover Pages                   │
+│    ├─ Parse site navigation         │
+│    ├─ Detect SPA framework (React)  │
+│    └─ Generate page list            │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ 2. Screenshot All Pages             │
+│    ├─ Desktop (1920x1080)          │
+│    ├─ Tablet (768x1024)            │
+│    └─ Mobile (375x812)             │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ 3. Merge CSS Files                  │
+│    ├─ Deduplicate styles            │
+│    ├─ Filter unused rules           │
+│    └─ Create shared stylesheet      │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ 4. Rewrite Internal Links           │
+│    ├─ Update href attributes        │
+│    ├─ Map URLs to file paths        │
+│    └─ Preserve link structure       │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ 5. Generate Manifest                │
+│    ├─ Create manifest.json          │
+│    ├─ List pages & screenshots      │
+│    └─ Include metadata              │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ 6. Inject GoSnap Widget             │
+│    ├─ Scan pages/ directory         │
+│    ├─ Add go-snap element           │
+│    └─ Skip with --skip-gosnap       │
+└─────────────────────────────────────┘
+    ↓
+Output Directory
+├─ manifest.json
+├─ pages/
+│  ├─ index.html
+│  ├─ about.html
+│  └─ ...
+├─ analysis/
+│  ├─ desktop/
+│  ├─ tablet/
+│  └─ mobile/
+└─ shared.css
+```
+
+**Key Features:**
+- Discovers navigation automatically
+- Captures all viewports for each page
+- Deduplicates CSS across pages
+- Relinks internal navigation
+- Optionally injects gosnap-widget
 
 ### Figma-to-Code Workflow (/design:figma-to-code)
 

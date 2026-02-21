@@ -70,7 +70,8 @@ design-clone/
 │   ├── post-process/             # Asset enhancement
 │   │   ├── fetch-images.js       # Image downloading
 │   │   ├── inject-icons.js       # Font Awesome injection
-│   │   └── enhance-assets.js     # Asset optimization
+│   │   ├── inject-gosnap.js      # GoSnap widget injection
+│   │   └── enhance-assets.js     # Asset optimization (3 steps)
 │   │
 │   ├── route-discoverers/        # Framework-aware routing
 │   │   ├── base-discoverer.js
@@ -211,6 +212,32 @@ Generate HTML with Tailwind utility classes.
 2. Build Tailwind class mapping table
 3. Generate HTML with utility classes
 4. Output index.html (optional tailwind.config.js)
+
+### enhance-assets.js (Post-Processing Orchestrator)
+Manages 3-step asset enhancement pipeline.
+
+**Steps:**
+1. **Fetch Images** - Download real images from Unsplash (requires UNSPLASH_ACCESS_KEY)
+2. **Inject Icons** - Replace placeholders with Japanese-style SVG icons
+3. **Inject GoSnap** - Add gosnap-widget Web Component to pages/ directory
+
+**Flags:**
+- `--skip-images` - Skip image fetching
+- `--skip-icons` - Skip icon injection
+- `--skip-gosnap` - Skip gosnap-widget injection
+
+### inject-gosnap.js
+Injects gosnap-widget Web Component into HTML files.
+
+**Features:**
+- Scans pages/ directory for HTML files
+- Adds `<go-snap>` element with embed script before `</body>`
+- Idempotent (skips files that already contain widget)
+- Supports position, theme, and persist configuration
+
+**Output:**
+- `<script src="https://unpkg.com/gosnap-widget@1.0.1/dist/embed.global.js"></script>`
+- `<go-snap position="bottom-right" theme="dark" persist></go-snap>`
 
 ## Workflow Integration
 
