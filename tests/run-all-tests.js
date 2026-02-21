@@ -12,7 +12,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const tests = [
   { name: 'Node.js env.js tests', cmd: 'node', args: ['test-env-js.js'] },
-  { name: 'Python env.py tests', cmd: 'python3', args: ['test-env-py.py'] },
   { name: 'filter-css.js tests', cmd: 'node', args: ['test-filter-css.js'] },
   { name: 'animation-extractor.js tests', cmd: 'node', args: ['test-animation-extractor.js'] },
   { name: 'state-capture.js tests', cmd: 'node', args: ['test-state-capture.js'] },

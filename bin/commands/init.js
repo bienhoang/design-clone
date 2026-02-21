@@ -36,17 +36,12 @@ export async function init(args) {
   const checks = await runAllChecks();
 
   console.log(`  Node.js: ${checks.node.ok ? '✓' : '✗'} ${checks.node.message}`);
-  console.log(`  Python:  ${checks.python.ok ? '✓' : '✗'} ${checks.python.message}`);
   console.log(`  Chrome:  ${checks.chrome.ok ? '✓' : '✗'} ${checks.chrome.message}`);
   console.log('');
 
   if (!checks.node.ok) {
     console.error('Error: Node.js 18+ is required');
     process.exit(1);
-  }
-
-  if (!checks.python.ok) {
-    console.warn('Warning: Python 3.9+ not found. AI analysis features will be unavailable.');
   }
 
   if (!checks.chrome.ok) {
@@ -161,10 +156,6 @@ export async function init(args) {
       console.warn('  Run manually: npm install playwright && npx playwright install chromium');
     }
 
-    // Python check (only needed for Figma conversion)
-    if (checks.python.ok) {
-      console.log('  Python available (for Figma conversion)');
-    }
   }
 
   // Success

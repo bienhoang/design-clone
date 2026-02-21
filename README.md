@@ -101,17 +101,9 @@ cloned-design/
     └── icons/
 ```
 
-## Environment Variables
-
-```bash
-# No API key needed for AI analysis (uses Claude Code built-in vision)
-# FIGMA_ACCESS_TOKEN=your-token  # Only for Figma conversion
-```
-
 ## Requirements
 
 - Node.js 18+
-- Python 3.9+ (for Figma conversion only)
 - Playwright (auto-installed with browsers)
 
 ## CLI Commands
@@ -135,13 +127,6 @@ sudo apt install chromium-browser
 
 # Or set path manually
 export CHROME_PATH="/path/to/chrome"
-```
-
-### Python dependencies
-
-```bash
-# No external Python dependencies required for core features
-# Figma conversion uses only Python stdlib modules
 ```
 
 ### Playwright issues

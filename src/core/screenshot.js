@@ -2,286 +2,28 @@
 /**
  * Multi-viewport screenshot capture for design cloning
  *
- * Usage:
- *   node screenshot.js --url https://example.com --output ./analysis
+ * Usage: node screenshot.js --url <url> --output <dir> [options]
  *
  * Options:
- *   --url           Target website URL (required)
- *   --output        Output directory for screenshots (required)
- *   --viewports     Comma-separated viewport names: desktop,tablet,mobile (default: all)
- *   --full-page     Capture full page height (default: true)
- *   --max-size      Max file size in MB before compression (default: 5)
- *   --headless      Run in headless mode (default: false)
- *   --scroll-delay  Pause time in ms between scroll steps (default: 1500)
- *   --close         Close browser after capture (default: false)
- *   --extract-html  Extract cleaned HTML (default: false)
- *   --extract-css   Extract all CSS from page (default: false)
- *   --filter-unused Filter CSS to remove unused selectors (default: true)
- *   --capture-hover Capture hover state screenshots and CSS (default: false)
- *   --video         Record scroll preview video (default: false)
- *   --video-format  Video format: webm, mp4, gif (default: webm)
- *   --video-duration Video duration in ms (default: 12000)
- *   --section-mode  Enable section-based capture for AI analysis (default: false)
- *   --no-semantic   Disable WordPress semantic HTML enhancement (default: false)
+ *   --url, --output, --viewports, --full-page, --max-size, --headless,
+ *   --scroll-delay, --close, --extract-html, --extract-css, --filter-unused,
+ *   --capture-hover, --video, --video-format, --video-duration,
+ *   --section-mode, --no-semantic
  */
 
 import path from 'path';
 import fs from 'fs/promises';
 
-// Import modules
-import { filterCssFile } from './filter-css.js';
 import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../utils/browser.js';
+import { parseScreenshotArgs, createBrowserManager } from './screenshot-helpers.js';
+import { runExtractionPipeline } from './screenshot-extraction.js';
+import { runHoverCapture, runVideoCapture, runSectionCapture, runDimensionOutput, writeDomHierarchy } from './screenshot-orchestrator.js';
+import { captureViewport } from './screenshot-viewport.js';
 
-// Import extracted modules
-import { waitForDomStable, waitForFontsLoaded, waitForStylesStable, waitForPageReady } from './page-readiness.js';
-import { dismissCookieBanner } from './cookie-handler.js';
-import { forceLazyImages, forceAnimatedElementsVisible, triggerLazyLoad, waitForAllImages, LAZY_LOAD_MAX_ITERATIONS } from './lazy-loader.js';
-import { extractCleanHtml, extractAndEnhanceHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
-import { extractContentCounts, generateContentSummary } from './content-counter.js';
-import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
-import { extractComponentDimensions } from './dimension-extractor.js';
-import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
-import { extractDOMHierarchy } from './dom-tree-analyzer.js';
-import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
-import { captureAllHoverStates, generateHoverCss } from './state-capture.js';
-import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from './video-capture.js';
-import { VIEWPORTS } from '../shared/viewports.js';
+// ============================================================================
+// Main Orchestration
+// ============================================================================
 
-// Try to import Sharp for compression
-let sharp = null;
-try {
-  sharp = (await import('sharp')).default;
-} catch {
-  // Sharp not available
-}
-
-const VIEWPORT_SETTLE_DELAY = 1500;
-const NETWORK_IDLE_TIMEOUT = 8000;
-const DEFAULT_SCROLL_DELAY = 1500;
-
-/**
- * Parse and validate screenshot command arguments
- * @param {string[]} argv - Raw CLI arguments
- * @returns {Object} Parsed and validated options
- */
-function parseScreenshotArgs(argv) {
-  const args = parseArgs(argv);
-  const { url, output } = args;
-
-  if (!url) {
-    outputError(new Error('--url is required'));
-    process.exit(1);
-  }
-  if (!output) {
-    outputError(new Error('--output directory is required'));
-    process.exit(1);
-  }
-
-  const requestedViewports = args.viewports
-    ? args.viewports.split(',').map(v => v.trim().toLowerCase())
-    : ['desktop', 'tablet', 'mobile'];
-
-  for (const vp of requestedViewports) {
-    if (!VIEWPORTS[vp]) {
-      outputError(new Error(`Invalid viewport: ${vp}. Valid: desktop, tablet, mobile`));
-      process.exit(1);
-    }
-  }
-
-  return {
-    url: url,
-    output: output,
-    viewports: requestedViewports,
-    fullPage: args['full-page'] !== 'false',
-    maxSize: args['max-size'] ? parseFloat(args['max-size']) : 5,
-    scrollDelay: args['scroll-delay'] ? parseInt(args['scroll-delay'], 10) : DEFAULT_SCROLL_DELAY,
-    extractHtml: args['extract-html'] === 'true',
-    extractCss: args['extract-css'] === 'true',
-    filterUnused: args['filter-unused'] !== 'false',
-    captureHover: args['capture-hover'] === 'true',
-    captureVideo: args['video'] === 'true',
-    videoFormat: args['video-format'] || 'webm',
-    videoDuration: args['video-duration'] ? parseInt(args['video-duration'], 10) : 12000,
-    sectionMode: args['section-mode'] === 'true',
-    enhanceSemantic: args['no-semantic'] !== 'true',
-    extractAnimations: args['extract-animations'] !== 'false',
-    headless: args.headless === 'true',
-    close: args.close === 'true'
-  };
-}
-
-/**
- * Create browser manager for handling browser lifecycle
- * @param {boolean} cliHeadless - CLI headless flag
- * @returns {Object} Browser manager with init/cleanup methods
- */
-function createBrowserManager(cliHeadless) {
-  let browser = null;
-  let page = null;
-  let currentHeadless = null;
-  let cookieResult = null;
-
-  const getHeadlessForViewport = (viewport) => viewport === 'desktop' ? true : cliHeadless;
-
-  const init = async (headless, navigateUrl = null) => {
-    if (browser && currentHeadless !== headless) {
-      await closeBrowser();
-      browser = null;
-      page = null;
-    }
-
-    if (!browser) {
-      browser = await getBrowser({
-        headless,
-        args: headless ? [] : ['--start-maximized', '--window-position=0,0']
-      });
-      page = await getPage(browser);
-      currentHeadless = headless;
-
-      if (navigateUrl) {
-        await page.setViewportSize(VIEWPORTS.desktop);
-        await page.goto(navigateUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
-        await new Promise(r => setTimeout(r, 3000));
-        cookieResult = await dismissCookieBanner(page);
-        await waitForPageReady(page);
-      }
-    }
-    return { browser, page };
-  };
-
-  return {
-    init,
-    getHeadlessForViewport,
-    getPage: () => page,
-    getCookieResult: () => cookieResult,
-    getCurrentHeadless: () => currentHeadless,
-    setCurrentHeadless: (val) => { currentHeadless = val; }
-  };
-}
-
-/**
- * Compress image if it exceeds max size
- */
-async function compressIfNeeded(filePath, maxSizeMB = 5) {
-  const stats = await fs.stat(filePath);
-  const originalSize = stats.size;
-  const maxBytes = maxSizeMB * 1024 * 1024;
-
-  if (originalSize <= maxBytes || !sharp) {
-    return { compressed: false, originalSize, finalSize: originalSize };
-  }
-
-  try {
-    const buffer = await fs.readFile(filePath);
-    const meta = await sharp(buffer).metadata();
-
-    const newWidth = Math.round(meta.width * 0.85);
-    let output = await sharp(buffer)
-      .resize(newWidth)
-      .png({ quality: 80, compressionLevel: 9 })
-      .toBuffer();
-
-    if (output.length > maxBytes) {
-      const smallerWidth = Math.round(meta.width * 0.7);
-      output = await sharp(buffer)
-        .resize(smallerWidth)
-        .png({ quality: 70, compressionLevel: 9 })
-        .toBuffer();
-    }
-
-    await fs.writeFile(filePath, output);
-    return { compressed: true, originalSize, finalSize: output.length };
-  } catch (err) {
-    return { compressed: false, originalSize, finalSize: originalSize, error: err.message };
-  }
-}
-
-/**
- * @typedef {Object} CaptureViewportOptions
- * @property {import('playwright').Page} page - Playwright page object
- * @property {string} viewport - Viewport name (desktop, tablet, mobile)
- * @property {string} outputPath - Path for screenshot output
- * @property {boolean} [fullPage=true] - Capture full page height
- * @property {number} [maxSize=5] - Max file size in MB before compression
- * @property {number} [scrollDelay] - Pause time in ms between scroll steps
- */
-
-/**
- * Capture screenshot for a single viewport
- * @param {CaptureViewportOptions} options - Capture options
- * @returns {Promise<Object>} Viewport capture result
- */
-async function captureViewport(options) {
-  const {
-    page,
-    viewport,
-    outputPath,
-    fullPage = true,
-    maxSize = 5,
-    scrollDelay = DEFAULT_SCROLL_DELAY
-  } = options;
-
-  await page.setViewportSize(VIEWPORTS[viewport]);
-  await new Promise(r => setTimeout(r, VIEWPORT_SETTLE_DELAY));
-  await waitForDomStable(page, 300, 5000);
-  await waitForFontsLoaded(page, 3000);
-  await waitForStylesStable(page, 200, 2000);
-
-  const componentDimensions = await extractComponentDimensions(page, viewport);
-
-  // Extract DOM hierarchy (desktop only for efficiency)
-  let domHierarchy = null;
-  if (viewport === 'desktop') {
-    try {
-      domHierarchy = await extractDOMHierarchy(page, { maxDepth: 8 });
-    } catch (err) {
-      console.error(`[WARN] DOM hierarchy extraction failed: ${err.message}`);
-    }
-  }
-
-  const lazyStats = await forceLazyImages(page);
-  const scrollInfo = await triggerLazyLoad(page, LAZY_LOAD_MAX_ITERATIONS, scrollDelay);
-  await forceLazyImages(page);
-  const imageStats = await waitForAllImages(page, 15000);
-
-  try {
-    await page.waitForLoadState('networkidle', { timeout: NETWORK_IDLE_TIMEOUT });
-  } catch {
-    // Network idle timeout is acceptable - page may have long-polling connections
-  }
-
-  await new Promise(r => setTimeout(r, 2000));
-  await waitForDomStable(page, 300, 3000);
-  await waitForFontsLoaded(page, 2000);
-  const animStats = await forceAnimatedElementsVisible(page);
-  await new Promise(r => setTimeout(r, 300));
-
-  await page.evaluate(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  });
-  await new Promise(r => setTimeout(r, 500));
-
-  await page.screenshot({ path: outputPath, type: 'png', fullPage: fullPage });
-  const compression = await compressIfNeeded(outputPath, maxSize);
-
-  return {
-    viewport,
-    path: path.resolve(outputPath),
-    dimensions: VIEWPORTS[viewport],
-    componentDimensions,
-    domHierarchy,
-    scrollInfo,
-    imageStats,
-    size: compression.finalSize,
-    compressed: compression.compressed
-  };
-}
-
-/**
- * Main capture function
- */
 async function captureMultiViewport() {
   const options = parseScreenshotArgs(process.argv.slice(2));
   const {
@@ -297,454 +39,80 @@ async function captureMultiViewport() {
   try {
     await fs.mkdir(output, { recursive: true });
 
-    // Initialize browser manager
     const browserMgr = createBrowserManager(cliHeadless);
     const { getHeadlessForViewport, init: initBrowser } = browserMgr;
+    await initBrowser(getHeadlessForViewport(requestedViewports[0]), url);
 
-    const firstViewportHeadless = getHeadlessForViewport(requestedViewports[0]);
-    await initBrowser(firstViewportHeadless, url);
-    const page = browserMgr.getPage();
     const cookieResult = browserMgr.getCookieResult();
 
-    // Extract HTML/CSS
+    // HTML/CSS/animation extraction
     let extraction = null;
-    const extractionWarnings = [];
-
     if (extractHtml || extractCss) {
-      extraction = { html: null, css: null, warnings: [] };
-
-      // Extract content counts BEFORE cleaning HTML (to count hidden items too)
-      if (extractHtml) {
-        try {
-          const contentCounts = await extractContentCounts(page);
-          const countsPath = path.join(output, 'content-counts.json');
-          await fs.writeFile(countsPath, JSON.stringify(contentCounts, null, 2), 'utf-8');
-
-          // Generate summary for structure analysis
-          const contentSummary = generateContentSummary(contentCounts);
-          const summaryPath = path.join(output, 'content-summary.md');
-          await fs.writeFile(summaryPath, contentSummary, 'utf-8');
-
-          extraction.contentCounts = {
-            path: path.resolve(countsPath),
-            summaryPath: path.resolve(summaryPath),
-            summary: contentCounts.summary
-          };
-
-          if (process.stderr.isTTY) {
-            console.error(`[INFO] Content counts: ${contentCounts.grids.total} grids, ${contentCounts.repeatedItems.total} items`);
-          }
-        } catch (error) {
-          extractionWarnings.push(`Content counting failed: ${error.message}`);
-        }
-      }
-
-      if (extractHtml) {
-        try {
-          // Use semantic enhancement unless --no-semantic flag is set
-          const htmlResult = enhanceSemantic
-            ? await extractAndEnhanceHtml(page, { enhanceSemantic: true })
-            : await extractCleanHtml(page, JS_FRAMEWORK_PATTERNS);
-
-          const html = htmlResult.html;
-          const htmlSize = Buffer.byteLength(html, 'utf-8');
-
-          if (htmlSize > MAX_HTML_SIZE) {
-            throw new Error(`HTML size exceeds ${MAX_HTML_SIZE / 1024 / 1024}MB limit`);
-          }
-
-          const htmlPath = path.join(output, 'source.html');
-          await fs.writeFile(htmlPath, html, 'utf-8');
-          extraction.html = {
-            path: path.resolve(htmlPath),
-            size: htmlSize,
-            elementCount: htmlResult.elementCount,
-            semanticEnhanced: enhanceSemantic,
-            semanticStats: htmlResult.semanticStats || null
-          };
-          if (htmlResult.warnings.length > 0) extractionWarnings.push(...htmlResult.warnings);
-        } catch (error) {
-          extraction.html = { error: error.message, failed: true };
-          extractionWarnings.push(`HTML extraction failed: ${error.message}`);
-        }
-      }
-
-      if (extractCss) {
-        try {
-          const cssData = await extractAllCss(page, url);
-          const rawCss = cssData.cssBlocks.map(b => `/* Source: ${b.source} */\n${b.css}`).join('\n\n');
-          const cssSize = Buffer.byteLength(rawCss, 'utf-8');
-
-          if (cssSize > MAX_CSS_SIZE) {
-            throw new Error(`CSS size exceeds ${MAX_CSS_SIZE / 1024 / 1024}MB limit`);
-          }
-
-          const rawCssPath = path.join(output, 'source-raw.css');
-          await fs.writeFile(rawCssPath, rawCss, 'utf-8');
-
-          extraction.css = {
-            path: path.resolve(rawCssPath),
-            size: cssSize,
-            blocks: cssData.cssBlocks.length,
-            totalRules: cssData.totalRules,
-            corsBlocked: cssData.corsBlocked,
-            computedStyles: cssData.computedStyles
-          };
-
-          if (Object.keys(cssData.computedStyles).length > 0) {
-            const stylesPath = path.join(output, 'computed-styles.json');
-            await fs.writeFile(stylesPath, JSON.stringify(cssData.computedStyles, null, 2));
-          }
-
-          if (cssData.warnings.length > 0) extractionWarnings.push(...cssData.warnings);
-          if (cssData.corsBlocked.length > 0) extractionWarnings.push(`${cssData.corsBlocked.length} CORS-blocked stylesheets`);
-        } catch (error) {
-          extraction.css = { error: error.message, failed: true };
-          extractionWarnings.push(`CSS extraction failed: ${error.message}`);
-        }
-      }
-
-      // Filter CSS
-      if (filterUnused && extraction?.html?.path && extraction?.css?.path && !extraction.html.failed && !extraction.css.failed) {
-        try {
-          const filteredCssPath = path.join(output, 'source.css');
-          const filterResult = await filterCssFile(extraction.html.path, extraction.css.path, filteredCssPath, false, output);
-          extraction.filtered = {
-            path: filterResult.output.path,
-            size: filterResult.output.size,
-            reduction: filterResult.stats.reduction,
-            stats: { totalRules: filterResult.stats.totalRules, keptRules: filterResult.stats.keptRules, removedRules: filterResult.stats.removedRules }
-          };
-          if (process.stderr.isTTY) console.error(`[INFO] CSS filtered: ${filterResult.stats.reduction} reduction`);
-        } catch (error) {
-          extraction.filtered = { error: error.message, failed: true };
-          extractionWarnings.push(`CSS filtering failed: ${error.message}`);
-        }
-      }
-
-      // Extract animations (enabled by default with CSS extraction)
-      if (extractCss && extractAnimationsFlag && extraction?.css?.path && !extraction.css.failed) {
-        try {
-          const rawCss = await fs.readFile(extraction.css.path, 'utf-8');
-          const animData = await extractAnimations(rawCss);
-
-          if (!animData.error) {
-            // Write animations.css
-            const animCss = generateAnimationsCss(animData);
-            const animPath = path.join(output, 'animations.css');
-            await fs.writeFile(animPath, animCss, 'utf-8');
-
-            // Generate animation tokens
-            const animTokens = generateAnimationTokens(animData);
-
-            // Write animation-tokens.json
-            const animTokensPath = path.join(output, 'animation-tokens.json');
-            await fs.writeFile(animTokensPath, JSON.stringify({
-              keyframes: animData.keyframes,
-              transitions: animData.transitions,
-              animatedElements: animData.animatedElements,
-              summary: animTokens
-            }, null, 2), 'utf-8');
-
-            extraction.animations = {
-              path: path.resolve(animPath),
-              tokensPath: path.resolve(animTokensPath),
-              keyframeCount: animTokens.keyframeCount,
-              transitionCount: animTokens.transitions,
-              animatedElementCount: animTokens.animatedElements,
-              tokens: animTokens
-            };
-
-            if (process.stderr.isTTY) {
-              console.error(`[INFO] Animations: ${animTokens.keyframeCount} keyframes, ${animTokens.transitions} transitions`);
-            }
-          } else {
-            extraction.animations = { error: animData.error, failed: true };
-            extractionWarnings.push(`Animation extraction failed: ${animData.error}`);
-          }
-        } catch (error) {
-          extraction.animations = { error: error.message, failed: true };
-          extractionWarnings.push(`Animation extraction failed: ${error.message}`);
-        }
-      }
-
-      extraction.warnings = extractionWarnings;
-      if (extractionWarnings.length > 0 && process.stderr.isTTY) {
-        extractionWarnings.forEach(w => console.error(`[WARN] ${w}`));
-      }
+      extraction = await runExtractionPipeline(browserMgr.getPage(), url, output, {
+        extractHtml, extractCss, filterUnused, enhanceSemantic,
+        extractAnimations: extractAnimationsFlag
+      });
     }
 
-    // Capture hover states (requires headless mode per Playwright #5255)
+    // Hover state capture
     let hoverResult = null;
     if (captureHover) {
-      try {
-        // Try headed mode first, fallback to headless (per validation decision)
-        const wasHeadless = browserMgr.getCurrentHeadless();
-        let hoverCaptureSuccess = false;
-
-        // Attempt headed mode first
-        if (!wasHeadless) {
-          try {
-            const cssContent = extraction?.css?.path
-              ? await fs.readFile(extraction.css.path, 'utf-8')
-              : null;
-            hoverResult = await captureAllHoverStates(page, cssContent, output);
-            hoverCaptureSuccess = hoverResult.captured > 0;
-          } catch (headedError) {
-            if (process.stderr.isTTY) {
-              console.error(`[WARN] Headed hover capture failed, switching to headless: ${headedError.message}`);
-            }
-          }
-        }
-
-        // Fallback to headless if headed failed or was already headless
-        if (!hoverCaptureSuccess) {
-          if (!browserMgr.getCurrentHeadless()) {
-            await initBrowser(true, url);
-          }
-
-          const cssContent = extraction?.css?.path
-            ? await fs.readFile(extraction.css.path, 'utf-8')
-            : null;
-          hoverResult = await captureAllHoverStates(browserMgr.getPage(), cssContent, output);
-        }
-
-        // Generate hover.css from captured diffs
-        if (hoverResult && hoverResult.elements && hoverResult.captured > 0) {
-          const hoverCss = generateHoverCss(hoverResult.elements);
-          const hoverCssPath = path.join(output, 'hover.css');
-          await fs.writeFile(hoverCssPath, hoverCss, 'utf-8');
-          hoverResult.generatedCss = path.resolve(hoverCssPath);
-        }
-
-        if (process.stderr.isTTY && hoverResult) {
-          console.error(`[INFO] Hover states: ${hoverResult.captured}/${hoverResult.detected} captured`);
-        }
-
-        // Restore browser mode for viewport captures if needed
-        if (!wasHeadless && browserMgr.getCurrentHeadless() && requestedViewports.some(v => !getHeadlessForViewport(v))) {
-          await initBrowser(false, url);
-        }
-      } catch (error) {
-        if (process.stderr.isTTY) {
-          console.error(`[WARN] Hover capture failed: ${error.message}`);
-        }
-        hoverResult = { error: error.message, failed: true };
-      }
+      hoverResult = await runHoverCapture(
+        browserMgr, extraction, output, url,
+        initBrowser, getHeadlessForViewport, requestedViewports
+      );
     }
 
-    // Capture viewports
+    // Per-viewport screenshots
     const screenshots = [];
     const browserRestarts = [];
     for (const viewport of requestedViewports) {
       const viewportHeadless = getHeadlessForViewport(viewport);
-      const currentHeadless = browserMgr.getCurrentHeadless();
-      if (currentHeadless !== viewportHeadless) {
-        browserRestarts.push({ viewport, from: currentHeadless ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
+      if (browserMgr.getCurrentHeadless() !== viewportHeadless) {
+        browserRestarts.push({ viewport, from: browserMgr.getCurrentHeadless() ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
         if (process.stderr.isTTY) console.error(`[INFO] Switching to ${viewportHeadless ? 'headless' : 'headed'} for ${viewport}`);
         await initBrowser(viewportHeadless, url);
       }
-
-      const outputPath = path.join(output, `${viewport}.png`);
-      const result = await captureViewport({
-        page: browserMgr.getPage(),
-        viewport,
-        outputPath,
-        fullPage,
-        maxSize,
-        scrollDelay
-      });
-      screenshots.push(result);
+      screenshots.push(await captureViewport({
+        page: browserMgr.getPage(), viewport,
+        outputPath: path.join(output, `${viewport}.png`),
+        fullPage, maxSize, scrollDelay
+      }));
     }
 
-    // Capture video (opt-in, after screenshots)
-    let videoResult = null;
-    if (captureVideoFlag) {
-      try {
-        // Check if ffmpeg is needed but not available
-        if (FFMPEG_REQUIRED_FORMATS.includes(videoFormat)) {
-          const hasFf = await hasFfmpeg();
-          if (!hasFf && process.stderr.isTTY) {
-            console.error(`[WARN] ffmpeg not found. Will output WebM instead of ${videoFormat}`);
-            console.error('[WARN] Install: npm install fluent-ffmpeg @ffmpeg-installer/ffmpeg');
-          }
-        }
+    // Optional: video, dimensions, DOM hierarchy, sections
+    const videoResult = captureVideoFlag
+      ? await runVideoCapture(browserMgr, output, videoFormat, videoDuration)
+      : null;
 
-        // Use desktop viewport for video
-        const videoPage = browserMgr.getPage();
-        await videoPage.setViewportSize(VIEWPORTS.desktop);
-        await new Promise(r => setTimeout(r, 1000));
-
-        if (process.stderr.isTTY) {
-          console.error(`[INFO] Recording video (${videoDuration / 1000}s)...`);
-        }
-
-        videoResult = await captureVideo(videoPage, output, {
-          format: videoFormat,
-          duration: videoDuration,
-          filename: 'preview'
-        });
-
-        if (process.stderr.isTTY) {
-          const outputFormat = videoResult.output.split('.').pop();
-          console.error(`[INFO] Video saved: ${outputFormat} (${(videoResult.duration / 1000).toFixed(1)}s)`);
-        }
-      } catch (error) {
-        if (process.stderr.isTTY) {
-          console.error(`[WARN] Video capture failed: ${error.message}`);
-        }
-        videoResult = { error: error.message, failed: true };
-      }
-    }
-
-    // Build dimension output
-    const allViewportDimensions = {};
-    for (const screenshot of screenshots) {
-      if (screenshot.componentDimensions) {
-        allViewportDimensions[screenshot.viewport] = screenshot.componentDimensions;
-      }
-    }
-
-    const dimensionsOutput = buildDimensionsOutput(allViewportDimensions, url);
-    const dimensionsPath = path.join(output, 'component-dimensions.json');
-    await fs.writeFile(dimensionsPath, JSON.stringify(dimensionsOutput, null, 2));
-
-    const aiSummary = generateAISummary(dimensionsOutput);
-    const summaryPath = path.join(output, 'dimensions-summary.json');
-    await fs.writeFile(summaryPath, JSON.stringify(aiSummary, null, 2));
-
-    // Write DOM hierarchy if available (from desktop capture)
+    const dimResult = await runDimensionOutput(screenshots, url, output);
     const desktopScreenshot = screenshots.find(s => s.viewport === 'desktop');
-    let hierarchyPath = null;
-    if (desktopScreenshot?.domHierarchy) {
-      hierarchyPath = path.join(output, 'dom-hierarchy.json');
-      await fs.writeFile(hierarchyPath, JSON.stringify(desktopScreenshot.domHierarchy, null, 2));
+    const hierarchyPath = await writeDomHierarchy(desktopScreenshot, output);
+    const sectionResult = (sectionMode && desktopScreenshot)
+      ? await runSectionCapture(browserMgr, desktopScreenshot, output)
+      : null;
 
-      if (process.stderr.isTTY) {
-        const stats = desktopScreenshot.domHierarchy.stats || {};
-        console.error(`[INFO] DOM hierarchy: ${stats.totalNodes || 0} nodes, ${stats.landmarkCount || 0} landmarks, ${stats.extractionTimeMs || 0}ms`);
-      }
-    }
-
-    // Section-based capture (for improved AI analysis)
-    let sectionResult = null;
-    if (sectionMode && desktopScreenshot) {
-      try {
-        // Lazy import section modules
-        const { detectSections } = await import('./section-detector.js');
-        const { cropSections } = await import('./section-cropper.js');
-
-        // Reset to desktop viewport for section detection
-        const sectionPage = browserMgr.getPage();
-        await sectionPage.setViewportSize(VIEWPORTS.desktop);
-        await new Promise(r => setTimeout(r, 500));
-
-        if (process.stderr.isTTY) {
-          console.error('[INFO] Detecting sections...');
-        }
-
-        const sections = await detectSections(sectionPage, {
-          padding: 40,
-          minSections: 3,
-          fallbackToViewport: true
-        });
-
-        if (process.stderr.isTTY) {
-          console.error(`[INFO] Found ${sections.length} sections, cropping...`);
-        }
-
-        const croppedResult = await cropSections(
-          desktopScreenshot.path,
-          sections,
-          output
-        );
-
-        sectionResult = {
-          enabled: true,
-          count: croppedResult.sections.length,
-          skipped: croppedResult.skipped.length,
-          sections: croppedResult.sections.map(s => ({
-            index: s.index,
-            name: s.name,
-            path: s.relativePath,
-            bounds: s.bounds,
-            role: s.role
-          })),
-          directory: croppedResult.directory,
-          summary: croppedResult.summary
-        };
-
-        if (process.stderr.isTTY) {
-          console.error(`[INFO] Sections: ${croppedResult.sections.length} cropped, ${croppedResult.skipped.length} skipped`);
-        }
-      } catch (err) {
-        sectionResult = { enabled: true, error: err.message };
-        if (process.stderr.isTTY) {
-          console.error(`[WARN] Section processing failed: ${err.message}`);
-        }
-      }
-    }
-
-    const totalContainers = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.containers?.length || 0), 0);
-    const totalCards = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.cards?.length || 0), 0);
-    const totalGrids = Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.gridLayouts?.length || 0), 0);
-
-    if (process.stderr.isTTY) {
-      console.error(`[INFO] Extracted: ${totalContainers} containers, ${totalCards} card groups, ${totalGrids} grid layouts`);
-    }
-
-    const result = {
-      success: true,
-      url: url,
-      outputDir: path.resolve(output),
-      cookieHandling: cookieResult,
+    outputJSON({
+      success: true, url, outputDir: path.resolve(output), cookieHandling: cookieResult,
       extraction,
-      hoverStates: hoverResult && !hoverResult.failed ? {
-        directory: hoverResult.directory,
-        detected: hoverResult.detected,
-        captured: hoverResult.captured,
-        summaryPath: hoverResult.summaryPath,
-        generatedCss: hoverResult.generatedCss
-      } : (hoverResult?.error ? { error: hoverResult.error } : undefined),
-      video: videoResult && !videoResult.failed ? {
-        path: videoResult.output,
-        format: videoResult.output.split('.').pop(),
-        duration: videoResult.duration,
-        pageHeight: videoResult.pageHeight,
-        webm: videoResult.webm,
-        mp4: videoResult.mp4,
-        gif: videoResult.gif,
-        conversionError: videoResult.conversionError
-      } : (videoResult?.error ? { error: videoResult.error } : undefined),
-      componentDimensions: {
-        full: path.resolve(dimensionsPath),
-        summary: path.resolve(summaryPath),
-        viewports: Object.keys(dimensionsOutput.viewports),
-        stats: { containers: totalContainers, cards: totalCards, gridLayouts: totalGrids,
-          typography: Object.values(dimensionsOutput.viewports).reduce((sum, vp) => sum + (vp.typography?.length || 0), 0) }
-      },
-      domHierarchy: desktopScreenshot?.domHierarchy ? {
-        path: path.resolve(hierarchyPath),
-        stats: desktopScreenshot.domHierarchy.stats
-      } : undefined,
-      sections: sectionResult,
-      screenshots,
+      hoverStates: hoverResult && !hoverResult.failed
+        ? { directory: hoverResult.directory, detected: hoverResult.detected, captured: hoverResult.captured, summaryPath: hoverResult.summaryPath, generatedCss: hoverResult.generatedCss }
+        : (hoverResult?.error ? { error: hoverResult.error } : undefined),
+      video: videoResult && !videoResult.failed
+        ? { path: videoResult.output, format: videoResult.output.split('.').pop(), duration: videoResult.duration, pageHeight: videoResult.pageHeight, webm: videoResult.webm, mp4: videoResult.mp4, gif: videoResult.gif, conversionError: videoResult.conversionError }
+        : (videoResult?.error ? { error: videoResult.error } : undefined),
+      componentDimensions: { full: dimResult.dimensionsPath, summary: dimResult.summaryPath, viewports: Object.keys(dimResult.dimensionsOutput.viewports), stats: dimResult.stats },
+      domHierarchy: desktopScreenshot?.domHierarchy ? { path: hierarchyPath, stats: desktopScreenshot.domHierarchy.stats } : undefined,
+      sections: sectionResult, screenshots,
       browserRestarts: browserRestarts.length > 0 ? browserRestarts : undefined,
-      scrollDelay,
-      totalSize: screenshots.reduce((sum, s) => sum + s.size, 0),
+      scrollDelay, totalSize: screenshots.reduce((sum, s) => sum + s.size, 0),
       capturedAt: new Date().toISOString()
-    };
+    });
 
-    outputJSON(result);
-
-    if (shouldClose) {
-      await closeBrowser();
-    } else {
-      await disconnectBrowser();
-    }
-
+    if (shouldClose) await closeBrowser(); else await disconnectBrowser();
     process.exit(0);
   } catch (error) {
+    const { outputError } = await import('../utils/browser.js');
     outputError(error);
     process.exit(1);
   } finally {
@@ -752,21 +120,14 @@ async function captureMultiViewport() {
   }
 }
 
-// Export for module use
-export {
-  captureViewport,
-  VIEWPORTS,
-  VIEWPORT_SETTLE_DELAY,
-  DEFAULT_SCROLL_DELAY,
-  compressIfNeeded
-};
+// ============================================================================
+// Exports (backward-compatible)
+// ============================================================================
 
-// Run if called directly (not imported as module)
-const isMainModule = process.argv[1] && (
-  process.argv[1].endsWith('screenshot.js') ||
-  process.argv[1].includes('screenshot')
-);
+export { captureViewport } from './screenshot-viewport.js';
+export { compressIfNeeded, parseScreenshotArgs, createBrowserManager, VIEWPORT_SETTLE_DELAY, DEFAULT_SCROLL_DELAY, VIEWPORTS } from './screenshot-helpers.js';
 
-if (isMainModule) {
+// Run if called directly
+if (process.argv[1]?.endsWith('screenshot.js') || process.argv[1]?.includes('screenshot')) {
   captureMultiViewport();
 }

@@ -3,87 +3,79 @@
  *
  * Rewrites internal links in HTML to point to local .html files.
  * Preserves external links unchanged.
+ * CSS link rewriting lives in rewrite-links-css-rewriter.js.
  *
  * Usage:
  *   import { rewriteLinks, createPageManifest } from './rewrite-links.js';
  *   const rewritten = rewriteLinks(html, manifest, { baseUrl });
  */
 
+import fs from 'fs/promises';
+import path from 'path';
 import { normalizeUrl } from './discover-pages.js';
+import { rewriteCssLinks } from './rewrite-links-css-rewriter.js';
 
 /**
- * Convert URL path to local filename
- * @param {string} urlPath - URL path (e.g., '/about', '/services/consulting')
- * @returns {string} Local filename (e.g., 'about.html', 'services-consulting.html')
+ * Convert URL path to local filename.
+ * @param {string} urlPath - e.g. '/about', '/services/consulting'
+ * @returns {string} e.g. 'about.html', 'services-consulting.html'
  */
 export function pathToFilename(urlPath) {
-  if (!urlPath || urlPath === '/' || urlPath === '') {
-    return 'index.html';
-  }
+  if (!urlPath || urlPath === '/' || urlPath === '') return 'index.html';
 
   const name = urlPath
-    .replace(/^\//, '')           // Remove leading slash
-    .replace(/\/$/, '')           // Remove trailing slash
-    .replace(/\//g, '-')          // Replace slashes with dashes
-    .replace(/[^a-z0-9-]/gi, '-') // Replace special chars
-    .replace(/-+/g, '-')          // Collapse multiple dashes
+    .replace(/^\//, '')
+    .replace(/\/$/, '')
+    .replace(/\//g, '-')
+    .replace(/[^a-z0-9-]/gi, '-')
+    .replace(/-+/g, '-')
     .toLowerCase();
 
   return `${name}.html`;
 }
 
 /**
- * Create page manifest from discovered pages
- * @param {Array} pages - Array of { path, name, url }
- * @param {Object} options - Additional options
+ * Create page manifest from discovered pages.
+ * @param {Array<{ path, name, url }>} pages
+ * @param {Object} options
  * @returns {Object} Page manifest
  */
 export function createPageManifest(pages, options = {}) {
   const baseUrl = pages[0]?.url ? new URL(pages[0].url).origin : '';
 
-  const manifest = {
+  return {
     baseUrl,
     capturedAt: new Date().toISOString(),
     pages: pages.map(page => ({
-      path: page.path,
-      name: page.name,
-      file: pathToFilename(page.path),
+      path:        page.path,
+      name:        page.name,
+      file:        pathToFilename(page.path),
       originalUrl: page.url
     })),
     assets: {
-      css: 'styles.css',
+      css:    'styles.css',
       tokens: options.hasTokens ? 'tokens.css' : null
     },
     stats: options.stats || {}
   };
-
-  return manifest;
 }
 
 /**
- * Build URL to filename mapping from manifest
- * @param {Object} manifest - Page manifest
- * @returns {Map} URL -> filename mapping
+ * Build URL-to-filename mapping from manifest (path + full URL variants).
+ * @param {Object} manifest
+ * @returns {Map<string, string>}
  */
 function buildUrlMap(manifest) {
   const urlMap = new Map();
 
   for (const page of manifest.pages) {
-    // Map by full URL
     if (page.originalUrl) {
       urlMap.set(page.originalUrl, page.file);
-      // Also without trailing slash
-      const noSlash = page.originalUrl.replace(/\/$/, '');
-      urlMap.set(noSlash, page.file);
+      urlMap.set(page.originalUrl.replace(/\/$/, ''), page.file);
     }
-
-    // Map by path
     if (page.path) {
       urlMap.set(page.path, page.file);
-      // Also without trailing slash
-      if (page.path !== '/') {
-        urlMap.set(page.path.replace(/\/$/, ''), page.file);
-      }
+      if (page.path !== '/') urlMap.set(page.path.replace(/\/$/, ''), page.file);
     }
   }
 
@@ -91,10 +83,13 @@ function buildUrlMap(manifest) {
 }
 
 /**
- * Rewrite links in HTML to point to local files
- * @param {string} html - HTML content
- * @param {Object} manifest - Page manifest
- * @param {Object} options - Rewrite options
+ * Rewrite links in HTML to point to local files.
+ * @param {string} html
+ * @param {Object} manifest
+ * @param {Object} options
+ * @param {string} [options.baseUrl]
+ * @param {boolean} [options.rewriteCss=true]
+ * @param {boolean} [options.injectTokensCss=false]
  * @returns {string} HTML with rewritten links
  */
 export function rewriteLinks(html, manifest, options = {}) {
@@ -103,11 +98,10 @@ export function rewriteLinks(html, manifest, options = {}) {
 
   let result = html;
 
-  // Rewrite <a href="..."> links
+  // Rewrite <a href="..."> internal links
   result = result.replace(
     /(<a\s[^>]*href=["'])([^"']+)(["'][^>]*>)/gi,
     (match, prefix, href, suffix) => {
-      // Skip empty, javascript:, mailto:, tel:, and anchor-only links
       if (!href ||
           href.startsWith('javascript:') ||
           href.startsWith('mailto:') ||
@@ -116,93 +110,46 @@ export function rewriteLinks(html, manifest, options = {}) {
         return match;
       }
 
-      // Try to match against manifest
       let filename = null;
 
-      // Direct path match
       if (urlMap.has(href)) {
         filename = urlMap.get(href);
-      }
-      // Normalized URL match
-      else if (baseUrl) {
+      } else if (baseUrl) {
         const normalized = normalizeUrl(baseUrl, href);
-        if (normalized && urlMap.has(normalized)) {
-          filename = urlMap.get(normalized);
-        }
+        if (normalized && urlMap.has(normalized)) filename = urlMap.get(normalized);
       }
 
       if (filename) {
-        // Preserve fragment if present
         const fragmentMatch = href.match(/#[^#]*$/);
-        const fragment = fragmentMatch ? fragmentMatch[0] : '';
+        const fragment      = fragmentMatch ? fragmentMatch[0] : '';
         return `${prefix}${filename}${fragment}${suffix}`;
       }
 
-      // Keep original for external/unknown links
       return match;
     }
   );
 
-  // Rewrite CSS links to use shared styles.css
   if (rewriteCss) {
-    result = result.replace(
-      /<link([^>]*?)href=["'][^"']*\.css["']([^>]*?)>/gi,
-      (match, before, after) => {
-        // Check if it's a stylesheet link
-        if (match.includes('rel="stylesheet"') || match.includes("rel='stylesheet'") ||
-            !match.includes('rel=')) {
-          return `<link${before}href="../styles.css" rel="stylesheet"${after}>`;
-        }
-        return match;
-      }
-    );
-
-    // Remove duplicate stylesheet links (keep first)
-    const seenStylesheets = new Set();
-    result = result.replace(
-      /<link[^>]*href=["']\.\.\/styles\.css["'][^>]*>/gi,
-      (match) => {
-        if (seenStylesheets.has('styles.css')) {
-          return ''; // Remove duplicate
-        }
-        seenStylesheets.add('styles.css');
-        return match;
-      }
-    );
-
-    // Inject tokens.css before styles.css if requested
-    if (injectTokensCss) {
-      result = result.replace(
-        /(<link[^>]*href=["']\.\.\/styles\.css["'][^>]*>)/i,
-        '<link href="../tokens.css" rel="stylesheet">\n  $1'
-      );
-    }
+    result = rewriteCssLinks(result, injectTokensCss);
   }
 
   return result;
 }
 
 /**
- * Rewrite links in all HTML files in a directory
- * @param {string} htmlDir - Directory containing HTML files
- * @param {Object} manifest - Page manifest
- * @param {Object} options - Rewrite options
- * @returns {Promise<Object>} Rewrite results
+ * Rewrite links in all HTML files listed in manifest.
+ * @param {string} htmlDir
+ * @param {Object} manifest
+ * @param {Object} options
+ * @returns {Promise<{ processed: string[], errors: Array }>}
  */
 export async function rewriteAllLinks(htmlDir, manifest, options = {}) {
-  const fs = await import('fs/promises');
-  const path = await import('path');
-
-  const results = {
-    processed: [],
-    errors: []
-  };
+  const results = { processed: [], errors: [] };
 
   for (const page of manifest.pages) {
     const htmlPath = path.join(htmlDir, page.file);
-
     try {
-      const html = await fs.readFile(htmlPath, 'utf-8');
+      const html      = await fs.readFile(htmlPath, 'utf-8');
       const rewritten = rewriteLinks(html, manifest, options);
       await fs.writeFile(htmlPath, rewritten, 'utf-8');
       results.processed.push(page.file);
@@ -214,7 +161,7 @@ export async function rewriteAllLinks(htmlDir, manifest, options = {}) {
   return results;
 }
 
-// CLI support
+// CLI stub
 const isMainModule = process.argv[1] && (
   process.argv[1].endsWith('rewrite-links.js') ||
   process.argv[1].includes('rewrite-links')

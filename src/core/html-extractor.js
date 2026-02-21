@@ -4,14 +4,18 @@
  * Extract and clean HTML from page, removing scripts,
  * event handlers, and framework-specific attributes.
  * Optionally enhances with WordPress-compatible semantic structure.
+ *
+ * Inline style computation lives in html-extractor-inline-styler.js
+ * and is serialized into the browser context via page.evaluate.
  */
 
 import { LAYOUT_PROPERTIES } from './css-extractor.js';
 import { enhanceSemanticHTMLInPage } from './semantic-enhancer.js';
+import { computeAndApplyInlineStyles } from './html-extractor-inline-styler.js';
 
 // Size limits
-export const MAX_HTML_SIZE = 10 * 1024 * 1024; // 10MB limit
-export const MAX_DOM_ELEMENTS = 50000;          // Warn on large DOMs
+export const MAX_HTML_SIZE    = 10 * 1024 * 1024; // 10MB
+export const MAX_DOM_ELEMENTS = 50000;
 
 // JS framework attribute patterns to remove
 export const JS_FRAMEWORK_PATTERNS = [
@@ -21,187 +25,118 @@ export const JS_FRAMEWORK_PATTERNS = [
 ];
 
 // Properties to inline on critical elements (layout only, not visual)
-// Uses shared LAYOUT_PROPERTIES from css-extractor (DRY)
 export const INLINE_LAYOUT_PROPS = [
   ...LAYOUT_PROPERTIES.display,
   ...LAYOUT_PROPERTIES.grid,
   ...LAYOUT_PROPERTIES.position,
   ...LAYOUT_PROPERTIES.sizing,
-  ...LAYOUT_PROPERTIES.box.slice(0, 2) // boxSizing, overflow only (skip overflowX/Y, border)
+  ...LAYOUT_PROPERTIES.box.slice(0, 2) // boxSizing, overflow only
 ];
 
-// Criteria for critical elements (no sticky - avoid scroll context side effects)
-export const CRITICAL_DISPLAY = ['flex', 'inline-flex', 'grid', 'inline-grid'];
+export const CRITICAL_DISPLAY  = ['flex', 'inline-flex', 'grid', 'inline-grid'];
 export const CRITICAL_POSITION = ['absolute', 'fixed'];
 
 /**
- * Extract and clean HTML from page
- * @param {Page} page - Playwright page
- * @param {Array} frameworkPatterns - Patterns to remove
- * @returns {Promise<{html: string, warnings: string[], elementCount: number}>}
+ * Extract and clean HTML from page.
+ * @param {import('playwright').Page} page
+ * @param {Array<RegExp>} frameworkPatterns - Patterns to remove
+ * @returns {Promise<{ html: string, warnings: string[], elementCount: number, inlinedCount: number }>}
  */
 export async function extractCleanHtml(page, frameworkPatterns = JS_FRAMEWORK_PATTERNS) {
-  return await page.evaluate(({ patterns, inlineProps, criticalDisplay, criticalPosition }) => {
-    const warnings = [];
+  // Serialize browser-side helper for inline styling
+  const inlineStylerSrc = computeAndApplyInlineStyles.toString();
 
-    // Check DOM size
-    const elementCount = document.querySelectorAll('*').length;
-    if (elementCount > 50000) {
-      warnings.push(`Large DOM: ${elementCount} elements`);
-    }
+  return await page.evaluate(
+    ({ patterns, inlineProps, criticalDisplay, criticalPosition, inlineStylerSrc }) => {
+      const warnings = [];
 
-    // Clone document to avoid modifying live page
-    const doc = document.documentElement.cloneNode(true);
+      const elementCount = document.querySelectorAll('*').length;
+      if (elementCount > 50000) warnings.push(`Large DOM: ${elementCount} elements`);
 
-    // Remove scripts and noscript
-    doc.querySelectorAll('script, noscript').forEach(el => el.remove());
-    doc.querySelectorAll('svg script, svg a[href^="javascript:"]').forEach(el => el.remove());
+      const doc = document.documentElement.cloneNode(true);
 
-    // Sanitize CSS links
-    doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-      const href = link.getAttribute('href') || '';
-      if (href.startsWith('javascript:') || href.startsWith('data:')) {
-        link.remove();
-      }
-    });
+      // Remove scripts and noscript
+      doc.querySelectorAll('script, noscript').forEach(el => el.remove());
+      doc.querySelectorAll('svg script, svg a[href^="javascript:"]').forEach(el => el.remove());
 
-    // Sanitize inline styles
-    doc.querySelectorAll('style').forEach(style => {
-      const content = style.textContent || '';
-      if (content.match(/@import\s+url\s*\(\s*['"]?(javascript|data):/i)) {
-        style.remove();
-      }
-    });
+      // Sanitize CSS links
+      doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+        const href = link.getAttribute('href') || '';
+        if (href.startsWith('javascript:') || href.startsWith('data:')) link.remove();
+      });
 
-    // Convert patterns to regex
-    const patternRegexes = patterns.map(p => new RegExp(p.source, p.flags));
-
-    // Remove event handlers and framework attributes
-    const allElements = doc.querySelectorAll('*');
-    allElements.forEach(el => {
-      const attrs = [...el.attributes];
-      attrs.forEach(attr => {
-        if (attr.name.startsWith('on')) {
-          el.removeAttribute(attr.name);
-        }
-        if (patternRegexes.some(p => p.test(attr.name))) {
-          el.removeAttribute(attr.name);
+      // Sanitize inline styles
+      doc.querySelectorAll('style').forEach(style => {
+        if ((style.textContent || '').match(/@import\s+url\s*\(\s*['"]?(javascript|data):/i)) {
+          style.remove();
         }
       });
-    });
 
-    // Inline computed styles on critical elements (flex/grid/positioned)
-    // Using index-based matching for reliability
-    const inlineStyles = [];
-    let inlinedCount = 0;
-
-    document.querySelectorAll('*').forEach((liveEl, idx) => {
-      const style = getComputedStyle(liveEl);
-      const display = style.display;
-      const position = style.position;
-
-      // Only critical elements (flex/grid containers, absolute/fixed positioned)
-      if (criticalDisplay.includes(display) || criticalPosition.includes(position)) {
-        const props = [];
-        inlineProps.forEach(prop => {
-          const val = style[prop];
-          // Skip defaults/empty values
-          if (val && val !== 'auto' && val !== 'none' && val !== 'normal' &&
-              val !== '0px' && val !== 'static' && val !== 'visible' &&
-              val !== 'content-box') {
-            // Convert camelCase to kebab-case
-            const cssProp = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
-            props.push(`${cssProp}: ${val}`);
-          }
+      // Remove event handlers and framework attributes
+      const patternRegexes = patterns.map(p => new RegExp(p.source, p.flags));
+      doc.querySelectorAll('*').forEach(el => {
+        [...el.attributes].forEach(attr => {
+          if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
+          if (patternRegexes.some(p => p.test(attr.name))) el.removeAttribute(attr.name);
         });
-
-        // Always include display for critical elements
-        if (!props.some(p => p.startsWith('display:'))) {
-          props.unshift(`display: ${display}`);
-        }
-
-        if (props.length > 0) {
-          inlineStyles.push({ idx, style: props.join('; ') });
-        }
-      }
-    });
-
-    // Apply to cloned doc using index matching
-    const clonedElements = doc.querySelectorAll('*');
-    inlineStyles.forEach(({ idx, style }) => {
-      if (clonedElements[idx]) {
-        const existing = clonedElements[idx].getAttribute('style') || '';
-        clonedElements[idx].setAttribute('style',
-          existing ? `${existing}; ${style}` : style);
-        inlinedCount++;
-      }
-    });
-
-    // Track for warnings
-    if (inlinedCount > 100) {
-      warnings.push(`Inlined ${inlinedCount} critical elements`);
-    }
-
-    // Remove hidden elements
-    doc.querySelectorAll('[hidden], [style*="display: none"], [style*="display:none"]')
-       .forEach(el => el.remove());
-
-    // Remove empty style tags
-    doc.querySelectorAll('style:empty').forEach(el => el.remove());
-
-    // Remove HTML comments
-    const removeComments = (node) => {
-      const children = [...node.childNodes];
-      children.forEach(child => {
-        if (child.nodeType === 8) {
-          child.remove();
-        } else if (child.nodeType === 1) {
-          removeComments(child);
-        }
       });
-    };
-    removeComments(doc);
 
-    // Build clean HTML
-    const html = '<!DOCTYPE html>\n<html lang="' +
-                 (document.documentElement.lang || 'en') + '">\n' +
-                 doc.innerHTML + '\n</html>';
+      // Inline critical layout styles (browser-side helper deserialized here)
+      // eslint-disable-next-line no-new-func
+      const computeAndApplyInlineStyles = new Function('return (' + inlineStylerSrc + ')')();
+      const { inlinedCount, warnings: styleWarnings } = computeAndApplyInlineStyles(
+        document, doc, inlineProps, criticalDisplay, criticalPosition
+      );
+      warnings.push(...styleWarnings);
 
-    return { html, warnings, elementCount, inlinedCount };
-  }, {
-    patterns: frameworkPatterns.map(r => ({ source: r.source, flags: r.flags })),
-    inlineProps: INLINE_LAYOUT_PROPS,
-    criticalDisplay: CRITICAL_DISPLAY,
-    criticalPosition: CRITICAL_POSITION
-  });
+      // Remove hidden elements
+      doc.querySelectorAll('[hidden], [style*="display: none"], [style*="display:none"]')
+         .forEach(el => el.remove());
+
+      // Remove empty style tags and HTML comments
+      doc.querySelectorAll('style:empty').forEach(el => el.remove());
+
+      const removeComments = (node) => {
+        [...node.childNodes].forEach(child => {
+          if (child.nodeType === 8) child.remove();
+          else if (child.nodeType === 1) removeComments(child);
+        });
+      };
+      removeComments(doc);
+
+      const html = '<!DOCTYPE html>\n<html lang="' +
+                   (document.documentElement.lang || 'en') + '">\n' +
+                   doc.innerHTML + '\n</html>';
+
+      return { html, warnings, elementCount, inlinedCount };
+    },
+    {
+      patterns:         frameworkPatterns.map(r => ({ source: r.source, flags: r.flags })),
+      inlineProps:      INLINE_LAYOUT_PROPS,
+      criticalDisplay:  CRITICAL_DISPLAY,
+      criticalPosition: CRITICAL_POSITION,
+      inlineStylerSrc
+    }
+  );
 }
 
 /**
- * Extract, clean, and optionally enhance HTML with semantic structure
- * @param {Page} page - Playwright page
- * @param {Object} options - Configuration options
- * @param {boolean} [options.enhanceSemantic=true] - Add WordPress semantic IDs/classes/roles
- * @param {Array} [options.frameworkPatterns] - Custom framework patterns to remove
- * @returns {Promise<{html: string, warnings: string[], elementCount: number, semanticStats?: Object}>}
+ * Extract, clean, and optionally enhance HTML with semantic structure.
+ * @param {import('playwright').Page} page
+ * @param {Object} options
+ * @param {boolean} [options.enhanceSemantic=true]
+ * @param {Array<RegExp>} [options.frameworkPatterns]
+ * @returns {Promise<{ html: string, warnings: string[], elementCount: number, semanticStats?: Object }>}
  */
 export async function extractAndEnhanceHtml(page, options = {}) {
-  const {
-    enhanceSemantic = true,
-    frameworkPatterns = JS_FRAMEWORK_PATTERNS
-  } = options;
+  const { enhanceSemantic = true, frameworkPatterns = JS_FRAMEWORK_PATTERNS } = options;
 
-  // First extract clean HTML
   const result = await extractCleanHtml(page, frameworkPatterns);
 
-  // Apply semantic enhancement if enabled
   if (enhanceSemantic) {
     try {
       const enhanced = await enhanceSemanticHTMLInPage(page, result.html);
-      return {
-        ...result,
-        html: enhanced.html,
-        semanticStats: enhanced.stats
-      };
+      return { ...result, html: enhanced.html, semanticStats: enhanced.stats };
     } catch (err) {
       result.warnings.push(`Semantic enhancement failed: ${err.message}`);
       return result;

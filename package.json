@@ -13,7 +13,6 @@
     "templates/",
     "docs/",
     "SKILL.md",
-    "requirements.txt",
     ".env.example"
   ],
   "scripts": {

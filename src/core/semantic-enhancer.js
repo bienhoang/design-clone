@@ -12,6 +12,11 @@
  * - Handles multiple navs with aria-labels
  */
 
+
+// ============================================================================
+// Constants
+// ============================================================================
+
 /**
  * WordPress-compatible semantic mappings
  */
@@ -51,7 +56,7 @@ export const SEMANTIC_MAPPINGS = {
 /**
  * Class patterns for section detection (case-insensitive)
  */
-const CLASS_PATTERNS = {
+export const CLASS_PATTERNS = {
   header: ['header', 'masthead', 'site-header', 'page-header'],
   nav: ['nav', 'menu', 'navigation'],
   main: ['main', 'content', 'page-content'],
@@ -60,8 +65,12 @@ const CLASS_PATTERNS = {
   hero: ['hero', 'banner', 'jumbotron', 'splash']
 };
 
+// ============================================================================
+// Detection & Application
+// ============================================================================
+
 /**
- * Detect section type from element
+ * Detect section type from element.
  *
  * Priority:
  * 1. Semantic HTML tags
@@ -106,7 +115,7 @@ export function detectSectionType(element) {
 }
 
 /**
- * Apply semantic attributes to element
+ * Apply semantic attributes to element.
  *
  * Rules:
  * - Add ID only if none exists
@@ -129,7 +138,6 @@ export function applySemanticAttributes(element, sectionType, options = {}) {
   if (!element.id && mapping.id) {
     let targetId = mapping.id;
 
-    // Handle multiple instances (e.g., footer-navigation for secondary nav)
     if (usedIds.has(targetId)) {
       targetId = `${mapping.id}-${navIndex + 1}`;
     }
@@ -159,7 +167,7 @@ export function applySemanticAttributes(element, sectionType, options = {}) {
 }
 
 /**
- * Handle multiple navigation elements with proper labeling
+ * Handle multiple navigation elements with proper labeling.
  *
  * @param {NodeList|Array} navElements - All nav elements
  * @param {Set} usedIds - Track used IDs
@@ -173,13 +181,11 @@ export function handleMultipleNavs(navElements, usedIds = new Set()) {
     const isInFooter = nav.closest?.('footer') !== null;
 
     if (isInHeader && index === 0) {
-      // Primary navigation in header
       applySemanticAttributes(nav, 'nav', { usedIds, navIndex: 0 });
       if (!nav.getAttribute('aria-label')) {
         nav.setAttribute('aria-label', 'Primary Menu');
       }
     } else if (isInFooter) {
-      // Footer navigation
       if (!nav.id) {
         nav.id = usedIds.has('footer-navigation')
           ? `footer-navigation-${index}`
@@ -191,7 +197,6 @@ export function handleMultipleNavs(navElements, usedIds = new Set()) {
         nav.setAttribute('aria-label', 'Footer Menu');
       }
     } else {
-      // Secondary/other navigation
       applySemanticAttributes(nav, 'nav', { usedIds, navIndex: index });
       if (!nav.getAttribute('aria-label')) {
         nav.setAttribute('aria-label', `Navigation ${index + 1}`);
@@ -200,29 +205,25 @@ export function handleMultipleNavs(navElements, usedIds = new Set()) {
   });
 }
 
+// ============================================================================
+// Main enhancer (browser context)
+// ============================================================================
+
 /**
- * Enhance HTML string with semantic attributes
+ * Enhance HTML string with semantic attributes.
  *
- * **IMPORTANT:** This function requires browser context (uses DOMParser).
+ * **IMPORTANT:** Requires browser context (uses DOMParser).
  * For Node.js/Playwright, use `enhanceSemanticHTMLInPage()` instead.
  *
  * @param {string} html - Original HTML string (must be valid HTML)
  * @param {Object} [domHierarchy=null] - Optional DOM hierarchy from dom-tree-analyzer
  * @returns {{html: string, stats: Object}} Enhanced HTML and stats
  * @throws {Error} If html is empty or DOMParser is unavailable
- *
- * @example
- * // In browser context:
- * const result = enhanceSemanticHTML(htmlString);
- * console.log(result.stats.sectionsEnhanced);
  */
 export function enhanceSemanticHTML(html, domHierarchy = null) {
-  // Validate input
   if (!html || typeof html !== 'string') {
     throw new Error('enhanceSemanticHTML requires a valid HTML string');
   }
-
-  // Check for browser context
   if (typeof DOMParser === 'undefined') {
     throw new Error('enhanceSemanticHTML requires browser context (DOMParser). Use enhanceSemanticHTMLInPage() for Playwright.');
   }
@@ -235,21 +236,15 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
     warnings: []
   };
 
-  // Parse HTML
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
-
   const usedIds = new Set();
 
-  // Collect existing IDs to avoid duplicates
-  doc.querySelectorAll('[id]').forEach(el => {
-    usedIds.add(el.id);
-  });
+  doc.querySelectorAll('[id]').forEach(el => usedIds.add(el.id));
 
-  // Optimized: Combined landmark selector (reduces querySelectorAll calls from 8 to 1)
   const combinedLandmarkSelector = [
-    'header:not(header header)',  // Top-level headers only
-    'footer:not(footer footer)',  // Top-level footers only
+    'header:not(header header)',
+    'footer:not(footer footer)',
     'main',
     'aside',
     '[role="banner"]',
@@ -262,7 +257,6 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
 
   try {
     doc.querySelectorAll(combinedLandmarkSelector).forEach(el => {
-      // Skip if already processed (avoid double-counting from overlapping selectors)
       if (processedElements.has(el)) return;
       processedElements.add(el);
 
@@ -284,8 +278,6 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
     stats.warnings.push(`Landmark selector error: ${err.message}`);
   }
 
-  // Handle nav elements specially (multiple navs need labeling)
-  // Count only navs not already processed
   const navElements = doc.querySelectorAll('nav, [role="navigation"]');
   let newNavCount = 0;
   navElements.forEach(nav => {
@@ -299,7 +291,6 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
     stats.sectionsEnhanced += newNavCount;
   }
 
-  // Detect hero sections via class patterns
   const heroSelectors = [
     '.hero', '.banner', '.jumbotron', '.splash',
     '[class*="hero"]', '[class*="banner"]'
@@ -307,7 +298,6 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
   heroSelectors.forEach(selector => {
     try {
       doc.querySelectorAll(selector).forEach(el => {
-        // Only top-level hero elements
         if (!el.closest('header') && !el.closest('footer')) {
           const hadId = !!el.id;
           applySemanticAttributes(el, 'hero', { usedIds });
@@ -320,14 +310,16 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
     }
   });
 
-  // Serialize back to HTML
   const enhancedHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-
   return { html: enhancedHtml, stats };
 }
 
+// ============================================================================
+// Playwright page integration
+// ============================================================================
+
 /**
- * Enhance HTML using page.evaluate (for Playwright integration)
+ * Enhance HTML using page.evaluate (for Playwright integration).
  *
  * This is the recommended method for Node.js/Playwright usage.
  *
@@ -335,13 +327,8 @@ export function enhanceSemanticHTML(html, domHierarchy = null) {
  * @param {string} html - Original HTML string (must be valid HTML)
  * @returns {Promise<{html: string, stats: Object}>}
  * @throws {Error} If page is null or html is invalid
- *
- * @example
- * const result = await enhanceSemanticHTMLInPage(page, extractedHtml);
- * console.log(result.stats.sectionsEnhanced);
  */
 export async function enhanceSemanticHTMLInPage(page, html) {
-  // Validate inputs
   if (!page || typeof page.evaluate !== 'function') {
     throw new Error('enhanceSemanticHTMLInPage requires a valid Playwright page');
   }
@@ -350,7 +337,7 @@ export async function enhanceSemanticHTMLInPage(page, html) {
   }
 
   return await page.evaluate((htmlStr) => {
-    // Re-define functions inside evaluate context
+    // All logic inlined: browser serialization boundary prevents imports
     const SEMANTIC_MAPPINGS = {
       header: { id: 'site-header', classes: ['site-header'], role: 'banner' },
       nav: { id: 'site-navigation', classes: ['main-navigation', 'nav-menu'], role: 'navigation' },
@@ -389,12 +376,9 @@ export async function enhanceSemanticHTMLInPage(page, html) {
 
       for (const [sectionType, patterns] of Object.entries(CLASS_PATTERNS)) {
         if (patterns.some(pattern => className.includes(pattern))) {
-          if (['div', 'section', 'article'].includes(tag)) {
-            return sectionType;
-          }
+          if (['div', 'section', 'article'].includes(tag)) return sectionType;
         }
       }
-
       return null;
     }
 
@@ -404,23 +388,19 @@ export async function enhanceSemanticHTMLInPage(page, html) {
 
       if (!element.id && mapping.id) {
         let targetId = mapping.id;
-        if (usedIds.has(targetId)) {
-          targetId = `${mapping.id}-${navIndex + 1}`;
-        }
+        if (usedIds.has(targetId)) targetId = `${mapping.id}-${navIndex + 1}`;
         if (!usedIds.has(targetId)) {
           element.id = targetId;
           usedIds.add(targetId);
         }
       }
 
-      if (mapping.classes && mapping.classes.length > 0) {
-        const existingClasses = element.className
+      if (mapping.classes?.length > 0) {
+        const existing = element.className
           ? element.className.toString().split(/\s+/).filter(Boolean)
           : [];
-        const newClasses = mapping.classes.filter(c => !existingClasses.includes(c));
-        if (newClasses.length > 0) {
-          element.className = [...existingClasses, ...newClasses].join(' ').trim();
-        }
+        const added = mapping.classes.filter(c => !existing.includes(c));
+        if (added.length > 0) element.className = [...existing, ...added].join(' ').trim();
       }
 
       if (mapping.role && !element.getAttribute('role')) {
@@ -429,64 +409,51 @@ export async function enhanceSemanticHTMLInPage(page, html) {
     }
 
     const stats = { sectionsEnhanced: 0, idsAdded: 0, classesAdded: 0, rolesAdded: 0, warnings: [] };
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlStr, 'text/html');
-
+    const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
     const usedIds = new Set();
+
     doc.querySelectorAll('[id]').forEach(el => usedIds.add(el.id));
 
-    // Process landmarks
-    ['header:not(header header)', 'footer:not(footer footer)', 'main', 'aside'].forEach(selector => {
+    ['header:not(header header)', 'footer:not(footer footer)', 'main', 'aside'].forEach(sel => {
       try {
-        doc.querySelectorAll(selector).forEach(el => {
-          const sectionType = detectSectionType(el);
-          if (sectionType) {
+        doc.querySelectorAll(sel).forEach(el => {
+          const type = detectSectionType(el);
+          if (type) {
             const hadId = !!el.id;
             const hadRole = !!el.getAttribute('role');
-            applySemanticAttributes(el, sectionType, usedIds);
+            applySemanticAttributes(el, type, usedIds);
             if (!hadId && el.id) stats.idsAdded++;
             if (!hadRole && el.getAttribute('role')) stats.rolesAdded++;
             stats.sectionsEnhanced++;
           }
         });
       } catch (err) {
-        stats.warnings.push(`Selector error: ${selector}`);
+        stats.warnings.push(`Selector error: ${sel}`);
       }
     });
 
-    // Handle nav elements
-    const navElements = doc.querySelectorAll('nav, [role="navigation"]');
-    navElements.forEach((nav, index) => {
+    doc.querySelectorAll('nav, [role="navigation"]').forEach((nav, index) => {
       const isInHeader = nav.closest('header') !== null;
       const isInFooter = nav.closest('footer') !== null;
 
       if (isInHeader && index === 0) {
         applySemanticAttributes(nav, 'nav', usedIds, 0);
-        if (!nav.getAttribute('aria-label')) {
-          nav.setAttribute('aria-label', 'Primary Menu');
-        }
+        if (!nav.getAttribute('aria-label')) nav.setAttribute('aria-label', 'Primary Menu');
       } else if (isInFooter) {
         if (!nav.id) {
-          nav.id = usedIds.has('footer-navigation') ? `footer-navigation-${index}` : 'footer-navigation';
+          nav.id = usedIds.has('footer-navigation')
+            ? `footer-navigation-${index}` : 'footer-navigation';
           usedIds.add(nav.id);
         }
         nav.setAttribute('role', 'navigation');
-        if (!nav.getAttribute('aria-label')) {
-          nav.setAttribute('aria-label', 'Footer Menu');
-        }
+        if (!nav.getAttribute('aria-label')) nav.setAttribute('aria-label', 'Footer Menu');
       } else {
         applySemanticAttributes(nav, 'nav', usedIds, index);
-        if (!nav.getAttribute('aria-label')) {
-          nav.setAttribute('aria-label', `Navigation ${index + 1}`);
-        }
+        if (!nav.getAttribute('aria-label')) nav.setAttribute('aria-label', `Navigation ${index + 1}`);
       }
       stats.sectionsEnhanced++;
     });
 
-    return {
-      html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML,
-      stats
-    };
+    return { html: '<!DOCTYPE html>\n' + doc.documentElement.outerHTML, stats };
   }, html);
 }

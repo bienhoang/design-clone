@@ -61,7 +61,6 @@ export async function verify() {
   const checks = await runAllChecks();
 
   console.log(`  Node.js:    ${checks.node.ok ? '✓' : '✗'} ${checks.node.message}`);
-  console.log(`  Python:     ${checks.python.ok ? '✓' : '✗'} ${checks.python.message}`);
   console.log(`  Playwright: ${checks.playwright.ok ? '✓' : '✗'} ${checks.playwright.message}`);
   console.log(`  Chrome:     ${checks.chrome.ok ? '✓' : '○'} ${checks.chrome.message}${checks.playwright.ok ? ' (optional with Playwright)' : ''}`);
 

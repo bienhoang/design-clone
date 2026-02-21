@@ -20,14 +20,12 @@ Clone website designs with multi-viewport screenshots, HTML/CSS extraction, CSS 
 ## Prerequisites
 
 - Node.js 18+ with npm
-- Python 3.9+ (for Figma conversion only)
 - Chrome/Chromium browser
 
 ## Quick Setup
 
 ```bash
 npm install
-# pip install -r requirements.txt  # Only needed for Figma conversion
 ```
 
 ## Project Structure
@@ -54,8 +52,7 @@ design-clone/
 │   ├── utils/              # Shared utilities
 │   │   ├── browser.js
 │   │   ├── puppeteer.js
-│   │   ├── env.js
-│   │   └── env.py
+│   │   └── env.js
 │   └── post-process/       # Post-processing
 │       ├── fetch-images.js
 │       ├── inject-icons.js
@@ -364,7 +361,6 @@ Create `.env` file (see `.env.example`):
 
 ```bash
 # No API keys required for AI analysis (uses Claude Code built-in vision)
-# FIGMA_ACCESS_TOKEN=your-token  # Required for Figma conversion only
 ```
 
 ## Script Reference
