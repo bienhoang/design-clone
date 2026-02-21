@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./assets/images/logo.svg" alt="design-clone" width="120" height="120">
   <h1>Design Clone</h1>
-  <p><strong>Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis.</strong></p>
+  <p><strong>Clone website designs with multi-viewport screenshots, HTML/CSS extraction, and AI-powered design analysis.</strong></p>
   <p>
     <a href="https://www.npmjs.com/package/design-clone"><img src="https://img.shields.io/npm/v/design-clone" alt="npm"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
@@ -16,7 +16,7 @@
 - **Multi-viewport screenshots**: Desktop (1920px), Tablet (768px), Mobile (375px)
 - **HTML/CSS extraction**: Clean source files with unused CSS removal
 - **Hover state capture**: Screenshots and CSS for interactive element states (phase 2)
-- **AI structure analysis**: Gemini Vision analyzes page layout (optional)
+- **AI structure analysis**: Built-in design analysis via Claude Code (no API key needed)
 - **Asset extraction**: Downloads images, fonts, icons
 - **Menu verification**: Tests responsive navigation functionality
 
@@ -36,7 +36,6 @@ git clone https://github.com/bienhoang/design-clone.git
 cp -r design-clone ~/.claude/skills/design-clone
 cd ~/.claude/skills/design-clone
 npm install
-pip install -r requirements.txt
 ```
 
 ### Verify Installation
@@ -73,7 +72,7 @@ Basic design capture:
 Full pixel-perfect clone:
 - All basic clone features
 - Asset extraction (images, fonts, icons)
-- AI structure analysis (requires GEMINI_API_KEY)
+- AI structure analysis (built-in, no API key needed)
 - Menu verification
 - Design token extraction
 
@@ -90,7 +89,7 @@ cloned-design/
 ├── animations.css           # Extracted @keyframes definitions
 ├── animation-tokens.json    # Animation metadata (keyframes, transitions, timings)
 ├── hover.css                # Generated :hover CSS rules (with --capture-hover)
-├── structure.md             # AI analysis (if GEMINI_API_KEY set)
+├── structure.md             # AI analysis (built-in)
 ├── tokens.json              # Extracted design tokens
 ├── hover-states/            # Hover state captures (with --capture-hover)
 │   ├── hover-N-normal.png   # Element before hover
@@ -105,18 +104,14 @@ cloned-design/
 ## Environment Variables
 
 ```bash
-# Optional: enables AI structure analysis
-GEMINI_API_KEY=your-api-key
-
-# Add to ~/.claude/.env for persistent config
+# No API key needed for AI analysis (uses Claude Code built-in vision)
+# FIGMA_ACCESS_TOKEN=your-token  # Only for Figma conversion
 ```
-
-Get your API key at: https://aistudio.google.com/apikey
 
 ## Requirements
 
 - Node.js 18+
-- Python 3.9+ (for AI analysis)
+- Python 3.9+ (for Figma conversion only)
 - Playwright (auto-installed with browsers)
 
 ## CLI Commands
@@ -142,12 +137,11 @@ sudo apt install chromium-browser
 export CHROME_PATH="/path/to/chrome"
 ```
 
-### Python dependencies fail
+### Python dependencies
 
 ```bash
-pip install google-genai
-# Or with Python 3
-pip3 install -r requirements.txt
+# No external Python dependencies required for core features
+# Figma conversion uses only Python stdlib modules
 ```
 
 ### Playwright issues

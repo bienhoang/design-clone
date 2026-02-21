@@ -198,37 +198,32 @@ Figma URL
 
 ### 4. AI Analysis Layer
 
-**Location:** `src/ai/`
+**Location:** `src/ai/prompts/`
 
-**Gemini Vision Integration:**
+**Claude Code Built-in Vision:**
+
+Claude Code reads prompt templates + screenshots directly. No external API calls.
 
 ```
-Screenshot(s)
+Screenshot(s) + Context Files
     │
-    ├─► analyze-structure.py
-    │       ├─► Send screenshot to Gemini Vision
-    │       ├─► Request structure analysis
-    │       ├─► Extract layout information
-    │       └─► Output: structure.md
+    ├─► Read prompt template (markdown)
+    │       ├─► Select best variant based on available context
+    │       └─► Highest accuracy: with-hierarchy > with-dimensions > with-context > basic
     │
-    ├─► extract-design-tokens.py
-    │       ├─► Analyze visual styles
-    │       ├─► Extract color palette
-    │       ├─► Infer spacing patterns
-    │       └─► Output: tokens.json, tokens.css
+    ├─► Claude Code vision analyzes screenshots
+    │       ├─► Structure analysis → structure.md
+    │       ├─► Design tokens → design-tokens.json, tokens.css
+    │       └─► UX audit → ux-audit.json, ux-audit.md
     │
-    └─► ux-audit.js (optional)
-            ├─► Check accessibility
-            ├─► Validate contrast ratios
-            ├─► Review hover states
-            └─► Generate audit report
+    └─► Results written to output directory
 ```
 
-**Prompts (Framework):**
+**Prompt Templates:**
 
-- `prompts/structure_analysis.py` - Layout and hierarchy analysis
-- `prompts/design_tokens.py` - Design system extraction
-- `prompts/ux_audit.py` - UX quality checks
+- `prompts/structure-analysis/*.md` - Layout and hierarchy analysis (4 variants)
+- `prompts/design-tokens/*.md` - Design system extraction (4 variants)
+- `prompts/ux-audit/*.md` - UX quality checks (3 viewports + aggregation)
 
 ---
 
@@ -335,10 +330,10 @@ Basic Clone Output
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ 6. AI Analysis (Optional)           │
-│    ├─ Send screenshot to Gemini     │
-│    ├─ Extract structure             │
-│    └─ Generate report               │
+│ 6. AI Analysis (Built-in)            │
+│    ├─ Read prompt template          │
+│    ├─ Claude Code vision analysis   │
+│    └─ Generate structure report     │
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
@@ -482,10 +477,9 @@ cloned-designs/
 - **Better viewport handling:** More accurate mobile testing
 - **Native video recording:** Built-in screen capture
 
-### Why Python for Figma & AI?
+### Why Python for Figma?
 - **Better JSON handling:** Easier design token parsing
-- **Gemini SDK mature:** Official Python support
-- **Data processing:** NumPy-friendly for image analysis
+- **Stdlib sufficient:** urllib, json, argparse cover all needs
 - **Cross-platform:** Windows/Mac/Linux compatible
 
 ### Why CSS Custom Properties for Tokens?

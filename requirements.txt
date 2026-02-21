@@ -1,5 +1,6 @@
 # Design Clone Skill - Python Dependencies
 # Install: pip install -r requirements.txt
 
-# Gemini AI for structure analysis and token extraction
-google-genai>=1.0.0
+# No external Python dependencies required
+# Figma scripts use only stdlib modules (urllib, json, argparse)
+# AI analysis now uses Claude Code built-in vision (no API needed)

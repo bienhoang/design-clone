@@ -169,11 +169,12 @@ try {
   assert(fs.existsSync(path.join(coreDir, 'filter-css.js')), 'filter-css.js missing');
   assert(fs.existsSync(path.join(coreDir, 'extract-assets.js')), 'extract-assets.js missing');
 
-  // Check AI scripts exist
+  // Check AI prompt templates exist
   const aiDir = path.join(SRC_DIR, 'ai');
   assert(fs.existsSync(aiDir), 'src/ai directory missing');
-  assert(fs.existsSync(path.join(aiDir, 'analyze-structure.py')), 'analyze-structure.py missing');
-  assert(fs.existsSync(path.join(aiDir, 'extract-design-tokens.py')), 'extract-design-tokens.py missing');
+  assert(fs.existsSync(path.join(aiDir, 'prompts', 'structure-analysis', 'basic.md')), 'structure-analysis/basic.md missing');
+  assert(fs.existsSync(path.join(aiDir, 'prompts', 'design-tokens', 'basic.md')), 'design-tokens/basic.md missing');
+  assert(fs.existsSync(path.join(aiDir, 'prompts', 'ux-audit', 'desktop.md')), 'ux-audit/desktop.md missing');
 
   // Check verification scripts exist
   const verifyDir = path.join(SRC_DIR, 'verification');

@@ -66,6 +66,7 @@ const DEFAULT_SCROLL_DELAY = 1500;
  */
 function parseScreenshotArgs(argv) {
   const args = parseArgs(argv);
+  const { url, output } = args;
 
   if (!url) {
     outputError(new Error('--url is required'));

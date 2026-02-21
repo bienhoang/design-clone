@@ -2,7 +2,7 @@
   "name": "design-clone",
   "version": "2.1.0",
   "type": "module",
-  "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis",
+  "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and AI analysis",
   "bin": {
     "design-clone": "./bin/cli.js"
   },
@@ -35,7 +35,6 @@
     "clone",
     "screenshot",
     "playwright",
-    "gemini",
     "website"
   ],
   "author": "",
@@ -61,7 +60,6 @@
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@google/generative-ai": "^0.24.0",
     "fluent-ffmpeg": "^2.1.2"
   }
 }

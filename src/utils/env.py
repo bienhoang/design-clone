@@ -15,7 +15,7 @@ Usage:
     load_env()
 
     # Get specific variable with fallback
-    api_key = resolve_env('GEMINI_API_KEY', default=None)
+    token = resolve_env('FIGMA_ACCESS_TOKEN', default=None)
 """
 
 import os

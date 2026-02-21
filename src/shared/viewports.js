@@ -30,7 +30,7 @@ export const VIEWPORTS_HD = {
 
 /**
  * UX Audit viewport configurations (no deviceScaleFactor)
- * Used by: ux-audit.js
+ * Used by: UX audit prompt templates
  * @type {Object.<string, {width: number, height: number}>}
  */
 export const VIEWPORTS_UX = {

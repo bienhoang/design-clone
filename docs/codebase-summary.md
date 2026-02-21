@@ -18,7 +18,7 @@ Design Clone is a comprehensive design extraction and code generation tool for C
 | Design token extraction | Active | Automatic color, typography, spacing detection |
 | Figma-to-code conversion | Phase 3 | Convert Figma designs to HTML/CSS or Tailwind |
 | Hover state capture | Active | Interactive element state documentation |
-| AI structure analysis | Active | Optional Gemini Vision integration |
+| AI structure analysis | Active | Built-in Claude Code vision |
 | Asset extraction | Active | Images, fonts, icons download |
 | Multi-page cloning | Active | Site-wide cloning with shared CSS |
 
@@ -54,14 +54,11 @@ design-clone/
 │   │   ├── generate-css.py       # BEM CSS generator (Phase 3)
 │   │   └── generate-tailwind.py  # Tailwind generator (Phase 3)
 │   │
-│   ├── ai/                       # AI analysis engines
-│   │   ├── analyze-structure.py  # Gemini Vision structure analysis
-│   │   ├── extract-design-tokens.py  # Design token extraction
-│   │   ├── ux-audit.js           # UX quality checks
-│   │   └── prompts/              # AI prompt engineering
-│   │       ├── design_tokens.py
-│   │       ├── structure_analysis.py
-│   │       └── ux_audit.py
+│   ├── ai/                       # AI analysis (Claude Code vision)
+│   │   └── prompts/              # Prompt templates (markdown)
+│   │       ├── structure-analysis/  # Layout analysis prompts
+│   │       ├── design-tokens/       # Token extraction prompts
+│   │       └── ux-audit/            # UX audit prompts
 │   │
 │   ├── verification/             # Quality assurance
 │   │   ├── verify-menu.js        # Navigation validation
@@ -158,17 +155,15 @@ Download images, fonts, and icons from websites.
 
 **Output:** `assets/images/`, `assets/fonts/`, `assets/icons/`
 
-### analyze-structure.py
-Gemini Vision powered design analysis.
+### AI Prompt Templates (src/ai/prompts/)
+Claude Code vision-based design analysis via markdown prompt templates.
 
-**Analyzes:**
-- Page layout and sections
-- Component hierarchy
-- Design token patterns
-- Accessibility issues
-- UX patterns
+**Categories:**
+- `structure-analysis/` -- Layout and hierarchy analysis (4 variants by context)
+- `design-tokens/` -- Design system extraction (4 variants)
+- `ux-audit/` -- UX quality assessment (3 viewports + aggregation)
 
-**Output:** `structure.md` (markdown report)
+**Output:** `structure.md`, `design-tokens.json`, `tokens.css`, `ux-audit.json`
 
 ### figma/extract-figma.py (Phase 2)
 Extract design system from Figma files.
@@ -251,7 +246,6 @@ Figma URL → Parse URL → Extract nodes & tokens → Generate HTML+CSS/Tailwin
 - `FIGMA_ACCESS_TOKEN` - Figma API access (Phase 3)
 
 **Optional:**
-- `GEMINI_API_KEY` - Enable AI structure analysis
 - `CHROME_PATH` - Chrome/Chromium binary path
 - `PLAYWRIGHT_BROWSERS_PATH` - Playwright browser cache location
 
@@ -263,8 +257,8 @@ Figma URL → Parse URL → Extract nodes & tokens → Generate HTML+CSS/Tailwin
 | Browsers | Playwright | Multi-browser automation |
 | Parsing | cheerio, jsdom | HTML/DOM manipulation |
 | CSS | PostCSS, PurgeCSS | CSS processing |
-| AI | Gemini Vision API | Design analysis |
-| Python | Python 3.9+ | AI scripts, Figma processing |
+| AI | Claude Code Vision (built-in) | Design analysis |
+| Python | Python 3.9+ | Figma processing |
 | Templates | HTML5, CSS3 | Output templates |
 
 ## Quality Standards
@@ -317,8 +311,7 @@ Figma URL → Parse URL → Extract nodes & tokens → Generate HTML+CSS/Tailwin
 2. **Screenshots:** Limited by browser automation capabilities
 3. **CSS:** Cannot extract stylesheet origin (external vs inline)
 4. **Assets:** Some CDN images may be blocked by CORS
-5. **AI:** Requires valid GEMINI_API_KEY for structure analysis
-6. **JavaScript:** Dynamic content may not be fully captured
+5. **JavaScript:** Dynamic content may not be fully captured
 
 ## Future Roadmap
 

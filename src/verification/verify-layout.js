@@ -3,7 +3,7 @@
  * Layout Verification Script
  *
  * Compares generated HTML against original website screenshots
- * using Gemini Vision to identify layout discrepancies.
+ * to identify layout discrepancies.
  *
  * Usage:
  *   node verify-layout.js --html <path> --original <dir> [--output <dir>] [--verbose]
@@ -22,8 +22,8 @@ import { fileURLToPath } from 'url';
 // Import browser abstraction (auto-detects chrome-devtools or standalone)
 import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../utils/browser.js';
 
-// Import Gemini for vision comparison
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+// Vision comparison now handled by Claude Code built-in vision
+const GEMINI_API_KEY = null; // Removed: was process.env.GEMINI_API_KEY
 
 import { VIEWPORTS_HD as VIEWPORTS } from '../shared/viewports.js';
 
@@ -43,115 +43,10 @@ async function captureGeneratedScreenshot(page, viewport, outputPath) {
 }
 
 /**
- * Compare two screenshots using Gemini Vision
- */
-async function compareWithGemini(originalPath, generatedPath, viewportName) {
-  if (!GEMINI_API_KEY) {
-    return {
-      success: false,
-      error: 'GEMINI_API_KEY not set',
-      discrepancies: [],
-      similarity: 0
-    };
-  }
-
-  try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genai = new GoogleGenerativeAI(GEMINI_API_KEY);
-
-    // Read both images as base64
-    const originalBuffer = await fs.readFile(originalPath);
-    const generatedBuffer = await fs.readFile(generatedPath);
-
-    const originalBase64 = originalBuffer.toString('base64');
-    const generatedBase64 = generatedBuffer.toString('base64');
-
-    const prompt = `You are a UI/UX expert comparing two website screenshots for layout accuracy.
-
-IMAGE 1 (left/first): Original website screenshot
-IMAGE 2 (right/second): Generated HTML clone screenshot
-
-Viewport: ${viewportName} (${VIEWPORTS[viewportName].width}x${VIEWPORTS[viewportName].height})
-
-Analyze and compare these two images. Focus on:
-1. **Layout Structure** - Are sections positioned correctly? Any misalignment?
-2. **Spacing** - Are margins, padding, gaps correct?
-3. **Typography** - Font sizes, line heights, text alignment
-4. **Colors** - Background colors, text colors, borders
-5. **Responsive Elements** - Menu, grid layouts, card widths
-6. **Components** - Buttons, forms, icons positioning
-
-Return a JSON object with this exact structure:
-{
-  "similarity_score": <0-100 number>,
-  "overall_assessment": "<brief assessment>",
-  "discrepancies": [
-    {
-      "section": "<section name>",
-      "severity": "<critical|major|minor>",
-      "issue": "<description of the issue>",
-      "css_fix": "<suggested CSS fix or null>"
-    }
-  ],
-  "recommendations": ["<actionable fix 1>", "<actionable fix 2>"]
-}
-
-Be specific about CSS selectors and property values when suggesting fixes.
-If similarity is >90%, discrepancies array can be empty.`;
-
-    const model = genai.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
-    const response = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType: 'image/png',
-          data: originalBase64
-        }
-      },
-      {
-        inlineData: {
-          mimeType: 'image/png',
-          data: generatedBase64
-        }
-      }
-    ]);
-
-    const text = response.response.text();
-
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return {
-        success: false,
-        error: 'Could not parse Gemini response',
-        raw: text
-      };
-    }
-
-    const result = JSON.parse(jsonMatch[0]);
-    return {
-      success: true,
-      viewport: viewportName,
-      ...result
-    };
-
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      discrepancies: []
-    };
-  }
-}
-
-/**
- * Alternative: Use image comparison without API
- * Basic pixel difference calculation
+ * Basic image comparison by file size difference.
+ * For accurate comparison, use Claude Code vision directly.
  */
 async function basicImageCompare(originalPath, generatedPath) {
-  // This is a fallback that just checks file sizes
-  // Real comparison should use Gemini
   try {
     const originalStats = await fs.stat(originalPath);
     const generatedStats = await fs.stat(generatedPath);
@@ -164,7 +59,7 @@ async function basicImageCompare(originalPath, generatedPath) {
       success: true,
       method: 'basic',
       similarity_score: Math.round(similarity),
-      note: 'Basic comparison - use Gemini for accurate analysis'
+      note: 'Basic comparison - use Claude Code vision for accurate analysis'
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -365,13 +260,7 @@ async function verifyLayout() {
 
       if (verbose) console.error(`  Comparing ${viewport}...`);
 
-      let comparison;
-      if (GEMINI_API_KEY) {
-        comparison = await compareWithGemini(originalPath, generatedPath, viewport);
-      } else {
-        comparison = await basicImageCompare(originalPath, generatedPath);
-        if (verbose) console.error('    ⚠ Using basic comparison (set GEMINI_API_KEY for accurate analysis)');
-      }
+      const comparison = await basicImageCompare(originalPath, generatedPath);
 
       results.viewports[viewport] = comparison;
 
