@@ -673,7 +673,7 @@ Error: Invalid Figma URL format
 **File naming:**
 ```
 // Unit tests
-src/core/screenshot.js  →  tests/unit/screenshot.test.js
+src/core/capture/screenshot.js  →  tests/unit/screenshot.test.js
 src/figma/parse-url.js  →  tests/unit/parse-url.test.js
 
 // Integration tests

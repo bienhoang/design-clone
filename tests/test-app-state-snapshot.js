@@ -49,7 +49,7 @@ let SENSITIVE_PATTERNS, MAX_STATE_SIZE, FILTERED_MARKER, CIRCULAR_MARKER;
 // Test: Module imports correctly
 // ========================================
 test('Module imports successfully', async () => {
-  const mod = await import('../src/core/app-state-snapshot.js');
+  const mod = await import('../src/core/discovery/app-state-snapshot.js');
   captureAppState = mod.captureAppState;
   formatStateSnapshot = mod.formatStateSnapshot;
   filterSensitive = mod.filterSensitive;

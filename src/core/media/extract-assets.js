@@ -19,7 +19,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../utils/browser.js';
+import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../../utils/browser.js';
 import { downloadBatch, getSafeFilename, getAssetType } from './extract-assets-downloader.js';
 import { extractCssUrls, extractAssetsFromPage } from './extract-assets-page-scraper.js';
 

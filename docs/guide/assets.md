@@ -12,7 +12,7 @@ Asset extraction downloads:
 ## Basic Usage
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output
 ```
@@ -51,7 +51,7 @@ Images are extracted from:
 ### Options
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --images-only          # Skip fonts and icons
@@ -169,7 +169,7 @@ Asset URLs in HTML/CSS are rewritten to local paths:
 Some CDNs block direct downloads. Workarounds:
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --user-agent "Mozilla/5.0..."
@@ -181,13 +181,13 @@ node src/core/extract-assets.js \
 
 ```bash
 # Images only
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --type images
 
 # Fonts only
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --type fonts
@@ -196,7 +196,7 @@ node src/core/extract-assets.js \
 ### Exclude Patterns
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --exclude "analytics,tracking,ads"
@@ -205,7 +205,7 @@ node src/core/extract-assets.js \
 ### Concurrent Downloads
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --concurrency 5
@@ -223,7 +223,7 @@ Site blocks automated downloads:
 ### Large Files Timeout
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --timeout 60000

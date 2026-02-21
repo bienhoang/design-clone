@@ -18,8 +18,8 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { parseArgs } from '../utils/helpers.js';
-import { SIZE_LIMITS } from '../shared/config.js';
+import { parseArgs } from '../../utils/helpers.js';
+import { SIZE_LIMITS } from '../../shared/config.js';
 import { filterCssRules } from './filter-css-selector-matcher.js';
 
 // ============================================================================

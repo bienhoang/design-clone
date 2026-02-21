@@ -10,10 +10,10 @@
 
 import path from 'path';
 import fs from 'fs/promises';
-import { captureAllHoverStates, generateHoverCss } from './state-capture.js';
-import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from './video-capture.js';
-import { buildDimensionsOutput, generateAISummary } from './dimension-output.js';
-import { VIEWPORTS } from '../shared/viewports.js';
+import { captureAllHoverStates, generateHoverCss } from '../animation/state-capture.js';
+import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from '../media/video-capture.js';
+import { buildDimensionsOutput, generateAISummary } from '../dimension/dimension-output.js';
+import { VIEWPORTS } from '../../shared/viewports.js';
 
 /**
  * Capture hover states with headed→headless fallback.
@@ -101,8 +101,8 @@ export async function runVideoCapture(browserMgr, output, videoFormat, videoDura
 /** Detect sections and crop desktop screenshot into individual section images. */
 export async function runSectionCapture(browserMgr, desktopScreenshot, output) {
   try {
-    const { detectSections } = await import('./section-detector.js');
-    const { cropSections } = await import('./section-cropper.js');
+    const { detectSections } = await import('../section/section-detector.js');
+    const { cropSections } = await import('../section/section-cropper.js');
 
     const sectionPage = browserMgr.getPage();
     await sectionPage.setViewportSize(VIEWPORTS.desktop);

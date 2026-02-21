@@ -5,7 +5,7 @@ Comprehensive guide to screenshot capture features.
 ## Basic Capture
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output
 ```
@@ -28,7 +28,7 @@ Creates screenshots at three viewports:
 Capture specific viewports only:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --viewports desktop,mobile
@@ -39,7 +39,7 @@ node src/core/screenshot.js \
 Capture the entire scrollable page:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --full-page
@@ -54,7 +54,7 @@ This scrolls through the page and stitches screenshots together.
 Wait a specific duration for content to load:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait 3000
@@ -65,7 +65,7 @@ node src/core/screenshot.js \
 Wait until network requests settle:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait-until networkidle
@@ -76,7 +76,7 @@ node src/core/screenshot.js \
 Wait for DOM to be ready:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait-until domcontentloaded
@@ -97,7 +97,7 @@ The screenshot tool automatically:
 For SPAs and JavaScript-heavy sites:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait 5000 \
@@ -111,7 +111,7 @@ node src/core/screenshot.js \
 Automatically clicks common cookie accept buttons:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --accept-cookies
@@ -131,13 +131,13 @@ For sites requiring login:
 
 ```bash
 # Save authentication state
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com/login" \
   --output ./auth \
   --save-storage ./auth-state.json
 
 # Use saved state
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com/dashboard" \
   --output ./output \
   --storage ./auth-state.json
@@ -150,7 +150,7 @@ node src/core/screenshot.js \
 Capture at 2x resolution:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --scale 2
@@ -161,7 +161,7 @@ node src/core/screenshot.js \
 Default is PNG. For JPEG:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --format jpeg \
@@ -185,7 +185,7 @@ Some elements may be:
 
 Try:
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait 5000 \
@@ -197,7 +197,7 @@ node src/core/screenshot.js \
 Increase timeout for slow sites:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --timeout 60000
@@ -208,7 +208,7 @@ node src/core/screenshot.js \
 Full options:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url <url>              # Target URL (required)
   --output <dir>           # Output directory (required)
   --viewports <list>       # Viewports to capture

@@ -92,19 +92,19 @@ nvm use 18
 
 ```bash
 # Increase wait time
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait 5000
 
 # Wait for network idle
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait-until networkidle
 
 # Accept cookies
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --accept-cookies
@@ -121,13 +121,13 @@ node src/core/screenshot.js \
 
 ```bash
 # Use full-page capture
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --full-page
 
 # Longer wait
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait 10000
@@ -144,7 +144,7 @@ TimeoutError: Navigation timeout of 30000ms exceeded
 
 ```bash
 # Increase timeout
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --timeout 60000
@@ -176,7 +176,7 @@ node src/core/screenshot.js \
 
 ```bash
 # Use debug mode to see what's removed
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css \
@@ -195,7 +195,7 @@ External @import statements need network access.
 Use asset extraction to download fonts:
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --type fonts
@@ -265,7 +265,7 @@ Site blocks automated downloads.
 
 ```bash
 # Add user agent
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --user-agent "Mozilla/5.0..."
@@ -277,7 +277,7 @@ node src/core/extract-assets.js \
 
 ```bash
 # Increase timeout
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --timeout 60000

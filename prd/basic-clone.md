@@ -13,7 +13,7 @@ Quick website design capture with screenshots and source extraction.
 ### 1. Capture Screenshots + Extract Source
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./cloned-design \
   --extract-html \
@@ -23,7 +23,7 @@ node src/core/screenshot.js \
 ### 2. Filter Unused CSS (Optional)
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./cloned-design/source.html \
   --css ./cloned-design/source-raw.css \
   --output ./cloned-design/source.css

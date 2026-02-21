@@ -136,7 +136,7 @@ Both Node.js and Python share same resolution order:
 
 **Purpose**: Inject WordPress-compatible semantic IDs, classes, and ARIA roles into extracted HTML while preserving original styling.
 
-**Location**: `src/core/semantic-enhancer.js`
+**Location**: `src/core/html/semantic-enhancer.js`
 
 **Key Functions**:
 
@@ -183,7 +183,7 @@ Both Node.js and Python share same resolution order:
 
 **Purpose**: Extract DOM tree hierarchy with semantic landmarks and heading structure.
 
-**Location**: `src/core/dom-tree-analyzer.js`
+**Location**: `src/core/dimension/dom-tree-analyzer.js`
 
 **Key Features**:
 - PreOrder DOM traversal (parent before children)
@@ -326,16 +326,16 @@ bin/
 ### design:clone
 
 ```
-URL → src/core/screenshot.js            → Screenshots (3 viewports)
+URL → src/core/capture/screenshot.js            → Screenshots (3 viewports)
                                         → source-raw.css
-    → src/core/html-extractor.js        → source.html (cleaned + enhanced)
+    → src/core/html/html-extractor.js        → source.html (cleaned + enhanced)
        ├─ extractCleanHtml()            → Remove scripts, framework attrs
        └─ enhanceSemanticHTMLInPage()   → Add WordPress semantic IDs/classes/roles
               (via semantic-enhancer.js)
-    → src/core/filter-css.js            → source.css (filtered)
-    → src/core/animation-extractor.js   → animations.css
+    → src/core/css/filter-css.js            → source.css (filtered)
+    → src/core/animation/animation-extractor.js   → animations.css
                                         → animation-tokens.json
-    → src/core/state-capture.js*        → hover-states/ (hover screenshots)
+    → src/core/animation/state-capture.js*        → hover-states/ (hover screenshots)
                                         → hover.css (generated :hover rules)
 ```
 
@@ -345,14 +345,14 @@ URL → src/core/screenshot.js            → Screenshots (3 viewports)
 ### design:clone-px
 
 ```
-URL → src/core/screenshot.js               → Screenshots + HTML/CSS
-    → src/core/html-extractor.js           → Clean + semantic enhancement
+URL → src/core/capture/screenshot.js               → Screenshots + HTML/CSS
+    → src/core/html/html-extractor.js           → Clean + semantic enhancement
        ├─ extractCleanHtml()               → Remove scripts, framework attrs
        └─ enhanceSemanticHTMLInPage()      → Add WordPress semantic structure
-    → src/core/filter-css.js               → Filtered CSS
-    → src/core/animation-extractor.js      → animations.css, animation-tokens.json
-    → src/core/state-capture.js*           → hover-states/, hover.css
-    → src/core/extract-assets.js           → assets/ (images, fonts, icons)
+    → src/core/css/filter-css.js               → Filtered CSS
+    → src/core/animation/animation-extractor.js      → animations.css, animation-tokens.json
+    → src/core/animation/state-capture.js*           → hover-states/, hover.css
+    → src/core/media/extract-assets.js           → assets/ (images, fonts, icons)
     → src/ai/analyze-structure.py          → structure.md (AI analysis)
     → src/ai/extract-design-tokens.py      → tokens.json, tokens.css
     → src/verification/verify-menu.js      → Menu validation report

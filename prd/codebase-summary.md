@@ -120,7 +120,7 @@ Disable WordPress semantic HTML enhancement in extracted HTML. By default, seman
 
 **Usage**:
 ```bash
-node src/core/screenshot.js --url https://example.com --output ./out --extract-html --no-semantic
+node src/core/capture/screenshot.js --url https://example.com --output ./out --extract-html --no-semantic
 ```
 
 ### 4. multi-page-screenshot.js (Modified)

@@ -12,7 +12,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 
-import { getBrowser, getPage, disconnectBrowser } from '../utils/browser.js';
+import { getBrowser, getPage, disconnectBrowser } from '../../utils/browser.js';
 import {
   captureSinglePage,
   createOutputStructure,
@@ -143,7 +143,7 @@ if (isMainModule) {
     process.exit(1);
   }
 
-  import('./discover-pages.js').then(async ({ discoverPages }) => {
+  import('../discovery/discover-pages.js').then(async ({ discoverPages }) => {
     console.error(`[INFO] Discovering pages from ${url}...`);
     const discovery = await discoverPages(url, { maxPages: 5 });
 

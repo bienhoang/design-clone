@@ -15,7 +15,7 @@ CSS extraction involves:
 Include CSS extraction with screenshots:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --extract-css
@@ -30,7 +30,7 @@ Creates:
 Remove unused selectors:
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
@@ -188,7 +188,7 @@ If elements look wrong:
 ### Keep All Media Queries
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css \
@@ -198,7 +198,7 @@ node src/core/filter-css.js \
 ### Include Print Styles
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css \
@@ -210,7 +210,7 @@ node src/core/filter-css.js \
 See which selectors were removed:
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css \

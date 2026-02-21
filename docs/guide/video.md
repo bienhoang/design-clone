@@ -13,7 +13,7 @@ Video recording captures:
 ## Enable Video Recording
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video
@@ -28,7 +28,7 @@ Creates `preview.webm` by default.
 Native Playwright format, no dependencies:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video
@@ -39,7 +39,7 @@ node src/core/screenshot.js \
 Requires FFmpeg:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -51,7 +51,7 @@ node src/core/screenshot.js \
 Requires FFmpeg:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -84,7 +84,7 @@ choco install ffmpeg
 Default is 12 seconds:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -96,7 +96,7 @@ node src/core/screenshot.js \
 Record specific viewport:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -108,7 +108,7 @@ node src/core/screenshot.js \
 For MP4 output:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -152,14 +152,14 @@ Record at different viewports:
 
 ```bash
 # Desktop
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
   --video-viewport desktop
 
 # Mobile
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -223,7 +223,7 @@ Adjust duration:
 For smoother recording:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -235,7 +235,7 @@ node src/core/screenshot.js \
 ### Custom Scroll Speed
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \
@@ -249,7 +249,7 @@ Speeds: `slow`, `medium`, `fast`
 For sites with audio (experimental):
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --video \

@@ -9,7 +9,7 @@
  * and is serialized into the browser context via page.evaluate.
  */
 
-import { LAYOUT_PROPERTIES } from './css-extractor.js';
+import { LAYOUT_PROPERTIES } from '../css/css-extractor.js';
 import { enhanceSemanticHTMLInPage } from './semantic-enhancer.js';
 import { computeAndApplyInlineStyles } from './html-extractor-inline-styler.js';
 

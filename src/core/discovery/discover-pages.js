@@ -10,15 +10,15 @@
  * - App state capture (optional)
  *
  * Usage:
- *   import { discoverPages } from './discover-pages.js';
+ *   import { discoverPages } from '../discovery/discover-pages.js';
  *   const result = await discoverPages('https://example.com', { maxPages: 10 });
  */
 
-import { getBrowser, getPage, disconnectBrowser } from '../utils/browser.js';
-import { waitForDomStable } from './page-readiness.js';
-import { dismissCookieBanner } from './cookie-handler.js';
+import { getBrowser, getPage, disconnectBrowser } from '../../utils/browser.js';
+import { waitForDomStable } from '../page-prep/page-readiness.js';
+import { dismissCookieBanner } from '../page-prep/cookie-handler.js';
 import { detectFramework } from './framework-detector.js';
-import { discoverRoutes as discoverFrameworkRoutes } from '../route-discoverers/index.js';
+import { discoverRoutes as discoverFrameworkRoutes } from '../../route-discoverers/index.js';
 import { captureAppState } from './app-state-snapshot.js';
 import {
   NAV_SELECTORS, DEFAULT_OPTIONS, logWarning, validateFramework,

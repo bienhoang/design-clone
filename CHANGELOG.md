@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - DOM hierarchy integrated into screenshot pipeline
   - DOM hierarchy added to structure analysis prompts
 - **Section-based Screenshot Analysis** - Detect and crop semantic sections for targeted analysis
-  - `src/core/section-detector.js` - Detect semantic sections from DOM hierarchy
-  - `src/core/section-cropper.js` - Crop screenshots into section images using Sharp
+  - `src/core/section/section-detector.js` - Detect semantic sections from DOM hierarchy
+  - `src/core/section/section-cropper.js` - Crop screenshots into section images using Sharp
   - `--section-mode` flag for section-based token extraction
   - Sequential Gemini calls per section with result merging
 - **UX Audit Integration** - AI-powered UX analysis via Gemini Vision
@@ -88,9 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--video-duration` - Video recording duration in ms (default: 12000)
 
 ### New Modules
-- `src/core/animation-extractor.js` - CSS animation/transition extraction via css-tree AST
-- `src/core/state-capture.js` - Hover state detection and capture
-- `src/core/video-capture.js` - Puppeteer screencast with optional ffmpeg conversion
+- `src/core/animation/animation-extractor.js` - CSS animation/transition extraction via css-tree AST
+- `src/core/animation/state-capture.js` - Hover state detection and capture
+- `src/core/media/video-capture.js` - Puppeteer screencast with optional ffmpeg conversion
 
 ### Dependencies
 - Optional: `fluent-ffmpeg` and `@ffmpeg-installer/ffmpeg` for video format conversion

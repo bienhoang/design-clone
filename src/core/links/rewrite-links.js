@@ -6,13 +6,13 @@
  * CSS link rewriting lives in rewrite-links-css-rewriter.js.
  *
  * Usage:
- *   import { rewriteLinks, createPageManifest } from './rewrite-links.js';
+ *   import { rewriteLinks, createPageManifest } from '../links/rewrite-links.js';
  *   const rewritten = rewriteLinks(html, manifest, { baseUrl });
  */
 
 import fs from 'fs/promises';
 import path from 'path';
-import { normalizeUrl } from './discover-pages.js';
+import { normalizeUrl } from '../discovery/discover-pages.js';
 import { rewriteCssLinks } from './rewrite-links-css-rewriter.js';
 
 /**

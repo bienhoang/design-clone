@@ -9,12 +9,12 @@
 
 import path from 'path';
 
-import { waitForDomStable, waitForFontsLoaded, waitForStylesStable } from './page-readiness.js';
-import { forceLazyImages, forceAnimatedElementsVisible, triggerLazyLoad, waitForAllImages, LAZY_LOAD_MAX_ITERATIONS } from './lazy-loader.js';
-import { extractComponentDimensions } from './dimension-extractor.js';
-import { extractDOMHierarchy } from './dom-tree-analyzer.js';
+import { waitForDomStable, waitForFontsLoaded, waitForStylesStable } from '../page-prep/page-readiness.js';
+import { forceLazyImages, forceAnimatedElementsVisible, triggerLazyLoad, waitForAllImages, LAZY_LOAD_MAX_ITERATIONS } from '../page-prep/lazy-loader.js';
+import { extractComponentDimensions } from '../dimension/dimension-extractor.js';
+import { extractDOMHierarchy } from '../dimension/dom-tree-analyzer.js';
 import { compressIfNeeded, VIEWPORT_SETTLE_DELAY, NETWORK_IDLE_TIMEOUT, DEFAULT_SCROLL_DELAY } from './screenshot-helpers.js';
-import { VIEWPORTS } from '../shared/viewports.js';
+import { VIEWPORTS } from '../../shared/viewports.js';
 
 /**
  * Capture screenshot for a single viewport.

@@ -11,7 +11,7 @@ Located in `src/core/`
 Capture multi-viewport screenshots.
 
 ```bash
-node src/core/screenshot.js --url <url> --output <dir>
+node src/core/capture/screenshot.js --url <url> --output <dir>
 ```
 
 **Capabilities:**
@@ -26,7 +26,7 @@ node src/core/screenshot.js --url <url> --output <dir>
 Filter unused CSS selectors.
 
 ```bash
-node src/core/filter-css.js --html <file> --css <file> --output <file>
+node src/core/css/filter-css.js --html <file> --css <file> --output <file>
 ```
 
 **Process:**
@@ -40,7 +40,7 @@ node src/core/filter-css.js --html <file> --css <file> --output <file>
 Download images, fonts, icons.
 
 ```bash
-node src/core/extract-assets.js --url <url> --output <dir>
+node src/core/media/extract-assets.js --url <url> --output <dir>
 ```
 
 **Assets extracted:**
@@ -53,7 +53,7 @@ node src/core/extract-assets.js --url <url> --output <dir>
 Extract CSS animations and transitions.
 
 ```bash
-node src/core/animation-extractor.js --css <file> --output <dir>
+node src/core/animation/animation-extractor.js --css <file> --output <dir>
 ```
 
 **Output:**
@@ -65,7 +65,7 @@ node src/core/animation-extractor.js --css <file> --output <dir>
 Capture element hover states.
 
 ```bash
-node src/core/state-capture.js --url <url> --output <dir>
+node src/core/animation/state-capture.js --url <url> --output <dir>
 ```
 
 **Output:**
@@ -78,7 +78,7 @@ node src/core/state-capture.js --url <url> --output <dir>
 Record scroll preview video.
 
 ```bash
-node src/core/video-capture.js --url <url> --output <dir>
+node src/core/media/video-capture.js --url <url> --output <dir>
 ```
 
 **Formats:** WebM, MP4, GIF
@@ -103,7 +103,7 @@ node src/core/design-tokens.js --css <file> --output <file>
 Merge multiple CSS files with deduplication.
 
 ```bash
-node src/core/merge-css.js --input <files> --output <file>
+node src/core/css/merge-css.js --input <files> --output <file>
 ```
 
 ### rewrite-links.js
@@ -111,7 +111,7 @@ node src/core/merge-css.js --input <files> --output <file>
 Rewrite internal links for local navigation.
 
 ```bash
-node src/core/rewrite-links.js --html <file> --output <file> --base <url>
+node src/core/links/rewrite-links.js --html <file> --output <file> --base <url>
 ```
 
 ### discover-pages.js
@@ -119,7 +119,7 @@ node src/core/rewrite-links.js --html <file> --output <file> --base <url>
 Discover navigation links from a page.
 
 ```bash
-node src/core/discover-pages.js --url <url>
+node src/core/discovery/discover-pages.js --url <url>
 ```
 
 **Detects:**
@@ -132,7 +132,7 @@ node src/core/discover-pages.js --url <url>
 Capture screenshots for multiple pages.
 
 ```bash
-node src/core/multi-page-screenshot.js --urls <file> --output <dir>
+node src/core/capture/multi-page-screenshot.js --urls <file> --output <dir>
 ```
 
 ## AI Scripts
@@ -327,7 +327,7 @@ npm run filter-css -- --html ./out/source.html --css ./out/source-raw.css
 ### Via node
 
 ```bash
-node src/core/screenshot.js --url https://example.com --output ./out
+node src/core/capture/screenshot.js --url https://example.com --output ./out
 ```
 
 ### Via Python

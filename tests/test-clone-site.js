@@ -5,10 +5,10 @@
  * Run: node tests/test-clone-site.js
  */
 
-import { normalizeUrl, isSameDomain, extractPageName } from '../src/core/discover-pages.js';
-import { pathToFilename } from '../src/core/multi-page-screenshot.js';
-import { rewriteLinks, createPageManifest, pathToFilename as linkPathToFilename } from '../src/core/rewrite-links.js';
-import { mergeStylesheets } from '../src/core/merge-css.js';
+import { normalizeUrl, isSameDomain, extractPageName } from '../src/core/discovery/discover-pages.js';
+import { pathToFilename } from '../src/core/capture/multi-page-screenshot.js';
+import { rewriteLinks, createPageManifest, pathToFilename as linkPathToFilename } from '../src/core/links/rewrite-links.js';
+import { mergeStylesheets } from '../src/core/css/merge-css.js';
 
 let passed = 0;
 let failed = 0;

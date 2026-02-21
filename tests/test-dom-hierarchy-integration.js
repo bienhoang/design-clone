@@ -16,8 +16,8 @@
  */
 
 import { chromium } from 'playwright';
-import { extractDOMHierarchy } from '../src/core/dom-tree-analyzer.js';
-import { extractComponentDimensions } from '../src/core/dimension-extractor.js';
+import { extractDOMHierarchy } from '../src/core/dimension/dom-tree-analyzer.js';
+import { extractComponentDimensions } from '../src/core/dimension/dimension-extractor.js';
 
 // Test HTML with semantic structure
 const TEST_HTML = `

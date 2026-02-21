@@ -211,7 +211,7 @@ export HTTPS_PROXY=http://proxy.example.com:8080
 ### In Script
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url https://example.com \
   --output ./output \
   --proxy http://proxy.example.com:8080
@@ -223,11 +223,11 @@ node src/core/screenshot.js \
 
 ```bash
 # All debug output
-DEBUG=design-clone:* node src/core/screenshot.js ...
+DEBUG=design-clone:* node src/core/capture/screenshot.js ...
 
 # Specific modules
-DEBUG=design-clone:screenshot node src/core/screenshot.js ...
-DEBUG=design-clone:css node src/core/filter-css.js ...
+DEBUG=design-clone:screenshot node src/core/capture/screenshot.js ...
+DEBUG=design-clone:css node src/core/css/filter-css.js ...
 ```
 
 ### Verbose Mode

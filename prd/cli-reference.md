@@ -7,7 +7,7 @@ All script options and parameters.
 Core screenshot and extraction tool.
 
 ```bash
-node src/core/screenshot.js [options]
+node src/core/capture/screenshot.js [options]
 ```
 
 | Option | Type | Default | Description |
@@ -49,10 +49,10 @@ Semantic HTML enhancement is enabled by default when extracting HTML. It injects
 **Usage**:
 ```bash
 # Enable semantic enhancement (default)
-node src/core/screenshot.js --url https://example.com --output ./out --extract-html
+node src/core/capture/screenshot.js --url https://example.com --output ./out --extract-html
 
 # Disable semantic enhancement
-node src/core/screenshot.js --url https://example.com --output ./out --extract-html --no-semantic
+node src/core/capture/screenshot.js --url https://example.com --output ./out --extract-html --no-semantic
 ```
 
 **Example Output Metadata**:
@@ -74,7 +74,7 @@ node src/core/screenshot.js --url https://example.com --output ./out --extract-h
 Remove unused CSS selectors.
 
 ```bash
-node src/core/filter-css.js --html FILE --css FILE --output FILE [--verbose]
+node src/core/css/filter-css.js --html FILE --css FILE --output FILE [--verbose]
 ```
 
 | Option | Required | Description |
@@ -116,7 +116,7 @@ Same options as analyze-structure.py.
 Download images, fonts, icons.
 
 ```bash
-node src/core/extract-assets.js --url URL --output DIR
+node src/core/media/extract-assets.js --url URL --output DIR
 ```
 
 ## verify-menu.js

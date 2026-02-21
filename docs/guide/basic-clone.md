@@ -19,7 +19,7 @@ The basic clone workflow captures screenshots and extracts HTML/CSS without full
 ### Step 1: Capture Screenshots + HTML/CSS
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --extract-html \
@@ -36,7 +36,7 @@ This creates:
 ### Step 2: Filter Unused CSS
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
@@ -107,7 +107,7 @@ Typical reduction: **30-50%** smaller files.
 Capture the entire scrollable page:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --full-page
@@ -118,7 +118,7 @@ node src/core/screenshot.js \
 Specify which viewports to capture:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --viewports desktop,mobile
@@ -131,7 +131,7 @@ Available: `desktop`, `tablet`, `mobile`
 Wait for JavaScript-rendered content:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --wait 3000

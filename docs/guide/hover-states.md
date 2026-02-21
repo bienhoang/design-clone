@@ -15,7 +15,7 @@ Hover state capture:
 ## Enable Hover Capture
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --capture-hover
@@ -122,7 +122,7 @@ Contains detailed style differences:
 ### Limit Elements
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --capture-hover \
@@ -132,7 +132,7 @@ node src/core/screenshot.js \
 ### Specific Selectors
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --capture-hover \
@@ -144,7 +144,7 @@ node src/core/screenshot.js \
 Generate CSS only without screenshots:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --capture-hover \
@@ -209,7 +209,7 @@ Hover states may vary between browsers. Design Clone uses Chromium.
 Some hover effects have delays:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --capture-hover \
@@ -221,7 +221,7 @@ node src/core/screenshot.js \
 Increase detection scope:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --capture-hover \

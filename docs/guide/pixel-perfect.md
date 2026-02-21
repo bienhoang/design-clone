@@ -13,7 +13,7 @@ The pixel-perfect workflow includes full asset extraction, AI analysis, and veri
 ### Step 1: Capture + Extract
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --extract-html \
@@ -25,7 +25,7 @@ node src/core/screenshot.js \
 ### Step 2: Filter CSS
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
@@ -34,7 +34,7 @@ node src/core/filter-css.js \
 ### Step 3: Extract Assets
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output
 ```
@@ -196,7 +196,7 @@ Some sites block automated downloads. Try:
 
 ```bash
 # Add user agent
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "https://example.com" \
   --output ./output \
   --user-agent "Mozilla/5.0..."
@@ -207,7 +207,7 @@ node src/core/extract-assets.js \
 Increase timeout:
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "https://example.com" \
   --output ./output \
   --timeout 60000

@@ -14,7 +14,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 
-import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../utils/browser.js';
+import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../../utils/browser.js';
 import { parseScreenshotArgs, createBrowserManager } from './screenshot-helpers.js';
 import { runExtractionPipeline } from './screenshot-extraction.js';
 import { runHoverCapture, runVideoCapture, runSectionCapture, runDimensionOutput, writeDomHierarchy } from './screenshot-orchestrator.js';

@@ -76,14 +76,14 @@ Basic design capture with Font Awesome icons and Unsplash images.
 **Workflow:**
 ```bash
 # Step 1: Capture screenshots + HTML/CSS
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "URL" \
   --output ./output \
   --extract-html \
   --extract-css
 
 # Step 2: Filter unused CSS
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
@@ -159,7 +159,7 @@ Pixel-perfect clone with full asset extraction and AI analysis.
 
 ```bash
 # Step 1: Capture + Extract
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "URL" \
   --output ./output \
   --extract-html --extract-css \
@@ -167,13 +167,13 @@ node src/core/screenshot.js \
   --full-page
 
 # Step 2: Filter CSS
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
 
 # Step 3: Extract Assets (images, fonts, icons)
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "URL" \
   --output ./output
 
@@ -295,7 +295,7 @@ After generating HTML/CSS, verify these items using `ui-ux-pro-max` skill:
 Automatically extracts @keyframes and transition properties when using `--extract-css`:
 
 ```bash
-node src/core/screenshot.js --url https://example.com --output ./out --extract-css true
+node src/core/capture/screenshot.js --url https://example.com --output ./out --extract-css true
 ```
 
 **Output:**
@@ -307,7 +307,7 @@ node src/core/screenshot.js --url https://example.com --output ./out --extract-c
 Capture interactive element hover states:
 
 ```bash
-node src/core/screenshot.js --url https://example.com --output ./out --capture-hover
+node src/core/capture/screenshot.js --url https://example.com --output ./out --capture-hover
 ```
 
 **Output:**
@@ -325,16 +325,16 @@ Record scroll preview video (opt-in due to 3-5x capture time increase):
 
 ```bash
 # WebM (native, no extra deps)
-node src/core/screenshot.js --url https://example.com --output ./out --video
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video
 
 # MP4 (requires ffmpeg)
-node src/core/screenshot.js --url https://example.com --output ./out --video --video-format mp4
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video --video-format mp4
 
 # GIF (requires ffmpeg)
-node src/core/screenshot.js --url https://example.com --output ./out --video --video-format gif
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video --video-format gif
 
 # Custom duration (default: 12000ms)
-node src/core/screenshot.js --url https://example.com --output ./out --video --video-duration 8000
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video --video-duration 8000
 ```
 
 **Output:**

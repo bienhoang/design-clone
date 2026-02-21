@@ -9,12 +9,12 @@
 
 import fs from 'fs/promises';
 
-import { filterCssFile } from './filter-css.js';
-import { getBrowser, getPage, closeBrowser, parseArgs, outputError } from '../utils/browser.js';
-import { waitForPageReady } from './page-readiness.js';
-import { dismissCookieBanner } from './cookie-handler.js';
-import { VIEWPORTS } from '../shared/viewports.js';
-import { TIMING } from '../shared/config.js';
+import { filterCssFile } from '../css/filter-css.js';
+import { getBrowser, getPage, closeBrowser, parseArgs, outputError } from '../../utils/browser.js';
+import { waitForPageReady } from '../page-prep/page-readiness.js';
+import { dismissCookieBanner } from '../page-prep/cookie-handler.js';
+import { VIEWPORTS } from '../../shared/viewports.js';
+import { TIMING } from '../../shared/config.js';
 
 export { filterCssFile };
 

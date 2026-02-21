@@ -46,7 +46,7 @@ async function runTest() {
   console.log('Step 1: Running screenshot.js with extraction...');
   try {
     execSync(
-      `node ${path.join(SCRIPT_DIR, 'src/core/screenshot.js')} ` +
+      `node ${path.join(SCRIPT_DIR, 'src/core/capture/screenshot.js')} ` +
       `--url "${TEST_URL}" ` +
       `--output "${OUTPUT_DIR}" ` +
       `--extract-html --extract-css ` +

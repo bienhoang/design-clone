@@ -21,10 +21,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { discoverPages } from '../../src/core/discover-pages.js';
-import { captureMultiplePages } from '../../src/core/multi-page-screenshot.js';
-import { mergeCssFiles } from '../../src/core/merge-css.js';
-import { rewriteLinks, createPageManifest, rewriteAllLinks } from '../../src/core/rewrite-links.js';
+import { discoverPages } from '../../src/core/discovery/discover-pages.js';
+import { captureMultiplePages } from '../../src/core/capture/multi-page-screenshot.js';
+import { mergeCssFiles } from '../../src/core/css/merge-css.js';
+import { rewriteLinks, createPageManifest, rewriteAllLinks } from '../../src/core/links/rewrite-links.js';
 import { injectGosnap } from '../../src/post-process/inject-gosnap.js';
 
 /**

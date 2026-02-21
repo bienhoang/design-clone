@@ -155,7 +155,7 @@ Run individual scripts directly:
 ### Screenshot
 
 ```bash
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url <url> \
   --output <dir> \
   [options]
@@ -179,7 +179,7 @@ node src/core/screenshot.js \
 ### Filter CSS
 
 ```bash
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html <path> \
   --css <path> \
   --output <path>
@@ -195,7 +195,7 @@ node src/core/filter-css.js \
 ### Extract Assets
 
 ```bash
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url <url> \
   --output <dir>
 ```

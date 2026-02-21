@@ -6,7 +6,7 @@
  * AI summary generation lives in dimension-output-ai-summary.js.
  */
 
-import { VIEWPORTS } from '../shared/viewports.js';
+import { VIEWPORTS } from '../../shared/viewports.js';
 export { generateAISummary } from './dimension-output-ai-summary.js';
 
 /**

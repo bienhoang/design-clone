@@ -11,8 +11,8 @@ import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { detectSections, getSectionSummary } from '../section-detector.js';
-import { cropSections, isSharpAvailable, getCropperSummary } from '../section-cropper.js';
+import { detectSections, getSectionSummary } from '../section/section-detector.js';
+import { cropSections, isSharpAvailable, getCropperSummary } from '../section/section-cropper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, '../../..');

@@ -60,7 +60,7 @@ let captureVideo, recordScroll, convertToMp4, convertToGif, hasFfmpeg;
 let DEFAULT_DURATION, FFMPEG_REQUIRED_FORMATS, MAX_SCROLL_STEPS, VIEWPORT_OVERLAP_FRACTION;
 
 test('video-capture.js module loads successfully', async () => {
-  const module = await import('../src/core/video-capture.js');
+  const module = await import('../src/core/media/video-capture.js');
   captureVideo = module.captureVideo;
   recordScroll = module.recordScroll;
   convertToMp4 = module.convertToMp4;

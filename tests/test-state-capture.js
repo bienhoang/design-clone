@@ -59,7 +59,7 @@ let detectInteractiveElements, generateHoverCss;
 let extractHoverSelectorsFromCss;
 
 test('state-capture.js module loads successfully', async () => {
-  const module = await import('../src/core/state-capture.js');
+  const module = await import('../src/core/animation/state-capture.js');
   detectInteractiveElements = module.detectInteractiveElements;
   generateHoverCss = module.generateHoverCss;
   extractHoverSelectorsFromCss = module.extractHoverSelectorsFromCss;

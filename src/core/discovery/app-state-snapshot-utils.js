@@ -6,7 +6,7 @@
  * Used by app-state-snapshot.js (main module).
  */
 
-import { SIZE_LIMITS } from '../shared/config.js';
+import { SIZE_LIMITS } from '../../shared/config.js';
 
 // ============================================================================
 // Constants

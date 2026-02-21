@@ -11,11 +11,11 @@
 import path from 'path';
 import fs from 'fs/promises';
 
-import { filterCssFile } from './filter-css.js';
-import { extractCleanHtml, extractAndEnhanceHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from './html-extractor.js';
-import { extractContentCounts, generateContentSummary } from './content-counter.js';
-import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
-import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from './animation-extractor.js';
+import { filterCssFile } from '../css/filter-css.js';
+import { extractCleanHtml, extractAndEnhanceHtml, JS_FRAMEWORK_PATTERNS, MAX_HTML_SIZE } from '../html/html-extractor.js';
+import { extractContentCounts, generateContentSummary } from '../content/content-counter.js';
+import { extractAllCss, MAX_CSS_SIZE } from '../css/css-extractor.js';
+import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from '../animation/animation-extractor.js';
 
 /** Extract and write content counts (grids, repeated items) to output dir. */
 export async function runContentCounting(page, output) {

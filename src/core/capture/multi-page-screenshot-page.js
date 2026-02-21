@@ -12,11 +12,11 @@ import fs from 'fs/promises';
 
 import { captureViewport } from './screenshot-viewport.js';
 import { VIEWPORTS, DEFAULT_SCROLL_DELAY } from './screenshot-helpers.js';
-import { waitForDomStable, waitForPageReady } from './page-readiness.js';
-import { dismissCookieBanner } from './cookie-handler.js';
-import { extractAndEnhanceHtml, MAX_HTML_SIZE } from './html-extractor.js';
-import { extractAllCss, MAX_CSS_SIZE } from './css-extractor.js';
-import { filterCssFile } from './filter-css.js';
+import { waitForDomStable, waitForPageReady } from '../page-prep/page-readiness.js';
+import { dismissCookieBanner } from '../page-prep/cookie-handler.js';
+import { extractAndEnhanceHtml, MAX_HTML_SIZE } from '../html/html-extractor.js';
+import { extractAllCss, MAX_CSS_SIZE } from '../css/css-extractor.js';
+import { filterCssFile } from '../css/filter-css.js';
 
 export const DEFAULT_OPTIONS = {
   viewports: ['desktop', 'tablet', 'mobile'],

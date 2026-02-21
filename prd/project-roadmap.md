@@ -103,8 +103,8 @@ Design Clone is an AI-powered website cloning tool with enhanced verification, U
 - [ ] Test suite with semantic validation
 
 #### Key Files (Planned)
-- `src/core/semantic-enhancer.js` - Landmark injection without style breaking
-- `src/core/html-extractor.js` - Update for semantic support
+- `src/core/html/semantic-enhancer.js` - Landmark injection without style breaking
+- `src/core/html/html-extractor.js` - Update for semantic support
 - `tests/test-semantic-enhancer.js` - Semantic validation tests
 
 #### Architecture Notes
