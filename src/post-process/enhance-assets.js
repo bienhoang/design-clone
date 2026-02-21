@@ -19,6 +19,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fetchImages } from './fetch-images.js';
 import { injectIcons } from './inject-icons.js';
+import { injectGosnap } from './inject-gosnap.js';
 
 /**
  * Parse command line arguments
@@ -29,7 +30,8 @@ function parseArgs() {
     outputDir: null,
     verbose: false,
     skipImages: false,
-    skipIcons: false
+    skipIcons: false,
+    skipGosnap: false
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -40,6 +42,8 @@ function parseArgs() {
       options.skipImages = true;
     } else if (arg === '--skip-icons') {
       options.skipIcons = true;
+    } else if (arg === '--skip-gosnap') {
+      options.skipGosnap = true;
     } else if (!arg.startsWith('-')) {
       options.outputDir = arg;
     }
@@ -67,7 +71,8 @@ async function enhanceAssets(outputDir, options = {}) {
   const {
     verbose = false,
     skipImages = false,
-    skipIcons = false
+    skipIcons = false,
+    skipGosnap = false
   } = options;
 
   const htmlPath = path.join(outputDir, 'index.html');
@@ -87,7 +92,8 @@ async function enhanceAssets(outputDir, options = {}) {
   const results = {
     success: true,
     images: null,
-    icons: null
+    icons: null,
+    gosnap: null
   };
 
   // Step 1: Fetch and replace images
@@ -117,6 +123,23 @@ async function enhanceAssets(outputDir, options = {}) {
     }
   }
 
+  // Step 3: Inject gosnap-widget
+  if (!skipGosnap) {
+    const pagesDir = path.join(outputDir, 'pages');
+    if (await fileExists(pagesDir)) {
+      console.log('Injecting gosnap-widget...');
+      try {
+        results.gosnap = await injectGosnap(pagesDir, verbose);
+      } catch (error) {
+        console.warn(`  Warning: gosnap injection failed: ${error.message}`);
+        results.gosnap = { success: false, error: error.message };
+      }
+    } else {
+      console.log('  -> Skipping gosnap (no pages/ directory)');
+      results.gosnap = { skipped: true };
+    }
+  }
+
   console.log('✅ Asset enhancement complete');
 
   return results;
@@ -132,6 +155,7 @@ if (!args.outputDir) {
   console.error('  --verbose, -v    Show detailed progress');
   console.error('  --skip-images    Skip Unsplash image fetching');
   console.error('  --skip-icons     Skip icon injection');
+  console.error('  --skip-gosnap    Skip gosnap-widget injection');
   console.error('');
   console.error('Environment:');
   console.error('  UNSPLASH_ACCESS_KEY    Your Unsplash API key (optional)');
@@ -141,7 +165,8 @@ if (!args.outputDir) {
 enhanceAssets(args.outputDir, {
   verbose: args.verbose,
   skipImages: args.skipImages,
-  skipIcons: args.skipIcons
+  skipIcons: args.skipIcons,
+  skipGosnap: args.skipGosnap
 })
   .then(result => {
     if (args.verbose) {

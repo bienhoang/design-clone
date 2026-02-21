@@ -60,7 +60,7 @@ function assertContains(arr, value, message) {
 }
 
 // Import functions to test
-import { buildDimensionsOutput, buildCrossViewportSummary, generateAISummary } from '../src/core/dimension-output.js';
+import { buildDimensionsOutput, buildCrossViewportSummary, generateAISummary } from '../src/core/dimension/dimension-output.js';
 
 /**
  * Test: Section detection in containers

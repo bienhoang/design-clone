@@ -12,7 +12,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const tests = [
   { name: 'Node.js env.js tests', cmd: 'node', args: ['test-env-js.js'] },
-  { name: 'Python env.py tests', cmd: 'python3', args: ['test-env-py.py'] },
   { name: 'filter-css.js tests', cmd: 'node', args: ['test-filter-css.js'] },
   { name: 'animation-extractor.js tests', cmd: 'node', args: ['test-animation-extractor.js'] },
   { name: 'state-capture.js tests', cmd: 'node', args: ['test-state-capture.js'] },
@@ -22,11 +21,8 @@ const tests = [
   { name: 'app-state-snapshot.js tests', cmd: 'node', args: ['test-app-state-snapshot.js'] },
   { name: 'discover-pages SPA tests', cmd: 'node', args: ['test-discover-pages-spa.js'] },
   { name: 'section-context-mapping tests', cmd: 'node', args: ['test-section-context-mapping.js'] },
-  { name: 'enhanced-ai-prompt tests', cmd: 'python3', args: ['test-enhanced-ai-prompt.py'] },
   { name: 'dom-hierarchy-integration tests', cmd: 'node', args: ['test-dom-hierarchy-integration.js'] },
-  { name: 'UX audit module tests', cmd: 'node', args: ['test-ux-audit.js'] },
   { name: 'semantic-enhancer.js tests', cmd: 'node', args: ['test-semantic-enhancer.js'] },
-  { name: 'Python imports tests', cmd: 'python3', args: ['test-python-imports.py'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
   { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] }
 ];

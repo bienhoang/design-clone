@@ -8,82 +8,16 @@
  * - Compatible API with previous Puppeteer wrapper
  */
 
-import fs from 'fs';
+import { VIEWPORTS_HD } from '../shared/viewports.js';
+import { detectChromePath, loadPlaywright } from './playwright-loader.js';
 
 /** @type {import('playwright').Browser|null} */
 let browserInstance = null;
 /** @type {import('playwright').Page|null} */
 let pageInstance = null;
-/** @type {typeof import('playwright')|null} */
-let playwright = null;
 
 /** Default viewport dimensions */
-const DEFAULT_VIEWPORT = { width: 1920, height: 1080 };
-
-/**
- * Detect Chrome executable path by platform
- * Used for playwright-core fallback when full playwright is not installed
- * @returns {string|null} Chrome path or null if not found
- */
-function detectChromePath() {
-  const platform = process.platform;
-
-  const paths = {
-    darwin: [
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/Applications/Chromium.app/Contents/MacOS/Chromium',
-      '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
-    ],
-    linux: [
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-      '/snap/bin/chromium'
-    ],
-    win32: [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      ...(process.env.LOCALAPPDATA ? [`${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`] : [])
-    ]
-  };
-
-  const candidates = paths[platform] || [];
-  for (const chromePath of candidates) {
-    if (fs.existsSync(chromePath)) {
-      return chromePath;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Load playwright module (try playwright first, then playwright-core)
- * @returns {Promise<Object>} Playwright module with chromium browser type
- * @throws {Error} If neither playwright nor playwright-core is installed
- */
-async function loadPlaywright() {
-  if (playwright) return playwright;
-
-  try {
-    // Try full playwright first (includes bundled browsers)
-    playwright = await import('playwright');
-    return playwright;
-  } catch (e1) {
-    try {
-      // Fall back to playwright-core (requires Chrome)
-      playwright = await import('playwright-core');
-      return playwright;
-    } catch (e2) {
-      throw new Error(
-        'Playwright not found. Install with: npm install playwright\n' +
-        'Or for smaller install: npm install playwright-core\n' +
-        `Details: playwright: ${e1.message}, playwright-core: ${e2.message}`
-      );
-    }
-  }
-}
+const DEFAULT_VIEWPORT = { width: VIEWPORTS_HD.desktop.width, height: VIEWPORTS_HD.desktop.height };
 
 /**
  * Launch browser instance

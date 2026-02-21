@@ -46,7 +46,7 @@ let detectFramework, formatDetectionResult;
 // Test: Module imports correctly
 // ========================================
 test('Module imports successfully', async () => {
-  const mod = await import('../src/core/framework-detector.js');
+  const mod = await import('../src/core/discovery/framework-detector.js');
   detectFramework = mod.detectFramework;
   formatDetectionResult = mod.formatDetectionResult;
   assertTrue(typeof detectFramework === 'function', 'detectFramework should be a function');

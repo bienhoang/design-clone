@@ -4,8 +4,8 @@
  * Usage: node src/core/test-section-detector.js [url]
  */
 
-import { detectSections, getSectionSummary } from './section-detector.js';
-import { getBrowser, getPage, closeBrowser } from '../utils/browser.js';
+import { detectSections, getSectionSummary } from '../section/section-detector.js';
+import { getBrowser, getPage, closeBrowser } from '../../utils/browser.js';
 
 const url = process.argv[2] || 'https://www.techno-concier.co.jp/';
 

@@ -30,13 +30,10 @@ export async function verify() {
   // Check required files
   const requiredFiles = [
     'SKILL.md',
-    'src/core/screenshot.js',
-    'src/core/filter-css.js',
-    'src/ai/analyze-structure.py',
+    'src/core/capture/screenshot.js',
+    'src/core/css/filter-css.js',
     'src/utils/browser.js',
-    'src/utils/env.js',
-    'src/utils/env.py',
-    'requirements.txt'
+    'src/utils/env.js'
   ];
 
   let filesOk = true;
@@ -64,17 +61,15 @@ export async function verify() {
   const checks = await runAllChecks();
 
   console.log(`  Node.js:    ${checks.node.ok ? '✓' : '✗'} ${checks.node.message}`);
-  console.log(`  Python:     ${checks.python.ok ? '✓' : '✗'} ${checks.python.message}`);
   console.log(`  Playwright: ${checks.playwright.ok ? '✓' : '✗'} ${checks.playwright.message}`);
   console.log(`  Chrome:     ${checks.chrome.ok ? '✓' : '○'} ${checks.chrome.message}${checks.playwright.ok ? ' (optional with Playwright)' : ''}`);
 
   if (!checks.node.ok) allOk = false;
   if (!checks.playwright.ok && !checks.chrome.ok) allOk = false;
 
-  // Check Gemini API key
+  // Check optional features
   console.log('\nOptional:');
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  console.log(`  GEMINI_API_KEY: ${geminiKey ? '✓ set' : '○ not set (AI analysis disabled)'}`);
+  console.log(`  AI analysis: ✓ built-in (Claude Code vision)`);
 
   // Check .env files
   const envLocations = [

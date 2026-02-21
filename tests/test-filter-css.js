@@ -53,25 +53,25 @@ function assertNotContains(str, substring, message) {
 
 // Test suite
 test('filter-css.js file exists', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   assertTrue(fs.existsSync(filterCssPath), 'filter-css.js should exist');
 });
 
 test('filter-css.js imports css-tree dependency', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, "import('css-tree')", 'Should try to import css-tree');
 });
 
 test('filter-css.js has dependency check error handling', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'css-tree not installed', 'Should have css-tree error message');
   assertContains(content, 'npm install css-tree', 'Should provide install hint');
 });
 
 test('filter-css.js exports required functions', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'export { filterCssFile', 'Should export filterCssFile');
   assertContains(content, 'analyzeHtml', 'Should export analyzeHtml');
@@ -80,7 +80,7 @@ test('filter-css.js exports required functions', () => {
 });
 
 test('filter-css.js has analyzeHtml function', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'function analyzeHtml(html)', 'Should define analyzeHtml function');
   assertContains(content, 'tags.add', 'analyzeHtml should extract tags');
@@ -89,14 +89,14 @@ test('filter-css.js has analyzeHtml function', () => {
 });
 
 test('filter-css.js has validatePath function', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'function validatePath(filePath', 'Should define validatePath function');
   assertContains(content, 'outside allowed directory', 'Should check path traversal');
 });
 
 test('filter-css.js has sanitizeCss function', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'function sanitizeCss(css)', 'Should define sanitizeCss function');
   assertContains(content, 'CSS_INJECTION_PATTERNS', 'Should have XSS pattern checks');
@@ -104,7 +104,7 @@ test('filter-css.js has sanitizeCss function', () => {
 });
 
 test('filter-css.js has sanitization patterns', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'moz-binding', 'Should sanitize Firefox XBL binding');
   assertContains(content, 'expression', 'Should sanitize IE expression()');
@@ -112,7 +112,7 @@ test('filter-css.js has sanitization patterns', () => {
 });
 
 test('filter-css.js has filterCssFile main function', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'async function filterCssFile', 'Should define async filterCssFile function');
   assertContains(content, 'htmlPath', 'Should accept htmlPath parameter');
@@ -121,14 +121,14 @@ test('filter-css.js has filterCssFile main function', () => {
 });
 
 test('filter-css.js has memory limit', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'MAX_CSS_INPUT_SIZE', 'Should define MAX_CSS_INPUT_SIZE');
   assertContains(content, '10 * 1024 * 1024', 'Should set 10MB limit');
 });
 
 test('filter-css.js has keep patterns for critical selectors', () => {
-  const filterCssPath = path.join(__dirname, '../src/core/filter-css.js');
+  const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'ALWAYS_KEEP_PATTERNS', 'Should have ALWAYS_KEEP_PATTERNS');
   assertContains(content, 'html', 'Should keep html selector');

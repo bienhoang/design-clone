@@ -55,10 +55,10 @@ try {
 // Test 2: Screenshot script can be parsed
 try {
   console.log('Test 2: screenshot.js import validation');
-  const msScript = fs.readFileSync(path.join(SRC_DIR, 'core/screenshot.js'), 'utf8');
+  const msScript = fs.readFileSync(path.join(SRC_DIR, 'core/capture/screenshot.js'), 'utf8');
 
   // Check imports
-  assert(msScript.includes('from \'../utils/browser.js\''), 'Import not found');
+  assert(msScript.includes('from \'../../utils/browser.js\''), 'Import not found');
   assert(msScript.includes('getBrowser'), 'getBrowser not imported');
   assert(msScript.includes('getPage'), 'getPage not imported');
   assert(msScript.includes('closeBrowser'), 'closeBrowser not imported');
@@ -165,15 +165,16 @@ try {
   // Check core scripts exist
   const coreDir = path.join(SRC_DIR, 'core');
   assert(fs.existsSync(coreDir), 'src/core directory missing');
-  assert(fs.existsSync(path.join(coreDir, 'screenshot.js')), 'screenshot.js missing');
-  assert(fs.existsSync(path.join(coreDir, 'filter-css.js')), 'filter-css.js missing');
-  assert(fs.existsSync(path.join(coreDir, 'extract-assets.js')), 'extract-assets.js missing');
+  assert(fs.existsSync(path.join(coreDir, 'capture/screenshot.js')), 'screenshot.js missing');
+  assert(fs.existsSync(path.join(coreDir, 'css/filter-css.js')), 'filter-css.js missing');
+  assert(fs.existsSync(path.join(coreDir, 'media/extract-assets.js')), 'extract-assets.js missing');
 
-  // Check AI scripts exist
+  // Check AI prompt templates exist
   const aiDir = path.join(SRC_DIR, 'ai');
   assert(fs.existsSync(aiDir), 'src/ai directory missing');
-  assert(fs.existsSync(path.join(aiDir, 'analyze-structure.py')), 'analyze-structure.py missing');
-  assert(fs.existsSync(path.join(aiDir, 'extract-design-tokens.py')), 'extract-design-tokens.py missing');
+  assert(fs.existsSync(path.join(aiDir, 'prompts', 'structure-analysis', 'basic.md')), 'structure-analysis/basic.md missing');
+  assert(fs.existsSync(path.join(aiDir, 'prompts', 'design-tokens', 'basic.md')), 'design-tokens/basic.md missing');
+  assert(fs.existsSync(path.join(aiDir, 'prompts', 'ux-audit', 'desktop.md')), 'ux-audit/desktop.md missing');
 
   // Check verification scripts exist
   const verifyDir = path.join(SRC_DIR, 'verification');

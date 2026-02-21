@@ -51,7 +51,7 @@ let discoverPages, normalizeUrl, extractPageName, isSameDomain;
 // Test: Module imports correctly
 // ========================================
 test('Module imports successfully', async () => {
-  const mod = await import('../src/core/discover-pages.js');
+  const mod = await import('../src/core/discovery/discover-pages.js');
   discoverPages = mod.discoverPages;
   normalizeUrl = mod.normalizeUrl;
   extractPageName = mod.extractPageName;
@@ -123,7 +123,7 @@ test('discoverPages accepts SPA options', async () => {
 // Test: Framework detector integration
 // ========================================
 test('Framework detector is imported correctly', async () => {
-  const detectorMod = await import('../src/core/framework-detector.js');
+  const detectorMod = await import('../src/core/discovery/framework-detector.js');
   assertTrue(typeof detectorMod.detectFramework === 'function', 'detectFramework should be exported');
 });
 
@@ -149,7 +149,7 @@ test('Route discoverers are imported correctly', async () => {
 // Test: App state snapshot integration
 // ========================================
 test('App state snapshot is imported correctly', async () => {
-  const stateMod = await import('../src/core/app-state-snapshot.js');
+  const stateMod = await import('../src/core/discovery/app-state-snapshot.js');
   assertTrue(typeof stateMod.captureAppState === 'function', 'captureAppState should be exported');
   assertTrue(typeof stateMod.formatStateSnapshot === 'function', 'formatStateSnapshot should be exported');
 });
@@ -160,10 +160,10 @@ test('App state snapshot is imported correctly', async () => {
 test('Full SPA module chain imports successfully', async () => {
   // Import all modules to verify no circular dependencies or import errors
   const [detector, discoverers, snapshot, pages] = await Promise.all([
-    import('../src/core/framework-detector.js'),
+    import('../src/core/discovery/framework-detector.js'),
     import('../src/route-discoverers/index.js'),
-    import('../src/core/app-state-snapshot.js'),
-    import('../src/core/discover-pages.js')
+    import('../src/core/discovery/app-state-snapshot.js'),
+    import('../src/core/discovery/discover-pages.js')
   ]);
 
   assertTrue(detector.detectFramework !== undefined, 'detectFramework available');
@@ -179,7 +179,7 @@ test('Modules have no circular import issues', async () => {
   // Re-import to verify clean imports
   const start = Date.now();
 
-  await import('../src/core/discover-pages.js');
+  await import('../src/core/discovery/discover-pages.js');
 
   const duration = Date.now() - start;
   // Should import quickly without hanging (circular deps would cause issues)

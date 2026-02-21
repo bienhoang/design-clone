@@ -2,7 +2,7 @@
   "name": "design-clone",
   "version": "2.1.0",
   "type": "module",
-  "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis",
+  "description": "Claude Code skill for cloning website designs via multi-viewport screenshots, HTML/CSS extraction, and AI analysis",
   "bin": {
     "design-clone": "./bin/cli.js"
   },
@@ -13,16 +13,18 @@
     "templates/",
     "docs/",
     "SKILL.md",
-    "requirements.txt",
     ".env.example"
   ],
   "scripts": {
-    "screenshot": "node src/core/screenshot.js",
-    "filter-css": "node src/core/filter-css.js",
-    "extract-assets": "node src/core/extract-assets.js",
+    "screenshot": "node src/core/capture/screenshot.js",
+    "filter-css": "node src/core/css/filter-css.js",
+    "extract-assets": "node src/core/media/extract-assets.js",
     "verify-menu": "node src/verification/verify-menu.js",
     "verify-layout": "node src/verification/verify-layout.js",
-    "test": "node tests/run-all-tests.js"
+    "test": "node tests/run-all-tests.js",
+    "docs:dev": "npm run docs:dev --prefix docs",
+    "docs:build": "npm run docs:build --prefix docs",
+    "docs:preview": "npm run docs:preview --prefix docs"
   },
   "keywords": [
     "claude",
@@ -32,7 +34,6 @@
     "clone",
     "screenshot",
     "playwright",
-    "gemini",
     "website"
   ],
   "author": "",
@@ -58,7 +59,6 @@
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@google/generative-ai": "^0.24.0",
     "fluent-ffmpeg": "^2.1.2"
   }
 }

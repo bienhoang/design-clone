@@ -1,11 +1,11 @@
 ---
 name: design-clone
-description: Clone website designs via multi-viewport screenshots, HTML/CSS extraction, and Gemini AI analysis. Generates production HTML/CSS with Font Awesome icons, direct Unsplash images, and Japanese design principles. Commands - design:clone (basic), design:clone-px (pixel-perfect).
+description: Clone website designs via multi-viewport screenshots, HTML/CSS extraction, and built-in AI analysis. Generates production HTML/CSS with Font Awesome icons, direct Unsplash images, and Japanese design principles. Commands - design:clone (basic), design:clone-px (pixel-perfect).
 ---
 
 # Design Clone Skill
 
-Clone website designs with multi-viewport screenshots, HTML/CSS extraction, CSS filtering, and Gemini AI structure analysis.
+Clone website designs with multi-viewport screenshots, HTML/CSS extraction, CSS filtering, and built-in AI structure analysis.
 
 ## Features
 
@@ -14,21 +14,18 @@ Clone website designs with multi-viewport screenshots, HTML/CSS extraction, CSS 
 - **Japanese Design Principles** - Ma, Kanso, Shibui, Seijaku for elegant designs
 - **Multi-viewport Screenshots** - Desktop, tablet, mobile captures
 - **Hover State Capture** - Interactive element screenshots and :hover CSS generation
-- **Gemini Vision Analysis** - AI-powered design token extraction
+- **Built-in AI Analysis** - Design token extraction via Claude Code vision
 - **ui-ux-pro-max Quality Check** - Accessibility, hover states, contrast validation
 
 ## Prerequisites
 
 - Node.js 18+ with npm
-- Python 3.9+ (for AI analysis)
 - Chrome/Chromium browser
 
 ## Quick Setup
 
 ```bash
 npm install
-pip install -r requirements.txt
-# Optional: Set GEMINI_API_KEY in .env for AI analysis
 ```
 
 ## Project Structure
@@ -44,17 +41,18 @@ design-clone/
 │   │   ├── screenshot.js   # Multi-viewport screenshots
 │   │   ├── filter-css.js   # CSS filtering
 │   │   └── extract-assets.js
-│   ├── ai/                 # AI analysis scripts
-│   │   ├── analyze-structure.py
-│   │   └── extract-design-tokens.py
+│   ├── ai/                 # AI analysis prompt templates
+│   │   └── prompts/         # Markdown prompts for Claude Code vision
+│   │       ├── structure-analysis/
+│   │       ├── design-tokens/
+│   │       └── ux-audit/
 │   ├── verification/       # Verification scripts
 │   │   ├── verify-menu.js
 │   │   └── verify-layout.js
 │   ├── utils/              # Shared utilities
 │   │   ├── browser.js
 │   │   ├── puppeteer.js
-│   │   ├── env.js
-│   │   └── env.py
+│   │   └── env.js
 │   └── post-process/       # Post-processing
 │       ├── fetch-images.js
 │       ├── inject-icons.js
@@ -78,14 +76,14 @@ Basic design capture with Font Awesome icons and Unsplash images.
 **Workflow:**
 ```bash
 # Step 1: Capture screenshots + HTML/CSS
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "URL" \
   --output ./output \
   --extract-html \
   --extract-css
 
 # Step 2: Filter unused CSS
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
@@ -161,7 +159,7 @@ Pixel-perfect clone with full asset extraction and AI analysis.
 
 ```bash
 # Step 1: Capture + Extract
-node src/core/screenshot.js \
+node src/core/capture/screenshot.js \
   --url "URL" \
   --output ./output \
   --extract-html --extract-css \
@@ -169,27 +167,57 @@ node src/core/screenshot.js \
   --full-page
 
 # Step 2: Filter CSS
-node src/core/filter-css.js \
+node src/core/css/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
 
 # Step 3: Extract Assets (images, fonts, icons)
-node src/core/extract-assets.js \
+node src/core/media/extract-assets.js \
   --url "URL" \
   --output ./output
 
-# Step 4: AI Structure Analysis (requires GEMINI_API_KEY)
-python src/ai/analyze-structure.py \
-  -s ./output/desktop.png \
-  -o ./output \
-  --html ./output/source.html \
-  --css ./output/source.css
+# Step 4: AI Structure Analysis (built-in Claude Code vision)
+# Select prompt based on available context (highest accuracy first):
+#   - If dom-hierarchy.json AND dimensions-summary.json exist:
+#       Read src/ai/prompts/structure-analysis/with-hierarchy.md
+#       Read output/dom-hierarchy.json
+#       Read output/dimensions-summary.json
+#   - Else if dimensions-summary.json exists:
+#       Read src/ai/prompts/structure-analysis/with-dimensions.md
+#       Read output/dimensions-summary.json
+#   - Else if source.html AND source.css exist:
+#       Read src/ai/prompts/structure-analysis/with-context.md
+#       Read output/source.html (first 100KB)
+#       Read output/source.css (first 100KB)
+#   - Else:
+#       Read src/ai/prompts/structure-analysis/basic.md
+#
+# Then: Read output/desktop.png (Claude vision analyzes the screenshot)
+# If content-summary.md exists: Read output/content-summary.md
+# Analyze following prompt instructions
+# Write result to output/structure.md
 
-# Step 5: Extract Design Tokens
-python src/ai/extract-design-tokens.py \
-  -s ./output/desktop.png \
-  -o ./output
+# Step 5: Extract Design Tokens (built-in Claude Code vision)
+# Select prompt:
+#   - If source.css exists:
+#       Read src/ai/prompts/design-tokens/with-css.md
+#       Read output/source.css (first 15KB)
+#   - Else:
+#       Read src/ai/prompts/design-tokens/basic.md
+#
+# Read output/desktop.png, output/tablet.png, output/mobile.png
+# Analyze following prompt instructions
+# Write JSON result to output/design-tokens.json
+# Generate CSS custom properties and write to output/tokens.css
+#
+# Token CSS generation rules:
+#   - Map colors to --color-* variables
+#   - Map typography to --font-*, --font-size-*, --font-weight-*, --line-height-*
+#   - Map spacing to --space-* variables
+#   - Map border-radius to --radius-* variables
+#   - Map shadows to --shadow-* variables
+#   - Use :root {} selector
 
 # Step 6: Verify Menu
 node src/verification/verify-menu.js \
@@ -267,7 +295,7 @@ After generating HTML/CSS, verify these items using `ui-ux-pro-max` skill:
 Automatically extracts @keyframes and transition properties when using `--extract-css`:
 
 ```bash
-node src/core/screenshot.js --url https://example.com --output ./out --extract-css true
+node src/core/capture/screenshot.js --url https://example.com --output ./out --extract-css true
 ```
 
 **Output:**
@@ -279,7 +307,7 @@ node src/core/screenshot.js --url https://example.com --output ./out --extract-c
 Capture interactive element hover states:
 
 ```bash
-node src/core/screenshot.js --url https://example.com --output ./out --capture-hover
+node src/core/capture/screenshot.js --url https://example.com --output ./out --capture-hover
 ```
 
 **Output:**
@@ -297,16 +325,16 @@ Record scroll preview video (opt-in due to 3-5x capture time increase):
 
 ```bash
 # WebM (native, no extra deps)
-node src/core/screenshot.js --url https://example.com --output ./out --video
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video
 
 # MP4 (requires ffmpeg)
-node src/core/screenshot.js --url https://example.com --output ./out --video --video-format mp4
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video --video-format mp4
 
 # GIF (requires ffmpeg)
-node src/core/screenshot.js --url https://example.com --output ./out --video --video-format gif
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video --video-format gif
 
 # Custom duration (default: 12000ms)
-node src/core/screenshot.js --url https://example.com --output ./out --video --video-duration 8000
+node src/core/capture/screenshot.js --url https://example.com --output ./out --video --video-duration 8000
 ```
 
 **Output:**
@@ -332,7 +360,7 @@ npm install fluent-ffmpeg @ffmpeg-installer/ffmpeg
 Create `.env` file (see `.env.example`):
 
 ```bash
-GEMINI_API_KEY=your-key    # Optional: enables AI structure analysis
+# No API keys required for AI analysis (uses Claude Code built-in vision)
 ```
 
 ## Script Reference
@@ -350,8 +378,9 @@ GEMINI_API_KEY=your-key    # Optional: enables AI structure analysis
 | merge-css.js | src/core/ | Merge + deduplicate CSS |
 | rewrite-links.js | src/core/ | Rewrite internal links |
 | clone-site.js | bin/commands/ | Multi-page clone CLI |
-| analyze-structure.py | src/ai/ | AI-powered structure analysis |
-| extract-design-tokens.py | src/ai/ | Extract colors, typography, spacing |
+| prompts/structure-analysis/*.md | src/ai/ | AI structure analysis prompts (Claude Code vision) |
+| prompts/design-tokens/*.md | src/ai/ | Design token extraction prompts (Claude Code vision) |
+| prompts/ux-audit/*.md | src/ai/ | UX audit prompts (Claude Code vision) |
 | verify-menu.js | src/verification/ | Validate navigation structure |
 | verify-layout.js | src/verification/ | Verify layout consistency |
 | fetch-images.js | src/post-process/ | Fetch and optimize images |

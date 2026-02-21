@@ -22,7 +22,7 @@ Clone-site Options:
   --viewports <list>  Viewport list (default: desktop,tablet,mobile)
   --yes               Skip confirmation prompt
   --output <dir>      Custom output directory
-  --ai                Extract design tokens using Gemini AI (requires GEMINI_API_KEY)
+  --ai                (Removed: AI analysis is now built-in via Claude Code)
 
 Examples:
   design-clone init                     # Install skill
@@ -33,7 +33,7 @@ Examples:
   design-clone clone-site https://example.com --pages /,/about,/contact
 
 After installation:
-  1. Set GEMINI_API_KEY in ~/.claude/.env (optional, for AI analysis)
+  1. AI analysis is built-in via Claude Code vision (no API key needed)
   2. Use /design:clone or /design:clone-px in Claude Code
 
 For more info: https://github.com/bienhoang/design-clone

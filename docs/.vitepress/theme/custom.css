@@ -1,0 +1,303 @@
+/* Custom theme matching landing page style */
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+/* Color scheme matching landing page */
+:root {
+  /* Primary colors - Blue */
+  --vp-c-brand-1: #3B82F6;
+  --vp-c-brand-2: #60A5FA;
+  --vp-c-brand-3: #93C5FD;
+  --vp-c-brand-soft: rgba(59, 130, 246, 0.14);
+
+  /* Typography */
+  --vp-font-family-base: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --vp-font-family-mono: 'Fira Code', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+}
+
+/* Dark mode colors - matching landing page */
+.dark {
+  --vp-c-bg: #0F172A;
+  --vp-c-bg-soft: #1E293B;
+  --vp-c-bg-mute: #1E293B;
+  --vp-c-bg-alt: #0F172A;
+
+  --vp-c-divider: #334155;
+  --vp-c-divider-light: #334155;
+
+  --vp-c-text-1: #F1F5F9;
+  --vp-c-text-2: #94A3B8;
+  --vp-c-text-3: #64748B;
+
+  --vp-c-default-1: #F1F5F9;
+  --vp-c-default-2: #94A3B8;
+  --vp-c-default-3: #64748B;
+  --vp-c-default-soft: rgba(148, 163, 184, 0.16);
+
+  /* Navbar & sidebar */
+  --vp-nav-bg-color: rgba(15, 23, 42, 0.8);
+  --vp-sidebar-bg-color: #0F172A;
+
+  /* Code blocks */
+  --vp-code-block-bg: #1E293B;
+  --vp-code-tab-divider: #334155;
+  --vp-code-copy-code-border-color: #334155;
+  --vp-code-copy-code-bg: #1E293B;
+  --vp-code-copy-code-hover-border-color: #3B82F6;
+  --vp-code-copy-code-hover-bg: rgba(59, 130, 246, 0.1);
+  --vp-code-copy-code-active-text: #3B82F6;
+
+  /* Cards & containers */
+  --vp-c-bg-elv: #1E293B;
+  --vp-c-bg-elv-mute: #1E293B;
+
+  /* Custom properties */
+  --vp-custom-block-tip-border: #3B82F6;
+  --vp-custom-block-tip-text: #F1F5F9;
+  --vp-custom-block-tip-bg: rgba(59, 130, 246, 0.1);
+
+  --vp-custom-block-info-border: #60A5FA;
+  --vp-custom-block-info-text: #F1F5F9;
+  --vp-custom-block-info-bg: rgba(96, 165, 250, 0.1);
+
+  --vp-custom-block-warning-border: #F59E0B;
+  --vp-custom-block-warning-text: #F1F5F9;
+  --vp-custom-block-warning-bg: rgba(245, 158, 11, 0.1);
+
+  --vp-custom-block-danger-border: #EF4444;
+  --vp-custom-block-danger-text: #F1F5F9;
+  --vp-custom-block-danger-bg: rgba(239, 68, 68, 0.1);
+
+  /* Home hero gradient */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 50%, #93C5FD 100%);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
+  --vp-home-hero-image-filter: blur(68px);
+}
+
+/* Light mode adjustments */
+:root:not(.dark) {
+  --vp-c-brand-1: #2563EB;
+  --vp-c-brand-2: #3B82F6;
+  --vp-c-brand-3: #60A5FA;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #2563EB 0%, #3B82F6 50%, #60A5FA 100%);
+}
+
+/* Headings use Space Grotesk */
+h1, h2, h3, h4, h5, h6,
+.VPNavBarTitle .title,
+.VPFeature .title,
+.VPHomeHero .name,
+.VPHomeHero .text,
+.VPDocFooter .title {
+  font-family: 'Space Grotesk', var(--vp-font-family-base);
+  font-weight: 600;
+}
+
+/* Hero section enhancements */
+.VPHomeHero .name {
+  font-size: 3.5rem !important;
+  line-height: 1.1 !important;
+}
+
+@media (min-width: 640px) {
+  .VPHomeHero .name {
+    font-size: 4rem !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHomeHero .name {
+    font-size: 5rem !important;
+  }
+}
+
+.VPHomeHero .tagline {
+  font-size: 1.25rem;
+  color: var(--vp-c-text-2);
+}
+
+/* Feature cards styling */
+.VPFeature {
+  background: var(--vp-c-bg-soft) !important;
+  border: 1px solid var(--vp-c-divider) !important;
+  border-radius: 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-1) !important;
+  transform: translateY(-2px);
+}
+
+.dark .VPFeature {
+  background: #1E293B !important;
+}
+
+/* Navbar styling */
+.VPNav {
+  backdrop-filter: blur(12px) !important;
+}
+
+.dark .VPNav {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+/* Sidebar styling */
+.dark .VPSidebar {
+  background: #0F172A !important;
+  border-right: 1px solid #334155 !important;
+}
+
+/* Links */
+.VPLink:hover,
+.vp-doc a:hover {
+  color: var(--vp-c-brand-1);
+}
+
+/* Code blocks */
+.dark .vp-code-group .tabs {
+  background: #1E293B;
+  border-bottom: 1px solid #334155;
+}
+
+.dark div[class*='language-'] {
+  background: #1E293B !important;
+}
+
+.dark div[class*='language-'] code {
+  color: #F1F5F9;
+}
+
+/* Inline code */
+.dark .vp-doc :not(pre) > code {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60A5FA;
+}
+
+/* Buttons */
+.VPButton.brand {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+  transition: all 0.2s ease;
+}
+
+.VPButton.brand:hover {
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.VPButton.alt {
+  background: #1E293B !important;
+  border: 1px solid #334155 !important;
+  color: #F1F5F9 !important;
+}
+
+.VPButton.alt:hover {
+  border-color: #3B82F6 !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Table styling */
+.dark .vp-doc table {
+  border: 1px solid #334155;
+}
+
+.dark .vp-doc th {
+  background: #1E293B;
+  border: 1px solid #334155;
+}
+
+.dark .vp-doc td {
+  border: 1px solid #334155;
+}
+
+.dark .vp-doc tr:nth-child(2n) {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+/* Custom container styling */
+.dark .custom-block {
+  border-radius: 12px;
+}
+
+.dark .custom-block.tip {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid #3B82F6;
+}
+
+.dark .custom-block.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid #F59E0B;
+}
+
+.dark .custom-block.danger {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid #EF4444;
+}
+
+/* Badge styling */
+.VPBadge {
+  font-family: 'Fira Code', var(--vp-font-family-mono);
+}
+
+/* Footer */
+.VPDocFooter {
+  border-top: 1px solid #334155;
+}
+
+/* Scrollbar styling */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Search modal */
+.dark .DocSearch-Modal {
+  background: #0F172A !important;
+}
+
+.dark .DocSearch-Footer {
+  background: #1E293B !important;
+  border-top: 1px solid #334155 !important;
+}
+
+/* Local search */
+.dark .VPLocalSearchBox .shell {
+  background: #0F172A !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Animation for hero gradient text */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.VPHomeHero .name {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}

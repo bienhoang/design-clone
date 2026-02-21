@@ -98,7 +98,7 @@ let extractAnimations, generateAnimationsCss, generateAnimationTokens;
 let extractKeyframes, extractTransitions, extractAnimationProps;
 
 test('animation-extractor.js module loads successfully', async () => {
-  const module = await import('../src/core/animation-extractor.js');
+  const module = await import('../src/core/animation/animation-extractor.js');
   extractAnimations = module.extractAnimations;
   generateAnimationsCss = module.generateAnimationsCss;
   generateAnimationTokens = module.generateAnimationTokens;

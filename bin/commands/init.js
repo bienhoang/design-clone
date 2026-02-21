@@ -36,17 +36,12 @@ export async function init(args) {
   const checks = await runAllChecks();
 
   console.log(`  Node.js: ${checks.node.ok ? '✓' : '✗'} ${checks.node.message}`);
-  console.log(`  Python:  ${checks.python.ok ? '✓' : '✗'} ${checks.python.message}`);
   console.log(`  Chrome:  ${checks.chrome.ok ? '✓' : '✗'} ${checks.chrome.message}`);
   console.log('');
 
   if (!checks.node.ok) {
     console.error('Error: Node.js 18+ is required');
     process.exit(1);
-  }
-
-  if (!checks.python.ok) {
-    console.warn('Warning: Python 3.9+ not found. AI analysis features will be unavailable.');
   }
 
   if (!checks.chrome.ok) {
@@ -161,58 +156,12 @@ export async function init(args) {
       console.warn('  Run manually: npm install playwright && npx playwright install chromium');
     }
 
-    // Python dependencies
-    if (checks.python.ok) {
-      console.log('Installing Python dependencies...');
-
-      // Check if google-genai already installed
-      let alreadyInstalled = false;
-      try {
-        await exec('python3 -c "import google.genai"');
-        alreadyInstalled = true;
-        console.log('  Python packages already available');
-      } catch {
-        // Need to install
-      }
-
-      if (!alreadyInstalled) {
-        const HOME = process.env.HOME || process.env.USERPROFILE || '';
-        const sharedVenvPip = path.join(HOME, '.claude/skills/.venv/bin/pip');
-
-        // Try installation methods in order of preference
-        const pipCommands = [
-          { cmd: `"${sharedVenvPip}" install google-genai`, name: 'shared venv' },
-          { cmd: 'pip3 install --user google-genai', name: 'pip3 --user' },
-          { cmd: 'pip install --user google-genai', name: 'pip --user' }
-        ];
-
-        let installed = false;
-        for (const { cmd, name } of pipCommands) {
-          try {
-            await exec(cmd);
-            console.log(`  Python packages installed via ${name}`);
-            installed = true;
-            break;
-          } catch {
-            // Try next method
-          }
-        }
-
-        if (!installed) {
-          console.warn('  Warning: Could not install Python packages automatically');
-          console.warn('  Try one of these manually:');
-          console.warn(`    ${sharedVenvPip} install google-genai`);
-          console.warn('    pip3 install --user google-genai');
-          console.warn('    pip3 install --break-system-packages google-genai');
-        }
-      }
-    }
   }
 
   // Success
   console.log('\n✓ design-clone skill installed successfully!\n');
   console.log('Next steps:');
-  console.log('  1. (Optional) Set GEMINI_API_KEY in ~/.claude/.env for AI analysis');
+  console.log('  1. AI analysis is built-in (no API key needed)');
   console.log('  2. Use slash commands in Claude Code:');
   console.log('     /design:clone      - Clone single page');
   console.log('     /design:clone-site - Clone multiple pages');

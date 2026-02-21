@@ -14,7 +14,7 @@
  */
 
 import { chromium } from 'playwright';
-import { extractDOMHierarchy, MAX_DEPTH, LANDMARK_TAGS, HEADING_TAGS } from '../src/core/dom-tree-analyzer.js';
+import { extractDOMHierarchy, MAX_DEPTH, LANDMARK_TAGS, HEADING_TAGS } from '../src/core/dimension/dom-tree-analyzer.js';
 
 // Test HTML with semantic structure
 const TEST_HTML = `
