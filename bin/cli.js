@@ -3,15 +3,21 @@
  * Design Clone Skill CLI
  *
  * Usage:
- *   design-clone init [--force]  Install skill to ~/.claude/skills/
- *   design-clone verify          Check installation status
- *   design-clone clone-site <url> [options]  Clone multiple pages
- *   design-clone help            Show help
+ *   design-clone init [--force]     Install skill to ~/.claude/skills/
+ *   design-clone verify             Check installation status
+ *   design-clone update [--force]   Update to latest version
+ *   design-clone uninstall [--yes]  Remove skill installation
+ *   design-clone clone-site <url>   Clone multiple pages
+ *   design-clone help               Show help
+ *   design-clone --version          Show version
  */
 
 import { init } from './commands/init.js';
 import { verify } from './commands/verify.js';
 import { help } from './commands/help.js';
+import { uninstall } from './commands/uninstall.js';
+import { update } from './commands/update.js';
+import { getVersion } from './utils/version.js';
 import { cloneSite, parseArgs as parseCloneSiteArgs, showHelp as showCloneSiteHelp } from './commands/clone-site.js';
 
 const [,, command, ...args] = process.argv;
@@ -40,6 +46,18 @@ async function main() {
           const result = await cloneSite(options.url, options);
           console.log(JSON.stringify(result, null, 2));
         }
+        break;
+      case 'uninstall':
+      case 'remove':
+        await uninstall(args);
+        break;
+      case 'update':
+      case 'upgrade':
+        await update(args);
+        break;
+      case '--version':
+      case '-v':
+        console.log(`design-clone v${getVersion()}`);
         break;
       case 'help':
       case '--help':

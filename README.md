@@ -109,9 +109,12 @@ cloned-design/
 ## CLI Commands
 
 ```bash
-design-clone init [--force]   # Install skill to ~/.claude/skills/
-design-clone verify           # Check installation status
-design-clone help             # Show usage help
+design-clone init [--force]       # Install skill to ~/.claude/skills/
+design-clone verify               # Check installation status
+design-clone update [--force]     # Update to latest version
+design-clone uninstall [--yes]    # Remove skill installation
+design-clone --version            # Show version
+design-clone help                 # Show usage help
 ```
 
 ## Troubleshooting

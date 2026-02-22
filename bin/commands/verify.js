@@ -2,18 +2,16 @@
  * Verify command - check installation status
  */
 
-import fs from 'fs/promises';
 import path from 'path';
 import { exists } from '../utils/copy.js';
 import { runAllChecks } from '../utils/validate.js';
-
-const getSkillDir = () => path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude/skills/design-clone');
+import { getSkillDest } from '../utils/paths.js';
 
 /**
  * Verify skill installation
  */
 export async function verify() {
-  const SKILL_DIR = getSkillDir();
+  const SKILL_DIR = getSkillDest();
   let allOk = true;
 
   console.log('design-clone skill verification\n');

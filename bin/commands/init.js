@@ -9,16 +9,13 @@ import { exec as execCallback } from 'child_process';
 import { promisify } from 'util';
 import { copyRecursive, exists } from '../utils/copy.js';
 import { runAllChecks } from '../utils/validate.js';
+import { getSkillDest, getCommandsDest } from '../utils/paths.js';
 
 const exec = promisify(execCallback);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Source: package root (where SKILL.md is)
 const SKILL_SOURCE = path.resolve(__dirname, '../..');
-// Destination: ~/.claude/skills/design-clone
-const getSkillDest = () => path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude/skills/design-clone');
-// Commands destination: ~/.claude/commands/design/
-const getCommandsDest = () => path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude/commands/design');
 
 /**
  * Install skill to Claude Code skills directory
