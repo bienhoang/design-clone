@@ -2,7 +2,7 @@
 
 **Project Version:** 2.1.0
 **Status:** Phase 3 Complete - Production Ready
-**Last Updated:** February 5, 2026
+**Last Updated:** February 23, 2026
 
 ---
 
@@ -570,7 +570,7 @@ hover-states/
 | Component | Technology | Rationale |
 |-----------|-----------|-----------|
 | CLI | Node.js + yargs | Fast, cross-platform |
-| Automation | Playwright | Multi-browser, modern API |
+| Automation | Playwright (dependency) | Multi-browser, modern API |
 | HTML Parsing | jsdom, cheerio | Flexible DOM manipulation |
 | CSS Processing | PostCSS, PurgeCSS | Industry standard |
 | Python Scripts | Python 3.9+ | AI SDK compatibility |

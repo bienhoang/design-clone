@@ -1,7 +1,7 @@
 # Design Clone Code Standards & Guidelines
 
 **Version:** 2.1.0
-**Last Updated:** February 5, 2026
+**Last Updated:** February 23, 2026
 
 ## Overview
 
@@ -518,7 +518,8 @@ design-clone/
 │   │   ├── browser.js
 │   │   ├── env.js / env.py
 │   │   ├── helpers.js
-│   │   └── playwright.js
+│   │   ├── playwright.js
+│   │   └── log.js              # Centralized logging (Feb 23)
 │   │
 │   └── route-discoverers/      # Framework detection
 │       ├── base-discoverer.js
@@ -546,6 +547,19 @@ design-clone/
 - Separate concerns across modules
 - Use dependency injection for testability
 - Import directly from module files using relative paths
+- Use centralized logging (src/utils/log.js) instead of console.log
+
+**Companion Module Pattern (Feb 23):**
+
+When a module grows beyond 150-200 LOC with repetitive logic, decompose using companion modules:
+- `module.js` - Main orchestrator (stable API)
+- `module-feature.js` - Specific feature extraction
+- `module-output.js` - Output formatting
+- `module-mappings.js` - Mapping tables/rules
+
+**Examples:**
+- `semantic-enhancer.js` → `semantic-enhancer-page.js`, `semantic-enhancer-mappings.js`
+- `dimension-extractor.js` → `dimension-extractor-card-detector.js`, `dimension-output.js`, `dimension-output-ai-summary.js`
 
 **Example Dependency Structure:**
 ```
@@ -555,7 +569,7 @@ Workflow Layer (clone, clone-px, clone-site, figma-to-code)
   ↓
 Core Engines (capture/, css/, discovery/, etc. via direct imports)
   ↓
-Utilities (browser, env, helpers, log)
+Utilities (browser, env, helpers, log, playwright)
 ```
 
 ---
