@@ -16,7 +16,7 @@ import { dismissCookieBanner } from '../page-prep/cookie-handler.js';
 import { VIEWPORTS } from '../../shared/viewports.js';
 import { TIMING } from '../../shared/config.js';
 
-export { filterCssFile };
+export { filterCssFile, VIEWPORTS };
 
 export const VIEWPORT_SETTLE_DELAY = TIMING.VIEWPORT_SETTLE_DELAY;
 export const NETWORK_IDLE_TIMEOUT = TIMING.NETWORK_IDLE_TIMEOUT;

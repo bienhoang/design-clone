@@ -197,27 +197,44 @@ test('semantic-enhancer.js file exists', () => {
   assertTrue(fs.existsSync(filePath), 'semantic-enhancer.js should exist');
 });
 
-test('semantic-enhancer.js exports SEMANTIC_MAPPINGS', () => {
+test('semantic-enhancer.js imports from mappings companion module', () => {
   const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
   const content = fs.readFileSync(filePath, 'utf-8');
+  assertContains(content, "from './semantic-enhancer-mappings.js'", 'Should import from mappings module');
+  assertContains(content, 'SEMANTIC_MAPPINGS', 'Should import SEMANTIC_MAPPINGS');
+  assertContains(content, 'detectSectionType', 'Should import detectSectionType');
+  assertContains(content, 'applySemanticAttributes', 'Should import applySemanticAttributes');
+  assertContains(content, 'handleMultipleNavs', 'Should import handleMultipleNavs');
+});
+
+test('semantic-enhancer.js re-exports from page companion module', () => {
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const content = fs.readFileSync(filePath, 'utf-8');
+  assertContains(content, "from './semantic-enhancer-page.js'", 'Should re-export from page module');
+  assertContains(content, 'enhanceSemanticHTMLInPage', 'Should re-export enhanceSemanticHTMLInPage');
+});
+
+test('semantic-enhancer-mappings.js defines SEMANTIC_MAPPINGS', () => {
+  const mappingsPath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
+  const content = fs.readFileSync(mappingsPath, 'utf-8');
   assertContains(content, 'export const SEMANTIC_MAPPINGS', 'Should export SEMANTIC_MAPPINGS');
 });
 
-test('semantic-enhancer.js exports detectSectionType function', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
-  const content = fs.readFileSync(filePath, 'utf-8');
+test('semantic-enhancer-mappings.js defines detectSectionType', () => {
+  const mappingsPath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
+  const content = fs.readFileSync(mappingsPath, 'utf-8');
   assertContains(content, 'export function detectSectionType', 'Should export detectSectionType');
 });
 
-test('semantic-enhancer.js exports applySemanticAttributes function', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
-  const content = fs.readFileSync(filePath, 'utf-8');
+test('semantic-enhancer-mappings.js defines applySemanticAttributes', () => {
+  const mappingsPath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
+  const content = fs.readFileSync(mappingsPath, 'utf-8');
   assertContains(content, 'export function applySemanticAttributes', 'Should export applySemanticAttributes');
 });
 
-test('semantic-enhancer.js exports handleMultipleNavs function', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
-  const content = fs.readFileSync(filePath, 'utf-8');
+test('semantic-enhancer-mappings.js defines handleMultipleNavs', () => {
+  const mappingsPath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
+  const content = fs.readFileSync(mappingsPath, 'utf-8');
   assertContains(content, 'export function handleMultipleNavs', 'Should export handleMultipleNavs');
 });
 
@@ -227,9 +244,9 @@ test('semantic-enhancer.js exports enhanceSemanticHTML function', () => {
   assertContains(content, 'export function enhanceSemanticHTML', 'Should export enhanceSemanticHTML');
 });
 
-test('semantic-enhancer.js exports enhanceSemanticHTMLInPage function', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
-  const content = fs.readFileSync(filePath, 'utf-8');
+test('semantic-enhancer-page.js defines enhanceSemanticHTMLInPage', () => {
+  const pagePath = path.join(__dirname, '../src/core/html/semantic-enhancer-page.js');
+  const content = fs.readFileSync(pagePath, 'utf-8');
   assertContains(content, 'export async function enhanceSemanticHTMLInPage', 'Should export enhanceSemanticHTMLInPage');
 });
 
@@ -283,93 +300,93 @@ test('SEMANTIC_MAPPINGS contains hero mapping', async () => {
   assertEquals(SEMANTIC_MAPPINGS.hero.role, null, 'hero role should be null (no ARIA landmark role)');
 });
 
-// ===== detectSectionType tests =====
+// ===== detectSectionType tests (in semantic-enhancer-mappings.js) =====
 
 test('detectSectionType detects semantic header tag', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (tag === 'header') return 'header'", 'Should detect semantic header tag');
 });
 
 test('detectSectionType detects semantic nav tag', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (tag === 'nav') return 'nav'", 'Should detect semantic nav tag');
 });
 
 test('detectSectionType detects semantic main tag', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (tag === 'main') return 'main'", 'Should detect semantic main tag');
 });
 
 test('detectSectionType detects semantic aside tag', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (tag === 'aside') return 'sidebar'", 'Should detect semantic aside tag as sidebar');
 });
 
 test('detectSectionType detects semantic footer tag', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (tag === 'footer') return 'footer'", 'Should detect semantic footer tag');
 });
 
 test('detectSectionType detects aria role banner', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (ariaRole === 'banner') return 'header'", 'Should detect role=banner as header');
 });
 
 test('detectSectionType detects aria role navigation', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (ariaRole === 'navigation') return 'nav'", 'Should detect role=navigation as nav');
 });
 
 test('detectSectionType detects aria role main', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (ariaRole === 'main') return 'main'", 'Should detect role=main');
 });
 
 test('detectSectionType detects aria role complementary', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (ariaRole === 'complementary') return 'sidebar'", 'Should detect role=complementary as sidebar');
 });
 
 test('detectSectionType detects aria role contentinfo', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (ariaRole === 'contentinfo') return 'footer'", 'Should detect role=contentinfo as footer');
 });
 
 test('detectSectionType detects class patterns for all section types', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'CLASS_PATTERNS', 'Should have CLASS_PATTERNS defined');
   assertContains(content, "patterns.some(pattern => className.includes(pattern))", 'Should match class patterns');
 });
 
-// ===== applySemanticAttributes tests =====
+// ===== applySemanticAttributes tests (in semantic-enhancer-mappings.js) =====
 
 test('applySemanticAttributes adds ID when missing', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'if (!element.id && mapping.id)', 'Should add ID only if missing');
   assertContains(content, 'element.id = targetId', 'Should set element ID');
 });
 
 test('applySemanticAttributes handles ID duplication', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'if (usedIds.has(targetId))', 'Should check for ID duplication');
   assertContains(content, 'usedIds.add(targetId)', 'Should track used IDs');
 });
 
 test('applySemanticAttributes appends classes', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'element.className.toString().split', 'Should split existing classes');
   assertContains(content, 'filter(c => !existingClasses.includes(c))', 'Should avoid duplicate classes');
@@ -377,40 +394,40 @@ test('applySemanticAttributes appends classes', () => {
 });
 
 test('applySemanticAttributes sets role when missing', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "if (mapping.role && !element.getAttribute('role')", 'Should set role only if missing');
   assertContains(content, "element.setAttribute('role', mapping.role)", 'Should set ARIA role');
 });
 
-// ===== handleMultipleNavs tests =====
+// ===== handleMultipleNavs tests (in semantic-enhancer-mappings.js) =====
 
 test('handleMultipleNavs labels Primary Menu', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "'Primary Menu'", 'Should label first nav as Primary Menu');
 });
 
 test('handleMultipleNavs labels Footer Menu', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "'Footer Menu'", 'Should label footer nav as Footer Menu');
 });
 
 test('handleMultipleNavs detects header navigation', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "nav.closest?.('header')", 'Should detect if nav is in header');
 });
 
 test('handleMultipleNavs detects footer navigation', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "nav.closest?.('footer')", 'Should detect if nav is in footer');
 });
 
 test('handleMultipleNavs sets aria-labels', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-mappings.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, "nav.setAttribute('aria-label'", 'Should set aria-label on nav elements');
 });
@@ -486,35 +503,35 @@ test('enhanceSemanticHTML returns stats and html', () => {
   assertContains(content, 'return { html: enhancedHtml, stats }', 'Should return html and stats object');
 });
 
-// ===== enhanceSemanticHTMLInPage tests =====
+// ===== enhanceSemanticHTMLInPage tests (in semantic-enhancer-page.js) =====
 
 test('enhanceSemanticHTMLInPage is async function', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-page.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'export async function enhanceSemanticHTMLInPage', 'Should be async function');
 });
 
 test('enhanceSemanticHTMLInPage uses page.evaluate', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-page.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'page.evaluate((htmlStr)', 'Should use page.evaluate for browser context');
 });
 
 test('enhanceSemanticHTMLInPage accepts Page and html parameters', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-page.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, '@param {import(\'playwright\').Page} page', 'Should accept Playwright Page');
   assertContains(content, '@param {string} html', 'Should accept HTML string');
 });
 
 test('enhanceSemanticHTMLInPage returns Promise of stats and html', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-page.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, '@returns {Promise<{html: string, stats: Object}>}', 'Should return Promise with html and stats');
 });
 
 test('enhanceSemanticHTMLInPage redefines functions in browser context', () => {
-  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer.js');
+  const filePath = path.join(__dirname, '../src/core/html/semantic-enhancer-page.js');
   const content = fs.readFileSync(filePath, 'utf-8');
   assertContains(content, 'const SEMANTIC_MAPPINGS = {', 'Should redefine SEMANTIC_MAPPINGS in browser context');
   assertContains(content, 'function detectSectionType(element)', 'Should redefine detectSectionType in browser context');
