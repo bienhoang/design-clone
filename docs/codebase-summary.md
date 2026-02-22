@@ -123,7 +123,7 @@ design-clone/
 ## Core Modules (Organized by Feature Domain)
 
 ### capture/ - Screenshot Pipeline
-Multi-viewport screenshot capture with Playwright (7 modules + barrel export).
+Multi-viewport screenshot capture with Playwright (7 modules).
 
 **Key Modules:**
 - `screenshot.js` - Multi-viewport capture orchestrator
@@ -142,7 +142,7 @@ Multi-viewport screenshot capture with Playwright (7 modules + barrel export).
 **Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source.css`
 
 ### css/ - CSS Processing
-Remove unused CSS rules and handle stylesheet optimization (7 modules + barrel export).
+Remove unused CSS rules and handle stylesheet optimization (7 modules).
 
 **Key Modules:**
 - `filter-css.js` - Main CSS filtering orchestrator
@@ -162,7 +162,7 @@ Remove unused CSS rules and handle stylesheet optimization (7 modules + barrel e
 **Impact:** 40-60% CSS size reduction on average
 
 ### media/ - Asset Extraction
-Download images, fonts, and icons from websites (5 modules + barrel export).
+Download images, fonts, and icons from websites (5 modules).
 
 **Key Modules:**
 - `extract-assets.js` - Orchestrator
@@ -181,7 +181,7 @@ Download images, fonts, and icons from websites (5 modules + barrel export).
 **Output:** `assets/images/`, `assets/fonts/`, `assets/icons/`, `assets/videos/`
 
 ### discovery/ - Page & Framework Detection
-Discover pages and detect framework routing patterns (9 modules + barrel export).
+Discover pages and detect framework routing patterns (9 modules).
 
 **Key Modules:**
 - `discover-pages.js` - Navigation discovery orchestrator
@@ -197,7 +197,7 @@ Discover pages and detect framework routing patterns (9 modules + barrel export)
 **Framework Support:** React, Vue, Angular, Svelte, Next.js, Nuxt.js, Astro
 
 ### animation/ - Animation & Hover States
-Extract and manage animations and interactive states (5 modules + barrel export).
+Extract and manage animations and interactive states (5 modules).
 
 **Key Modules:**
 - `animation-extractor.js` - Orchestrator
@@ -207,7 +207,7 @@ Extract and manage animations and interactive states (5 modules + barrel export)
 - `state-capture-detection.js` - Interactive element detection
 
 ### html/ - HTML Processing
-Extract and enhance HTML semantics (5 modules + barrel export).
+Extract and enhance HTML semantics (5 modules).
 
 **Key Modules:**
 - `html-extractor.js` - Main extractor
@@ -217,7 +217,7 @@ Extract and enhance HTML semantics (5 modules + barrel export).
 - `semantic-enhancer-mappings.js` - Semantic mapping rules
 
 ### dimension/ - DOM Structure Analysis
-Analyze layout and dimensional properties (6 modules + barrel export).
+Analyze layout and dimensional properties (6 modules).
 
 **Key Modules:**
 - `dimension-extractor.js` - Orchestrator
@@ -228,7 +228,7 @@ Analyze layout and dimensional properties (6 modules + barrel export).
 - `dom-tree-analyzer-tree-builders.js` - Tree building logic
 
 ### section/ - Section Detection & Cropping
-Detect page sections and generate section-based crops (5 modules + barrel export).
+Detect page sections and generate section-based crops (5 modules).
 
 **Key Modules:**
 - `section-detector.js` - Detection orchestrator
@@ -238,7 +238,7 @@ Detect page sections and generate section-based crops (5 modules + barrel export
 - `section-cropper-helpers.js` - Helper functions
 
 ### page-prep/ - Page Readiness
-Prepare pages for extraction (3 modules + barrel export).
+Prepare pages for extraction (3 modules).
 
 **Key Modules:**
 - `page-readiness.js` - Readiness checks
@@ -246,37 +246,18 @@ Prepare pages for extraction (3 modules + barrel export).
 - `lazy-loader.js` - Lazy loading triggers
 
 ### content/ - Content Analysis
-Analyze page content (2 modules + barrel export).
+Analyze page content (2 modules).
 
 **Key Modules:**
 - `content-counter.js` - Content metrics
 - `content-counter-dom.js` - DOM-based counting
 
 ### links/ - Link Rewriting
-Rewrite internal links for cloned sites (2 modules + barrel export).
+Rewrite internal links for cloned sites (2 modules).
 
 **Key Modules:**
 - `rewrite-links.js` - Orchestrator
 - `rewrite-links-css-rewriter.js` - CSS link rewriting
-
-### Barrel Exports Pattern
-
-Each subdirectory includes an `index.js` file that exports all public APIs:
-
-```javascript
-// src/core/capture/index.js
-module.exports = {
-  captureViewports: require('./screenshot').captureViewports,
-  extractHTML: require('./screenshot').extractHTML,
-  extractCSS: require('./screenshot').extractCSS,
-  // ... all other public exports
-};
-
-// Usage in other modules
-const { captureViewports, extractHTML } = require('./core/capture');
-```
-
-This enables clean imports and centralizes API surface for each domain.
 
 ### AI Prompt Templates (src/ai/prompts/)
 Claude Code vision-based design analysis via markdown prompt templates.

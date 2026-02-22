@@ -14,6 +14,7 @@ import { captureAllHoverStates, generateHoverCss } from '../animation/state-capt
 import { captureVideo, hasFfmpeg, FFMPEG_REQUIRED_FORMATS } from '../media/video-capture.js';
 import { buildDimensionsOutput, generateAISummary } from '../dimension/dimension-output.js';
 import { VIEWPORTS } from '../../shared/viewports.js';
+import { logInfo, logWarn } from '../../utils/log.js';
 
 /**
  * Capture hover states with headed→headless fallback.
@@ -34,7 +35,7 @@ export async function runHoverCapture(
         hoverResult = await captureAllHoverStates(browserMgr.getPage(), await readCss(), output);
         hoverCaptureSuccess = hoverResult.captured > 0;
       } catch (headedError) {
-        if (process.stderr.isTTY) console.error(`[WARN] Headed hover capture failed, switching to headless: ${headedError.message}`);
+        logWarn(`Headed hover capture failed, switching to headless: ${headedError.message}`);
       }
     }
 
@@ -48,13 +49,13 @@ export async function runHoverCapture(
       await fs.writeFile(hoverCssPath, generateHoverCss(hoverResult.elements), 'utf-8');
       hoverResult.generatedCss = path.resolve(hoverCssPath);
     }
-    if (process.stderr.isTTY && hoverResult) console.error(`[INFO] Hover states: ${hoverResult.captured}/${hoverResult.detected} captured`);
+    if (hoverResult) logInfo(`Hover states: ${hoverResult.captured}/${hoverResult.detected} captured`);
     if (!wasHeadless && browserMgr.getCurrentHeadless() && requestedViewports.some(v => !getHeadlessForViewport(v))) {
       await initBrowser(false, url);
     }
     return hoverResult;
   } catch (error) {
-    if (process.stderr.isTTY) console.error(`[WARN] Hover capture failed: ${error.message}`);
+    logWarn(`Hover capture failed: ${error.message}`);
     return { error: error.message, failed: true };
   }
 }
@@ -64,9 +65,9 @@ export async function runVideoCapture(browserMgr, output, videoFormat, videoDura
   try {
     if (FFMPEG_REQUIRED_FORMATS.includes(videoFormat)) {
       const hasFf = await hasFfmpeg();
-      if (!hasFf && process.stderr.isTTY) {
-        console.error(`[WARN] ffmpeg not found. Will output WebM instead of ${videoFormat}`);
-        console.error('[WARN] Install: npm install fluent-ffmpeg @ffmpeg-installer/ffmpeg');
+      if (!hasFf) {
+        logWarn(`ffmpeg not found. Will output WebM instead of ${videoFormat}`);
+        logWarn('Install: npm install fluent-ffmpeg @ffmpeg-installer/ffmpeg');
       }
     }
 
@@ -74,9 +75,7 @@ export async function runVideoCapture(browserMgr, output, videoFormat, videoDura
     await videoPage.setViewportSize(VIEWPORTS.desktop);
     await new Promise(r => setTimeout(r, 1000));
 
-    if (process.stderr.isTTY) {
-      console.error(`[INFO] Recording video (${videoDuration / 1000}s)...`);
-    }
+    logInfo(`Recording video (${videoDuration / 1000}s)...`);
 
     const videoResult = await captureVideo(videoPage, output, {
       format: videoFormat,
@@ -84,16 +83,12 @@ export async function runVideoCapture(browserMgr, output, videoFormat, videoDura
       filename: 'preview'
     });
 
-    if (process.stderr.isTTY) {
-      const outputFormat = videoResult.output.split('.').pop();
-      console.error(`[INFO] Video saved: ${outputFormat} (${(videoResult.duration / 1000).toFixed(1)}s)`);
-    }
+    const outputFormat = videoResult.output.split('.').pop();
+    logInfo(`Video saved: ${outputFormat} (${(videoResult.duration / 1000).toFixed(1)}s)`);
 
     return videoResult;
   } catch (error) {
-    if (process.stderr.isTTY) {
-      console.error(`[WARN] Video capture failed: ${error.message}`);
-    }
+    logWarn(`Video capture failed: ${error.message}`);
     return { error: error.message, failed: true };
   }
 }
@@ -108,7 +103,7 @@ export async function runSectionCapture(browserMgr, desktopScreenshot, output) {
     await sectionPage.setViewportSize(VIEWPORTS.desktop);
     await new Promise(r => setTimeout(r, 500));
 
-    if (process.stderr.isTTY) console.error('[INFO] Detecting sections...');
+    logInfo('Detecting sections...');
 
     const sections = await detectSections(sectionPage, {
       padding: 40,
@@ -116,15 +111,11 @@ export async function runSectionCapture(browserMgr, desktopScreenshot, output) {
       fallbackToViewport: true
     });
 
-    if (process.stderr.isTTY) {
-      console.error(`[INFO] Found ${sections.length} sections, cropping...`);
-    }
+    logInfo(`Found ${sections.length} sections, cropping...`);
 
     const croppedResult = await cropSections(desktopScreenshot.path, sections, output);
 
-    if (process.stderr.isTTY) {
-      console.error(`[INFO] Sections: ${croppedResult.sections.length} cropped, ${croppedResult.skipped.length} skipped`);
-    }
+    logInfo(`Sections: ${croppedResult.sections.length} cropped, ${croppedResult.skipped.length} skipped`);
 
     return {
       enabled: true,
@@ -141,9 +132,7 @@ export async function runSectionCapture(browserMgr, desktopScreenshot, output) {
       summary: croppedResult.summary
     };
   } catch (err) {
-    if (process.stderr.isTTY) {
-      console.error(`[WARN] Section processing failed: ${err.message}`);
-    }
+    logWarn(`Section processing failed: ${err.message}`);
     return { enabled: true, error: err.message };
   }
 }
@@ -169,7 +158,7 @@ export async function runDimensionOutput(screenshots, url, output) {
   const sum = (key) => vpValues.reduce((s, vp) => s + (vp[key]?.length || 0), 0);
   const stats = { containers: sum('containers'), cards: sum('cards'), gridLayouts: sum('gridLayouts'), typography: sum('typography') };
 
-  if (process.stderr.isTTY) console.error(`[INFO] Extracted: ${stats.containers} containers, ${stats.cards} card groups, ${stats.gridLayouts} grid layouts`);
+  logInfo(`Extracted: ${stats.containers} containers, ${stats.cards} card groups, ${stats.gridLayouts} grid layouts`);
 
   return { dimensionsOutput, dimensionsPath: path.resolve(dimensionsPath), summaryPath: path.resolve(summaryPath), stats };
 }
@@ -179,9 +168,7 @@ export async function writeDomHierarchy(desktopScreenshot, output) {
   if (!desktopScreenshot?.domHierarchy) return null;
   const hierarchyPath = path.join(output, 'dom-hierarchy.json');
   await fs.writeFile(hierarchyPath, JSON.stringify(desktopScreenshot.domHierarchy, null, 2));
-  if (process.stderr.isTTY) {
-    const s = desktopScreenshot.domHierarchy.stats || {};
-    console.error(`[INFO] DOM hierarchy: ${s.totalNodes || 0} nodes, ${s.landmarkCount || 0} landmarks, ${s.extractionTimeMs || 0}ms`);
-  }
+  const s = desktopScreenshot.domHierarchy.stats || {};
+  logInfo(`DOM hierarchy: ${s.totalNodes || 0} nodes, ${s.landmarkCount || 0} landmarks, ${s.extractionTimeMs || 0}ms`);
   return path.resolve(hierarchyPath);
 }

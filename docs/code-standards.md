@@ -476,17 +476,17 @@ design-clone/
 │
 ├── src/
 │   ├── core/                   # Core extraction engines (11 semantic subdirectories)
-│   │   ├── capture/            # Screenshot pipeline (7 modules + index)
-│   │   ├── css/                # CSS processing (7 modules + index)
-│   │   ├── html/               # HTML extraction (5 modules + index)
-│   │   ├── animation/          # Animation & hover states (5 modules + index)
-│   │   ├── discovery/          # Page & framework detection (9 modules + index)
-│   │   ├── dimension/          # DOM analysis (6 modules + index)
-│   │   ├── section/            # Section detection (5 modules + index)
-│   │   ├── media/              # Asset extraction (5 modules + index)
-│   │   ├── page-prep/          # Page readiness (3 modules + index)
-│   │   ├── content/            # Content analysis (2 modules + index)
-│   │   ├── links/              # URL rewriting (2 modules + index)
+│   │   ├── capture/            # Screenshot pipeline (7 modules)
+│   │   ├── css/                # CSS processing (7 modules)
+│   │   ├── html/               # HTML extraction (5 modules)
+│   │   ├── animation/          # Animation & hover states (5 modules)
+│   │   ├── discovery/          # Page & framework detection (9 modules)
+│   │   ├── dimension/          # DOM analysis (6 modules)
+│   │   ├── section/            # Section detection (5 modules)
+│   │   ├── media/              # Asset extraction (5 modules)
+│   │   ├── page-prep/          # Page readiness (3 modules)
+│   │   ├── content/            # Content analysis (2 modules)
+│   │   ├── links/              # URL rewriting (2 modules)
 │   │   └── tests/              # Core tests (2 modules)
 │   │
 │   ├── figma/                  # Figma-to-code pipeline
@@ -538,24 +538,6 @@ design-clone/
 └── prd/                        # Product requirements
 ```
 
-### Barrel Export Pattern
-
-Core modules use `index.js` files to export public APIs:
-
-```javascript
-// src/core/capture/index.js - exports all public functions
-module.exports = {
-  captureViewports: require('./screenshot').captureViewports,
-  extractHTML: require('./screenshot').extractHTML,
-  extractCSS: require('./screenshot').extractCSS,
-};
-
-// Import from barrel exports, not internal modules
-const { captureViewports } = require('./core/capture');
-```
-
-**Benefits:** Centralizes API surface, hides implementation, simplifies refactoring.
-
 ### Module Dependencies
 
 **Guidelines:**
@@ -563,7 +545,7 @@ const { captureViewports } = require('./core/capture');
 - Organize imports: external → local
 - Separate concerns across modules
 - Use dependency injection for testability
-- Import from barrel exports, not internal modules
+- Import directly from module files using relative paths
 
 **Example Dependency Structure:**
 ```
@@ -571,9 +553,9 @@ CLI Layer
   ↓
 Workflow Layer (clone, clone-px, clone-site, figma-to-code)
   ↓
-Core Engines (capture/, css/, discovery/, etc. via barrel exports)
+Core Engines (capture/, css/, discovery/, etc. via direct imports)
   ↓
-Utilities (browser, env, helpers)
+Utilities (browser, env, helpers, log)
 ```
 
 ---

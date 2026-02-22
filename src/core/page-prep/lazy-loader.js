@@ -84,50 +84,48 @@ export async function forceAnimatedElementsVisible(page) {
  */
 export async function triggerLazyLoad(page, maxIterations = 20, scrollDelay = 1500) {
   return await page.evaluate(async ({ maxIter, pauseMs }) => {
-    return new Promise(async (resolve) => {
-      const viewportHeight = window.innerHeight;
-      const totalHeight = document.body.scrollHeight;
-      const scrollStep = viewportHeight * 0.5;
-      const pauseTime = pauseMs;
+    const viewportHeight = window.innerHeight;
+    const totalHeight = document.body.scrollHeight;
+    const scrollStep = viewportHeight * 0.5;
+    const pauseTime = pauseMs;
 
-      let position = 0;
-      let iterations = 0;
+    let position = 0;
+    let iterations = 0;
 
-      // First pass: scroll through entire page
-      while (position < totalHeight && iterations < maxIter) {
-        window.scrollTo({ top: position, behavior: 'instant' });
-        await new Promise(r => setTimeout(r, pauseTime));
-        position += scrollStep;
-        iterations++;
-      }
+    // First pass: scroll through entire page
+    while (position < totalHeight && iterations < maxIter) {
+      window.scrollTo({ top: position, behavior: 'instant' });
+      await new Promise(r => setTimeout(r, pauseTime));
+      position += scrollStep;
+      iterations++;
+    }
 
-      // Scroll to bottom
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
-      await new Promise(r => setTimeout(r, 1000));
+    // Scroll to bottom
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' });
+    await new Promise(r => setTimeout(r, 1000));
 
-      // Second pass: scroll back up
-      position = document.body.scrollHeight;
-      while (position > 0) {
-        position -= scrollStep;
-        window.scrollTo({ top: Math.max(0, position), behavior: 'instant' });
-        await new Promise(r => setTimeout(r, 300));
-      }
+    // Second pass: scroll back up
+    position = document.body.scrollHeight;
+    while (position > 0) {
+      position -= scrollStep;
+      window.scrollTo({ top: Math.max(0, position), behavior: 'instant' });
+      await new Promise(r => setTimeout(r, 300));
+    }
 
-      // Return to top
+    // Return to top
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    await new Promise(r => setTimeout(r, 1500));
+
+    if (window.scrollY !== 0) {
       window.scrollTo({ top: 0, behavior: 'instant' });
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 500));
+    }
 
-      if (window.scrollY !== 0) {
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        await new Promise(r => setTimeout(r, 500));
-      }
-
-      resolve({
-        scrolled: iterations,
-        height: document.body.scrollHeight,
-        stableAt: iterations
-      });
-    });
+    return {
+      scrolled: iterations,
+      height: document.body.scrollHeight,
+      stableAt: iterations
+    };
   }, { maxIter: maxIterations, pauseMs: scrollDelay });
 }
 

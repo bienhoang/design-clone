@@ -14,6 +14,7 @@
 
 import path from 'path';
 import fs from 'fs/promises';
+import { logInfo } from '../../utils/log.js';
 
 import {
   detectInteractiveElements,
@@ -50,13 +51,7 @@ function toKebabCase(str) {
   return str.replace(/([A-Z])/g, '-$1').toLowerCase();
 }
 
-/** Log to stderr if TTY. Level: 'error'|'warn'|'info'. */
-function log(level, message) {
-  if (process.stderr.isTTY) {
-    const prefix = level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN]' : '[INFO]';
-    console.error(`${prefix} ${message}`);
-  }
-}
+// Logging via centralized utils/log.js
 
 /** Capture computed styles for STYLE_PROPERTIES on a given selector. */
 async function captureElementStyles(page, selector) {
@@ -160,7 +155,7 @@ export async function captureAllHoverStates(page, cssString, outputDir) {
     const selector = interactive.combined[i];
     const result = await captureHoverState(page, selector, hoverDir, i);
     elements.push(result);
-    if (result.success) { capturedCount++; log('info', `[hover] ${capturedCount}: ${selector}`); }
+    if (result.success) { capturedCount++; logInfo(`[hover] ${capturedCount}: ${selector}`); }
   }
 
   const summaryPath = path.join(hoverDir, 'hover-diff.json');

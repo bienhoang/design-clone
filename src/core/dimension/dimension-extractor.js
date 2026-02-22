@@ -13,6 +13,13 @@
 
 import { calculateSimilarity, detectLayoutType, calculateGap } from './dimension-extractor-card-detector.js';
 
+// Section detection thresholds (passed into browser context)
+const HERO_THRESHOLD = 0.25;
+const FOOTER_THRESHOLD = 0.85;
+const SIDEBAR_MAX_WIDTH = 400;
+const MAX_BUTTONS = 10;
+const MAX_IMAGES = 15;
+
 /**
  * Extract component dimensions from page.
  * @param {import('playwright').Page} page
@@ -20,13 +27,17 @@ import { calculateSimilarity, detectLayoutType, calculateGap } from './dimension
  * @returns {Promise<Object>}
  */
 export async function extractComponentDimensions(page, viewportName) {
+  const thresholds = { HERO_THRESHOLD, FOOTER_THRESHOLD, SIDEBAR_MAX_WIDTH, MAX_BUTTONS, MAX_IMAGES };
+
   // Pass 1: containers, typography, buttons, images
-  const results = await page.evaluate((vpName) => {
+  const results = await page.evaluate(({ vpName, th }) => {
     const data = {
       viewport: vpName,
       extractedAt: new Date().toISOString(),
       containers: [], cards: [], typography: [], buttons: [], images: []
     };
+
+    // --- Shared helpers (browser context) ---
 
     function extractDimensions(el) {
       const r = el.getBoundingClientRect(), cs = window.getComputedStyle(el);
@@ -61,7 +72,6 @@ export async function extractComponentDimensions(page, viewportName) {
       );
     }
 
-    const HERO_THRESHOLD = 0.25, FOOTER_THRESHOLD = 0.85, SIDEBAR_MAX_WIDTH = 400;
     const pageHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
 
     function detectSection(el) {
@@ -71,114 +81,124 @@ export async function extractComponentDimensions(page, viewportName) {
       if (tag === 'footer' || el.closest('footer')) return 'footer';
       if (tag === 'aside'  || el.closest('aside'))  return 'sidebar';
       if (tag === 'nav'    || el.closest('nav'))     return 'nav';
-      if (yr < HERO_THRESHOLD && r.height > 300) return 'hero';
-      if (yr > FOOTER_THRESHOLD) return 'footer';
-      if ((cs.position === 'fixed' || cs.position === 'sticky') && r.width < SIDEBAR_MAX_WIDTH) return 'sidebar';
+      if (yr < th.HERO_THRESHOLD && r.height > 300) return 'hero';
+      if (yr > th.FOOTER_THRESHOLD) return 'footer';
+      if ((cs.position === 'fixed' || cs.position === 'sticky') && r.width < th.SIDEBAR_MAX_WIDTH) return 'sidebar';
       return 'content';
     }
 
-    // 1. Containers
-    const containerSelectors = [
-      'section','main','article','header','footer',
-      '[role="main"]','[role="region"]',
-      'div[class*="container"]','div[class*="wrapper"]',
-      'div[class*="section"]','div[class*="content"]',
-      'div[class*="grid"]','div[class*="card"]'
-    ];
-    const seenContainers = new Set();
-    containerSelectors.forEach(sel => {
-      try {
-        document.querySelectorAll(sel).forEach(el => {
-          if (seenContainers.has(el)) return;
-          const rect = el.getBoundingClientRect();
-          if (rect.width < 100 || rect.height < 50) return;
-          const children = Array.from(el.children).filter(c => {
-            const cr = c.getBoundingClientRect(); return cr.width > 50 && cr.height > 30;
-          });
-          if (children.length < 2) return;
-          seenContainers.add(el);
-          const dims = extractDimensions(el);
-          dims.selector = el.className
-            ? `.${el.className.split(' ').filter(c => c && !c.includes(':')).slice(0, 2).join('.')}`
-            : el.tagName.toLowerCase();
-          dims.childCount = children.length;
-          dims.section    = detectSection(el);
-          if (children.length >= 2 && (dims.display === 'flex' || dims.display === 'grid')) {
-            const fr = children[0].getBoundingClientRect();
-            const sr = children[1].getBoundingClientRect();
-            const g  = Math.round(dims.flexDirection === 'column' ? sr.top - fr.bottom : sr.left - fr.right);
-            if (g > 0 && g < 200) dims.calculatedGap = g;
-          }
-          data.containers.push(cleanObject(dims));
-        });
-      } catch (e) { /* ignore */ }
-    });
+    // --- Extraction functions ---
 
-    // 2. Typography
-    ['h1','h2','h3','h4','h5','h6','p'].forEach(tag => {
-      try {
-        const els = document.querySelectorAll(tag);
-        if (!els.length) return;
-        const bySection = {};
-        for (const el of els) {
-          const rect = el.getBoundingClientRect();
-          if (rect.width < 50 || rect.height < 10) continue;
-          const section = detectSection(el);
-          const dims    = extractDimensions(el);
-          if (!bySection[section]) bySection[section] = [];
-          if (bySection[section].length < 2) {
-            bySection[section].push({
-              selector: tag, section, fontSize: dims.fontSize, fontWeight: dims.fontWeight,
-              lineHeight: dims.lineHeight, letterSpacing: dims.letterSpacing,
-              color: dims.color, marginTop: dims.marginTop, marginBottom: dims.marginBottom,
-              textSample: el.textContent?.trim().slice(0, 40),
-              y: Math.round(rect.y + window.scrollY)
+    function extractContainers() {
+      const selectors = [
+        'section','main','article','header','footer',
+        '[role="main"]','[role="region"]',
+        'div[class*="container"]','div[class*="wrapper"]',
+        'div[class*="section"]','div[class*="content"]',
+        'div[class*="grid"]','div[class*="card"]'
+      ];
+      const seen = new Set();
+      selectors.forEach(sel => {
+        try {
+          document.querySelectorAll(sel).forEach(el => {
+            if (seen.has(el)) return;
+            const rect = el.getBoundingClientRect();
+            if (rect.width < 100 || rect.height < 50) return;
+            const children = Array.from(el.children).filter(c => {
+              const cr = c.getBoundingClientRect(); return cr.width > 50 && cr.height > 30;
             });
-          }
-        }
-        for (const items of Object.values(bySection)) data.typography.push(...items);
-      } catch (e) { /* ignore */ }
-    });
-    data.typography.sort((a, b) => a.y - b.y);
+            if (children.length < 2) return;
+            seen.add(el);
+            const dims = extractDimensions(el);
+            dims.selector = el.className
+              ? `.${el.className.split(' ').filter(c => c && !c.includes(':')).slice(0, 2).join('.')}`
+              : el.tagName.toLowerCase();
+            dims.childCount = children.length;
+            dims.section    = detectSection(el);
+            if (children.length >= 2 && (dims.display === 'flex' || dims.display === 'grid')) {
+              const fr = children[0].getBoundingClientRect();
+              const sr = children[1].getBoundingClientRect();
+              const g  = Math.round(dims.flexDirection === 'column' ? sr.top - fr.bottom : sr.left - fr.right);
+              if (g > 0 && g < 200) dims.calculatedGap = g;
+            }
+            data.containers.push(cleanObject(dims));
+          });
+        } catch (e) { /* ignore */ }
+      });
+    }
 
-    // 3. Buttons
-    const seenButtons = new Set();
-    ['button','a[class*="btn"]','a[class*="button"]','[role="button"]','input[type="submit"]'].forEach(sel => {
+    function extractTypography() {
+      ['h1','h2','h3','h4','h5','h6','p'].forEach(tag => {
+        try {
+          const els = document.querySelectorAll(tag);
+          if (!els.length) return;
+          const bySection = {};
+          for (const el of els) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width < 50 || rect.height < 10) continue;
+            const section = detectSection(el);
+            const dims    = extractDimensions(el);
+            if (!bySection[section]) bySection[section] = [];
+            if (bySection[section].length < 2) {
+              bySection[section].push({
+                selector: tag, section, fontSize: dims.fontSize, fontWeight: dims.fontWeight,
+                lineHeight: dims.lineHeight, letterSpacing: dims.letterSpacing,
+                color: dims.color, marginTop: dims.marginTop, marginBottom: dims.marginBottom,
+                textSample: el.textContent?.trim().slice(0, 40),
+                y: Math.round(rect.y + window.scrollY)
+              });
+            }
+          }
+          for (const items of Object.values(bySection)) data.typography.push(...items);
+        } catch (e) { /* ignore */ }
+      });
+      data.typography.sort((a, b) => a.y - b.y);
+    }
+
+    function extractButtons() {
+      const seen = new Set();
+      ['button','a[class*="btn"]','a[class*="button"]','[role="button"]','input[type="submit"]'].forEach(sel => {
+        try {
+          document.querySelectorAll(sel).forEach(el => {
+            if (seen.has(el) || data.buttons.length >= th.MAX_BUTTONS) return;
+            const rect = el.getBoundingClientRect();
+            if (rect.width < 40 || rect.height < 20) return;
+            seen.add(el);
+            const dims = extractDimensions(el);
+            data.buttons.push({
+              width: dims.width, height: dims.height,
+              paddingTop: dims.paddingTop, paddingRight: dims.paddingRight,
+              paddingBottom: dims.paddingBottom, paddingLeft: dims.paddingLeft,
+              fontSize: dims.fontSize, fontWeight: dims.fontWeight,
+              borderRadius: dims.borderRadius, backgroundColor: dims.backgroundColor,
+              color: dims.color, text: el.textContent?.trim().slice(0, 30)
+            });
+          });
+        } catch (e) { /* ignore */ }
+      });
+    }
+
+    function extractImages() {
       try {
-        document.querySelectorAll(sel).forEach(el => {
-          if (seenButtons.has(el) || data.buttons.length >= 10) return;
+        document.querySelectorAll('img').forEach(el => {
+          if (data.images.length >= th.MAX_IMAGES) return;
           const rect = el.getBoundingClientRect();
-          if (rect.width < 40 || rect.height < 20) return;
-          seenButtons.add(el);
-          const dims = extractDimensions(el);
-          data.buttons.push({
-            width: dims.width, height: dims.height,
-            paddingTop: dims.paddingTop, paddingRight: dims.paddingRight,
-            paddingBottom: dims.paddingBottom, paddingLeft: dims.paddingLeft,
-            fontSize: dims.fontSize, fontWeight: dims.fontWeight,
-            borderRadius: dims.borderRadius, backgroundColor: dims.backgroundColor,
-            color: dims.color, text: el.textContent?.trim().slice(0, 30)
+          if (rect.width < 80 || rect.height < 80) return;
+          data.images.push({
+            width: Math.round(rect.width), height: Math.round(rect.height),
+            aspectRatio: (rect.width / rect.height).toFixed(2),
+            x: Math.round(rect.x), y: Math.round(rect.y + window.scrollY)
           });
         });
       } catch (e) { /* ignore */ }
-    });
+    }
 
-    // 4. Images
-    try {
-      document.querySelectorAll('img').forEach(el => {
-        if (data.images.length >= 15) return;
-        const rect = el.getBoundingClientRect();
-        if (rect.width < 80 || rect.height < 80) return;
-        data.images.push({
-          width: Math.round(rect.width), height: Math.round(rect.height),
-          aspectRatio: (rect.width / rect.height).toFixed(2),
-          x: Math.round(rect.x), y: Math.round(rect.y + window.scrollY)
-        });
-      });
-    } catch (e) { /* ignore */ }
-
+    extractContainers();
+    extractTypography();
+    extractButtons();
+    extractImages();
     return data;
-  }, viewportName);
+  }, { vpName: viewportName, th: thresholds });
 
   // Pass 2: card patterns + grid layouts (using serialized helpers)
   const helpers = {

@@ -18,6 +18,7 @@ import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, output
 import { parseScreenshotArgs, createBrowserManager } from './screenshot-helpers.js';
 import { runExtractionPipeline } from './screenshot-extraction.js';
 import { runHoverCapture, runVideoCapture, runSectionCapture, runDimensionOutput, writeDomHierarchy } from './screenshot-orchestrator.js';
+import { logInfo } from '../../utils/log.js';
 import { captureViewport } from './screenshot-viewport.js';
 
 // ============================================================================
@@ -70,7 +71,7 @@ async function captureMultiViewport() {
       const viewportHeadless = getHeadlessForViewport(viewport);
       if (browserMgr.getCurrentHeadless() !== viewportHeadless) {
         browserRestarts.push({ viewport, from: browserMgr.getCurrentHeadless() ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
-        if (process.stderr.isTTY) console.error(`[INFO] Switching to ${viewportHeadless ? 'headless' : 'headed'} for ${viewport}`);
+        logInfo(`Switching to ${viewportHeadless ? 'headless' : 'headed'} for ${viewport}`);
         await initBrowser(viewportHeadless, url);
       }
       screenshots.push(await captureViewport({
