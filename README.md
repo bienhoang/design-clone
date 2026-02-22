@@ -104,7 +104,7 @@ cloned-design/
 ## Requirements
 
 - Node.js 18+
-- Playwright (auto-installed with browsers)
+- Playwright + Chromium (auto-installed with `npm install`)
 
 ## CLI Commands
 
@@ -132,10 +132,7 @@ export CHROME_PATH="/path/to/chrome"
 ### Playwright issues
 
 ```bash
-# Install Playwright if not present
-npm install playwright
-
-# Install browsers
+# Install browsers (if not auto-installed)
 npx playwright install chromium
 
 # For Docker/CI environments
