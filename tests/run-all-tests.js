@@ -24,7 +24,8 @@ const tests = [
   { name: 'dom-hierarchy-integration tests', cmd: 'node', args: ['test-dom-hierarchy-integration.js'] },
   { name: 'semantic-enhancer.js tests', cmd: 'node', args: ['test-semantic-enhancer.js'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
-  { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] }
+  { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] },
+  { name: 'CLI utils tests', cmd: 'node', args: ['test-cli-utils.js'] }
 ];
 
 let totalPassed = 0;
