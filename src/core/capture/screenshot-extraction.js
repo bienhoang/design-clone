@@ -16,6 +16,7 @@ import { extractCleanHtml, extractAndEnhanceHtml, JS_FRAMEWORK_PATTERNS, MAX_HTM
 import { extractContentCounts, generateContentSummary } from '../content/content-counter.js';
 import { extractAllCss, MAX_CSS_SIZE } from '../css/css-extractor.js';
 import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from '../animation/animation-extractor.js';
+import { logInfo, logWarn, isTTY } from '../../utils/log.js';
 
 /** Extract and write content counts (grids, repeated items) to output dir. */
 export async function runContentCounting(page, output) {
@@ -25,7 +26,7 @@ export async function runContentCounting(page, output) {
   const contentSummary = generateContentSummary(contentCounts);
   const summaryPath = path.join(output, 'content-summary.md');
   await fs.writeFile(summaryPath, contentSummary, 'utf-8');
-  if (process.stderr.isTTY) console.error(`[INFO] Content counts: ${contentCounts.grids.total} grids, ${contentCounts.repeatedItems.total} items`);
+  logInfo(`Content counts: ${contentCounts.grids.total} grids, ${contentCounts.repeatedItems.total} items`);
   return { path: path.resolve(countsPath), summaryPath: path.resolve(summaryPath), summary: contentCounts.summary };
 }
 
@@ -64,7 +65,7 @@ export async function runCssExtraction(page, url, output) {
 export async function runCssFiltering(htmlPath, cssPath, output) {
   const filteredCssPath = path.join(output, 'source.css');
   const fr = await filterCssFile(htmlPath, cssPath, filteredCssPath, false, output);
-  if (process.stderr.isTTY) console.error(`[INFO] CSS filtered: ${fr.stats.reduction} reduction`);
+  logInfo(`CSS filtered: ${fr.stats.reduction} reduction`);
   return { path: fr.output.path, size: fr.output.size, reduction: fr.stats.reduction, stats: { totalRules: fr.stats.totalRules, keptRules: fr.stats.keptRules, removedRules: fr.stats.removedRules } };
 }
 
@@ -79,7 +80,7 @@ export async function runAnimationExtraction(cssFilePath, output) {
   const animTokens = generateAnimationTokens(animData);
   const animTokensPath = path.join(output, 'animation-tokens.json');
   await fs.writeFile(animTokensPath, JSON.stringify({ keyframes: animData.keyframes, transitions: animData.transitions, animatedElements: animData.animatedElements, summary: animTokens }, null, 2), 'utf-8');
-  if (process.stderr.isTTY) console.error(`[INFO] Animations: ${animTokens.keyframeCount} keyframes, ${animTokens.transitions} transitions`);
+  logInfo(`Animations: ${animTokens.keyframeCount} keyframes, ${animTokens.transitions} transitions`);
   return { path: path.resolve(animPath), tokensPath: path.resolve(animTokensPath), keyframeCount: animTokens.keyframeCount, transitionCount: animTokens.transitions, animatedElementCount: animTokens.animatedElements, tokens: animTokens };
 }
 
@@ -150,8 +151,8 @@ export async function runExtractionPipeline(page, url, output, opts) {
   }
 
   extraction.warnings = extractionWarnings;
-  if (extractionWarnings.length > 0 && process.stderr.isTTY) {
-    extractionWarnings.forEach(w => console.error(`[WARN] ${w}`));
+  if (extractionWarnings.length > 0) {
+    extractionWarnings.forEach(w => logWarn(w));
   }
   return extraction;
 }

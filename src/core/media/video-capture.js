@@ -15,6 +15,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 import { hasFfmpeg, convertToMp4, convertToGif, validatePath, FFMPEG_REQUIRED_FORMATS } from './video-capture-convert.js';
+import { isTTY } from '../../utils/log.js';
 
 const DEFAULT_DURATION = 12000;        // ms
 const DEFAULT_HOLD_MS = 500;           // hold at top/bottom of scroll
@@ -24,7 +25,7 @@ const DEFAULT_VIDEO_VIEWPORT = { width: 1440, height: 900 };
 
 /** Log to stderr when running in TTY. */
 function log(message) {
-  if (process.stderr.isTTY) console.error(message);
+  if (isTTY) console.error(message);
 }
 
 /** Validate that page is a Playwright page instance. */

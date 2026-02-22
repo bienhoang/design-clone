@@ -33,19 +33,19 @@ design-clone/
 │       ├── init.js               # Installation setup
 │       └── verify.js             # Verification checks
 ├── src/
-│   ├── core/                     # Core extraction engines
-│   │   ├── screenshot.js         # Multi-viewport capture
-│   │   ├── filter-css.js         # CSS unused rule removal
-│   │   ├── extract-assets.js     # Image/font/icon downloads
-│   │   ├── discover-pages.js     # Navigation discovery (SPA-aware)
-│   │   ├── multi-page-screenshot.js  # Batch viewport capture
-│   │   ├── merge-css.js          # CSS deduplication
-│   │   ├── rewrite-links.js      # Internal link rewriting
-│   │   ├── semantic-enhancer.js  # WordPress semantic HTML
-│   │   ├── animation-extractor.js # @keyframes extraction
-│   │   ├── design-tokens.js      # Token extraction
-│   │   ├── dom-tree-analyzer.js  # DOM structure analysis
-│   │   └── [9 more core utilities]
+│   ├── core/                     # Core extraction engines (11 semantic subdirectories)
+│   │   ├── capture/              # Screenshot pipeline (7 modules + index)
+│   │   ├── css/                  # CSS processing (7 modules + index)
+│   │   ├── html/                 # HTML extraction (5 modules + index)
+│   │   ├── animation/            # Animation & hover states (5 modules + index)
+│   │   ├── discovery/            # Page & framework discovery (9 modules + index)
+│   │   ├── dimension/            # DOM structure analysis (6 modules + index)
+│   │   ├── section/              # Section detection (5 modules + index)
+│   │   ├── media/                # Video & asset extraction (5 modules + index)
+│   │   ├── page-prep/            # Page readiness (3 modules + index)
+│   │   ├── content/              # Content analysis (2 modules + index)
+│   │   ├── links/                # URL rewriting (2 modules + index)
+│   │   └── tests/                # Core tests (2 modules)
 │   │
 │   ├── figma/                    # Figma-to-code integration (Phase 3)
 │   │   ├── parse-url.js          # Figma URL parser (Phase 1)
@@ -120,21 +120,37 @@ design-clone/
 - Design token integration in both modes
 - Output: Production-ready HTML + styling
 
-## Core Modules
+## Core Modules (Organized by Feature Domain)
 
-### screenshot.js
-Multi-viewport screenshot capture with Playwright.
+### capture/ - Screenshot Pipeline
+Multi-viewport screenshot capture with Playwright (7 modules).
+
+**Key Modules:**
+- `screenshot.js` - Multi-viewport capture orchestrator
+- `screenshot-helpers.js` - Viewport setup and utilities
+- `screenshot-extraction.js` - HTML/CSS extraction
+- `screenshot-viewport.js` - Individual viewport capture
+- `screenshot-orchestrator.js` - Batch processing
+- `multi-page-screenshot.js` - Multi-page orchestration
+- `multi-page-screenshot-page.js` - Per-page capture logic
 
 **Key Functions:**
 - `captureViewports()` - Capture at 3 viewports
 - `extractHTML()` - Preserve semantic HTML, remove scripts
 - `extractCSS()` - Full stylesheet extraction
-- `extractAnimations()` - Extract @keyframes and transitions
 
 **Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source.css`
 
-### filter-css.js
-Remove unused CSS rules using PurgeCSS integration.
+### css/ - CSS Processing
+Remove unused CSS rules and handle stylesheet optimization (7 modules).
+
+**Key Modules:**
+- `filter-css.js` - Main CSS filtering orchestrator
+- `merge-css.js` - CSS deduplication
+- `filter-css-selector-matcher.js` - Selector matching logic
+- `filter-css-html-analyzer.js` - HTML selector extraction
+- `filter-css-atrule-processor.js` - @media/@keyframe handling
+- `filter-css-file-io.js` - File I/O utilities
 
 **Process:**
 1. Parse HTML for used selectors
@@ -145,16 +161,103 @@ Remove unused CSS rules using PurgeCSS integration.
 
 **Impact:** 40-60% CSS size reduction on average
 
-### extract-assets.js
-Download images, fonts, and icons from websites.
+### media/ - Asset Extraction
+Download images, fonts, and icons from websites (5 modules).
+
+**Key Modules:**
+- `extract-assets.js` - Orchestrator
+- `extract-assets-downloader.js` - Download logic
+- `extract-assets-page-scraper.js` - Asset discovery
+- `video-capture.js` - Video extraction
+- `video-capture-convert.js` - Video conversion
 
 **Asset Types:**
 - Images (WebP, JPG, PNG)
 - Web fonts (WOFF2, TTF)
 - Icon sets (SVG, Font Awesome)
 - Data URIs (embedded graphics)
+- Videos (MP4, WebM)
 
-**Output:** `assets/images/`, `assets/fonts/`, `assets/icons/`
+**Output:** `assets/images/`, `assets/fonts/`, `assets/icons/`, `assets/videos/`
+
+### discovery/ - Page & Framework Detection
+Discover pages and detect framework routing patterns (9 modules).
+
+**Key Modules:**
+- `discover-pages.js` - Navigation discovery orchestrator
+- `discover-pages-utils.js` - Discovery utilities
+- `discover-pages-routes.js` - Route extraction
+- `framework-detector.js` - Framework detection
+- `framework-detector-signals.js` - Detection signal analysis
+- `framework-detector-routing.js` - Routing pattern detection
+- `app-state-snapshot.js` - State capture
+- `app-state-snapshot-utils.js` - State utilities
+- `app-state-snapshot-capture.js` - Capture logic
+
+**Framework Support:** React, Vue, Angular, Svelte, Next.js, Nuxt.js, Astro
+
+### animation/ - Animation & Hover States
+Extract and manage animations and interactive states (5 modules).
+
+**Key Modules:**
+- `animation-extractor.js` - Orchestrator
+- `animation-extractor-ast.js` - AST processing
+- `animation-extractor-output.js` - Output generation
+- `state-capture.js` - State capture orchestrator
+- `state-capture-detection.js` - Interactive element detection
+
+### html/ - HTML Processing
+Extract and enhance HTML semantics (5 modules).
+
+**Key Modules:**
+- `html-extractor.js` - Main extractor
+- `html-extractor-inline-styler.js` - Inline style handling
+- `semantic-enhancer.js` - WordPress semantic optimization
+- `semantic-enhancer-page.js` - Per-page enhancement
+- `semantic-enhancer-mappings.js` - Semantic mapping rules
+
+### dimension/ - DOM Structure Analysis
+Analyze layout and dimensional properties (6 modules).
+
+**Key Modules:**
+- `dimension-extractor.js` - Orchestrator
+- `dimension-extractor-card-detector.js` - Card/component detection
+- `dimension-output.js` - Output formatting
+- `dimension-output-ai-summary.js` - AI-powered summaries
+- `dom-tree-analyzer.js` - DOM tree analysis
+- `dom-tree-analyzer-tree-builders.js` - Tree building logic
+
+### section/ - Section Detection & Cropping
+Detect page sections and generate section-based crops (5 modules).
+
+**Key Modules:**
+- `section-detector.js` - Detection orchestrator
+- `section-detector-strategies.js` - Detection algorithms
+- `section-detector-utils.js` - Utility functions
+- `section-cropper.js` - Cropping logic
+- `section-cropper-helpers.js` - Helper functions
+
+### page-prep/ - Page Readiness
+Prepare pages for extraction (3 modules).
+
+**Key Modules:**
+- `page-readiness.js` - Readiness checks
+- `cookie-handler.js` - Cookie management
+- `lazy-loader.js` - Lazy loading triggers
+
+### content/ - Content Analysis
+Analyze page content (2 modules).
+
+**Key Modules:**
+- `content-counter.js` - Content metrics
+- `content-counter-dom.js` - DOM-based counting
+
+### links/ - Link Rewriting
+Rewrite internal links for cloned sites (2 modules).
+
+**Key Modules:**
+- `rewrite-links.js` - Orchestrator
+- `rewrite-links-css-rewriter.js` - CSS link rewriting
 
 ### AI Prompt Templates (src/ai/prompts/)
 Claude Code vision-based design analysis via markdown prompt templates.

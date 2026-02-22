@@ -101,17 +101,20 @@ URL Input
             └─► Icons (SVG/Font Awesome)
 ```
 
-**Key Modules:**
+**Key Modules (by Domain):**
 
-| Module | Purpose | Input | Output |
-|--------|---------|-------|--------|
-| screenshot.js | Viewport capture | URL | PNG screenshots |
-| extract-assets.js | Asset downloads | HTML + CSS | images/, fonts/, icons/ |
-| filter-css.js | Remove unused rules | HTML + CSS | Optimized CSS |
-| discover-pages.js | SPA navigation | URL | Page list |
-| merge-css.js | Deduplicate styles | CSS files | Merged CSS |
-| animation-extractor.js | Extract animations | CSS | animation-tokens.json |
-| semantic-enhancer.js | WordPress optimization | HTML + CSS | Enhanced HTML |
+| Module | Location | Purpose | Input | Output |
+|--------|----------|---------|-------|--------|
+| screenshot.js | capture/ | Viewport capture | URL | PNG screenshots |
+| extract-assets.js | media/ | Asset downloads | HTML + CSS | images/, fonts/, icons/ |
+| filter-css.js | css/ | Remove unused rules | HTML + CSS | Optimized CSS |
+| discover-pages.js | discovery/ | SPA navigation | URL | Page list |
+| merge-css.js | css/ | Deduplicate styles | CSS files | Merged CSS |
+| animation-extractor.js | animation/ | Extract animations | CSS | animation-tokens.json |
+| semantic-enhancer.js | html/ | HTML optimization | HTML + CSS | Enhanced HTML |
+| dom-tree-analyzer.js | dimension/ | Structure analysis | DOM tree | layout-analysis.json |
+| section-detector.js | section/ | Section detection | HTML + viewport | sections.json |
+| rewrite-links.js | links/ | Link rewriting | HTML | Updated HTML |
 
 **Critical Features:**
 

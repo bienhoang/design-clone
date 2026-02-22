@@ -8,6 +8,8 @@
  * @module state-capture-detection
  */
 
+import { logError } from '../../utils/log.js';
+
 /** Maximum number of elements to capture (performance limit) */
 export const MAX_ELEMENTS = 50;
 
@@ -81,9 +83,7 @@ export function extractHoverSelectorsFromCss(cssString) {
       }
     });
   } catch (e) {
-    if (process.stderr.isTTY) {
-      console.error(`[ERROR] [state-capture] CSS parse error: ${e.message}`);
-    }
+    logError(`[state-capture] CSS parse error: ${e.message}`);
   }
 
   return hoverSelectors;

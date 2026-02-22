@@ -6,6 +6,8 @@
  * Used by discover-pages.js (main orchestrator).
  */
 
+import { logWarn } from '../../utils/log.js';
+
 // Navigation selectors in priority order
 export const NAV_SELECTORS = [
   'header nav a',
@@ -55,9 +57,7 @@ export const DEFAULT_OPTIONS = {
  * @param {string} message - Warning message
  */
 export function logWarning(message) {
-  if (process.stderr.isTTY) {
-    console.error(`[discover-pages] WARN: ${message}`);
-  }
+  logWarn(`[discover-pages] ${message}`);
 }
 
 /**

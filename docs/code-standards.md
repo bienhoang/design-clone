@@ -403,71 +403,16 @@ def extract_color(rgba: Dict[str, float]) -> str:
 
 ### Function Structure
 
-**Pattern:**
+**Pattern (condensed):**
 ```python
-def extract_design_tokens(
-    figma_data: Dict,
-    output_dir: str,
-    verbose: bool = False
-) -> Dict[str, any]:
-    """
-    Extract design tokens from Figma node data.
-
-    Parses the complete Figma file structure and extracts:
-    - Colors from fill and stroke properties
-    - Typography from TEXT nodes
-    - Spacing from auto-layout properties
-    - Shadows and border radius from effects
-
-    Args:
-        figma_data: Complete Figma file export
-        output_dir: Directory for output files
-        verbose: Enable verbose logging
-
-    Returns:
-        Dictionary with extracted tokens:
-        {
-            'colors': {...},
-            'typography': {...},
-            'spacing': {...}
-        }
-
-    Raises:
-        ValueError: If figma_data is invalid
-        IOError: If output directory not writable
-
-    Example:
-        >>> tokens = extract_design_tokens(figma_json, './output')
-        >>> print(tokens['colors'])
-    """
-    # 1. Validation
+def extract_design_tokens(figma_data: Dict, output_dir: str) -> Dict:
+    """Extract colors, typography, spacing from Figma file."""
     if not isinstance(figma_data, dict):
         raise ValueError('figma_data must be dictionary')
 
-    if not Path(output_dir).is_dir():
-        raise IOError(f'Output directory not found: {output_dir}')
-
-    # 2. Initialization
-    tokens = {
-        'colors': {},
-        'typography': {},
-        'spacing': {},
-        'shadows': {},
-        'meta': {}
-    }
-
-    # 3. Processing
-    if verbose:
-        print('Extracting tokens from Figma data...')
-
-    # Extract colors
-    colors = _extract_colors(figma_data)
-    tokens['colors'] = colors
-    tokens['meta']['colors_found'] = len(colors)
-
-    # 4. Output
+    tokens = {'colors': {}, 'typography': {}, 'spacing': {}}
+    tokens['colors'] = _extract_colors(figma_data)
     return tokens
-
 
 def _extract_colors(data: Dict) -> Dict[str, str]:
     """Extract color palette from design."""
@@ -530,11 +475,19 @@ design-clone/
 │       └── validate.js
 │
 ├── src/
-│   ├── core/                   # Core extraction engines
-│   │   ├── screenshot.js       # Multi-viewport capture
-│   │   ├── filter-css.js       # CSS optimization
-│   │   ├── extract-assets.js   # Asset downloading
-│   │   └── [other core modules]
+│   ├── core/                   # Core extraction engines (11 semantic subdirectories)
+│   │   ├── capture/            # Screenshot pipeline (7 modules)
+│   │   ├── css/                # CSS processing (7 modules)
+│   │   ├── html/               # HTML extraction (5 modules)
+│   │   ├── animation/          # Animation & hover states (5 modules)
+│   │   ├── discovery/          # Page & framework detection (9 modules)
+│   │   ├── dimension/          # DOM analysis (6 modules)
+│   │   ├── section/            # Section detection (5 modules)
+│   │   ├── media/              # Asset extraction (5 modules)
+│   │   ├── page-prep/          # Page readiness (3 modules)
+│   │   ├── content/            # Content analysis (2 modules)
+│   │   ├── links/              # URL rewriting (2 modules)
+│   │   └── tests/              # Core tests (2 modules)
 │   │
 │   ├── figma/                  # Figma-to-code pipeline
 │   │   ├── parse-url.js        # URL parsing
@@ -592,6 +545,7 @@ design-clone/
 - Organize imports: external → local
 - Separate concerns across modules
 - Use dependency injection for testability
+- Import directly from module files using relative paths
 
 **Example Dependency Structure:**
 ```
@@ -599,9 +553,9 @@ CLI Layer
   ↓
 Workflow Layer (clone, clone-px, clone-site, figma-to-code)
   ↓
-Core Engines (screenshot, extract-assets, filter-css)
+Core Engines (capture/, css/, discovery/, etc. via direct imports)
   ↓
-Utilities (browser, env, helpers)
+Utilities (browser, env, helpers, log)
 ```
 
 ---
@@ -670,86 +624,26 @@ Error: Invalid Figma URL format
 
 ### Test Structure
 
-**File naming:**
-```
-// Unit tests
-src/core/capture/screenshot.js  →  tests/unit/screenshot.test.js
-src/figma/parse-url.js  →  tests/unit/parse-url.test.js
+**File naming:** `src/core/capture/screenshot.js` → `tests/unit/screenshot.test.js`
 
-// Integration tests
-tests/integration/clone-workflow.test.js
-tests/integration/figma-pipeline.test.js
-```
-
-**Test template:**
+**Template (JavaScript):**
 ```javascript
 describe('ScreenshotCapture', () => {
-  let browser;
-
-  beforeAll(async () => {
-    browser = await initBrowser();
-  });
-
-  afterAll(async () => {
-    await browser.close();
-  });
-
-  describe('captureViewports', () => {
-    it('should capture all three viewports', async () => {
-      const url = 'https://example.com';
-      const screenshots = await browser.captureViewports(url);
-
-      expect(screenshots).toHaveLength(3);
-      expect(screenshots[0].viewport).toEqual({ width: 1920, height: 1080 });
-      expect(screenshots[0].buffer).toBeInstanceOf(Buffer);
-    });
-
-    it('should handle timeout gracefully', async () => {
-      const url = 'https://example.com/slow';
-      const promise = browser.captureViewports(url, { timeout: 1000 });
-
-      await expect(promise).rejects.toThrow(TimeoutError);
-    });
+  it('should capture all three viewports', async () => {
+    const screenshots = await captureViewports('https://example.com');
+    expect(screenshots).toHaveLength(3);
   });
 });
 ```
 
-**Python test template:**
+**Template (Python):**
 ```python
-import pytest
-from pathlib import Path
-from design_tokens import extract_design_tokens
-
-class TestDesignTokenExtraction:
-    """Test design token extraction."""
-
-    @pytest.fixture
-    def sample_figma_data(self):
-        """Load sample Figma export."""
-        fixture_path = Path(__file__).parent / 'fixtures' / 'figma-export.json'
-        with open(fixture_path) as f:
-            return json.load(f)
-
-    def test_extract_colors(self, sample_figma_data):
-        """Test color extraction."""
-        tokens = extract_design_tokens(sample_figma_data)
-
-        assert 'colors' in tokens
-        assert len(tokens['colors']) > 0
-        assert 'primary' in tokens['colors']
-
-    def test_invalid_input_raises_error(self):
-        """Test error handling for invalid input."""
-        with pytest.raises(ValueError):
-            extract_design_tokens(None)
+def test_extract_colors(self):
+    tokens = extract_design_tokens(sample_data)
+    assert 'colors' in tokens
 ```
 
-### Coverage Requirements
-
-- Minimum 85% statement coverage
-- 100% for critical paths (URL parsing, API calls)
-- Integration tests for complete workflows
-- Regression tests for bug fixes
+**Coverage:** Minimum 85% statement coverage, 100% for critical paths, integration tests for workflows
 
 ---
 
@@ -827,129 +721,54 @@ Each module with public APIs should have:
 
 ## Performance Guidelines
 
-### Optimization Rules
-
-1. **Profile before optimizing**
-   - Measure actual bottlenecks
-   - Use `console.time()` / `performance.now()`
-   - Profile with Node.js `--prof` flag
-
-2. **Async operations**
-   - Use `Promise.all()` for parallel work
-   - Sequence only when dependent
-   - Add timeouts for hung operations
-
-3. **File I/O**
-   - Batch writes with `fs.promises`
-   - Stream large files
-   - Use async operations
-
-4. **Memory**
-   - Release large objects: `obj = null`
-   - Use generators for large iterations
-   - Monitor heap with `--max-old-space-size`
-
-### Benchmarks
+**Rules:**
+- Profile before optimizing (use `console.time()`)
+- Use `Promise.all()` for parallel work, sequence only when dependent
+- Stream large files, batch writes with `fs.promises`
+- Release large objects: `obj = null`
 
 **Target Performance:**
-```
-Screenshot capture:      3-5 seconds (per viewport)
-CSS filtering:          1-2 seconds
-Asset extraction:       5-10 seconds per 10 images
-Figma token extraction: 5-8 seconds
-Full workflow:          <120 seconds
-```
+- Screenshot: 3-5s per viewport
+- CSS filtering: 1-2s
+- Asset extraction: 5-10s per 10 images
+- Full workflow: <120s
 
 ---
 
 ## Security Standards
 
-### Input Validation
+**Input Validation:** Always validate external input (URLs, tokens, files)
 
-**Always validate external input:**
 ```javascript
 function validateUrl(url) {
-  // Check format
-  if (typeof url !== 'string' || !url.trim()) {
-    throw new Error('URL must be non-empty string');
-  }
-
-  // Parse and validate protocol
-  try {
-    const parsed = new URL(url);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      throw new Error('Only HTTP(S) URLs allowed');
-    }
-    return url;
-  } catch (error) {
-    throw new Error(`Invalid URL: ${error.message}`);
-  }
+  if (typeof url !== 'string' || !url.trim()) throw new Error('Invalid URL');
+  const parsed = new URL(url);
+  if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('HTTP only');
+  return url;
 }
 ```
 
-### Credential Handling
+**Credentials:** Use environment variables only, never log tokens
 
-**Never expose credentials:**
 ```javascript
-// Good: Use environment variables
 const token = process.env.FIGMA_ACCESS_TOKEN;
-if (!token) {
-  throw new Error('FIGMA_ACCESS_TOKEN environment variable required');
-}
-
-// Bad: Never in code
-const token = 'abc123token'; // DON'T DO THIS
-
-// Good: Validate token format
-if (!/^[a-f0-9]{40}$/.test(token)) {
-  throw new Error('Invalid token format');
-}
-
-// Good: Never log tokens
-console.log('Token:', token); // DON'T
-console.log('Using token:', 'REDACTED'); // DO
+if (!token) throw new Error('FIGMA_ACCESS_TOKEN required');
+console.log('Using token:', 'REDACTED'); // Good
 ```
 
-### HTML Sanitization
-
-**Remove dangerous content:**
-```javascript
-function sanitizeHTML(html) {
-  return html
-    // Remove script tags
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Remove event handlers
-    .replace(/\s*on\w+\s*=\s*"[^"]*"/g, '')
-    .replace(/\s*on\w+\s*=\s*'[^']*'/g, '')
-    // Remove javascript: URLs
-    .replace(/href\s*=\s*['"]?javascript:[^'">\s]*/gi, 'href="#"')
-    .trim();
-}
-```
+**HTML Sanitization:** Remove `<script>`, event handlers, `javascript:` URLs
 
 ---
 
-## Review Checklist
+## Code Review Standards
 
-Before submitting code for review:
+Before submitting code:
+- Code follows naming conventions & project structure
+- Functions have JSDoc/docstring comments
+- Error handling is comprehensive
+- No credentials or secrets
+- Tests added/updated (maintain 85%+ coverage)
+- No console.log in production
+- Documentation updated
 
-- [ ] Code follows naming conventions
-- [ ] Functions have JSDoc/docstring comments
-- [ ] Error handling is comprehensive
-- [ ] No hardcoded credentials or secrets
-- [ ] Tests added/updated for changes
-- [ ] Test coverage maintained at 85%+
-- [ ] No console.log in production code (use logger)
-- [ ] No commented-out code blocks
-- [ ] No TODOs without context
-- [ ] Performance impact considered
-- [ ] Documentation updated
-
----
-
-## References
-
-- **JavaScript Style Guide:** [Google JS Style Guide](https://google.github.io/styleguide/tsguide.html)
-- **Python PEP 8:** [pep8.org](https://pep8.org)
-- **Testing Best Practices:** Jest, pytest documentation
-- **Security:** OWASP Top 10
+**References:** [Google JS Style Guide](https://google.github.io/styleguide/tsguide.html), [PEP 8](https://pep8.org), OWASP Top 10
