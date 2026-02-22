@@ -1,7 +1,7 @@
 # Design Clone System Architecture
 
 **Version:** 2.1.0 (Phase 3)
-**Last Updated:** February 5, 2026
+**Last Updated:** February 23, 2026
 
 ## System Design Overview
 
@@ -109,12 +109,12 @@ URL Input
 | extract-assets.js | media/ | Asset downloads | HTML + CSS | images/, fonts/, icons/ |
 | filter-css.js | css/ | Remove unused rules | HTML + CSS | Optimized CSS |
 | discover-pages.js | discovery/ | SPA navigation | URL | Page list |
-| merge-css.js | css/ | Deduplicate styles | CSS files | Merged CSS |
+| multi-page-screenshot.js | capture/ | Multi-page capture | Page list | Screenshots |
 | animation-extractor.js | animation/ | Extract animations | CSS | animation-tokens.json |
-| semantic-enhancer.js | html/ | HTML optimization | HTML + CSS | Enhanced HTML |
-| dom-tree-analyzer.js | dimension/ | Structure analysis | DOM tree | layout-analysis.json |
+| semantic-enhancer.js | html/ | HTML optimization (Feb 23) | HTML + CSS | Enhanced HTML |
+| dimension-extractor.js | dimension/ | Structure analysis (Feb 23) | DOM tree | layout-analysis.json |
 | section-detector.js | section/ | Section detection | HTML + viewport | sections.json |
-| rewrite-links.js | links/ | Link rewriting | HTML | Updated HTML |
+| clone-site.js | bin/commands/ | Multi-page clone CLI | URL | Screenshots + manifest |
 
 **Critical Features:**
 
@@ -122,6 +122,13 @@ URL Input
 - **JavaScript Removal:** Strips all `<script>` tags, preserves HTML structure
 - **CSS Preservation:** Keeps all stylesheets, including animations
 - **Asset Integrity:** Downloads with original naming and structure
+- **Centralized Logging:** TTY-aware output via src/utils/log.js (NEW Feb 23)
+
+**Recent Refactoring (Feb 23):**
+
+Two major modules were decomposed to reduce code duplication and code smells:
+- **semantic-enhancer.js:** Now uses 3 companion modules (semantic-enhancer-page.js, semantic-enhancer-mappings.js)
+- **dimension-extractor.js:** Now uses 5 companion modules (dimension-extractor-card-detector.js, dimension-output.js, dimension-output-ai-summary.js, dom-tree-analyzer.js, dom-tree-analyzer-tree-builders.js)
 
 ---
 
@@ -263,13 +270,13 @@ node src/verification/verify-menu.js --html output/source.html
 |--------|----------|-------|--------|
 | fetch-images.js | Download images from Unsplash | Image URLs | assets/images/ |
 | inject-icons.js | Replace with Japanese-style icons | HTML | Updated HTML |
-| inject-gosnap.js | Add gosnap-widget Web Component | pages/ | HTML with widget |
+| inject-gosnap.js | Add gosnap-widget Web Component | HTML dir | HTML with widget |
 | enhance-assets.js | Orchestrate 3-step enhancement | output/ | Enhanced HTML |
 
 **Pipeline:**
 1. Fetch images from Unsplash (if UNSPLASH_ACCESS_KEY set)
 2. Inject Japanese-style SVG icons
-3. Inject gosnap-widget into pages/ directory
+3. Inject gosnap-widget (clone-px only)
 4. Generate responsive srcset
 5. Inject Font Awesome CDN link (step 2)
 
@@ -321,7 +328,7 @@ Output Directory
 └─ source.css
 ```
 
-Note: Use `--skip-gosnap` flag in `/design:clone-site` to disable gosnap injection.
+Note: Use `--skip-gosnap` flag in `/design:clone-px` to disable gosnap injection.
 
 ### Pixel-Perfect Workflow (/design:clone-px)
 
@@ -372,59 +379,33 @@ User Input (URL + options)
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ 2. Screenshot All Pages             │
+│ 2. Capture Screenshots              │
 │    ├─ Desktop (1920x1080)          │
 │    ├─ Tablet (768x1024)            │
 │    └─ Mobile (375x812)             │
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ 3. Merge CSS Files                  │
-│    ├─ Deduplicate styles            │
-│    ├─ Filter unused rules           │
-│    └─ Create shared stylesheet      │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 4. Rewrite Internal Links           │
-│    ├─ Update href attributes        │
-│    ├─ Map URLs to file paths        │
-│    └─ Preserve link structure       │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 5. Generate Manifest                │
+│ 3. Generate Manifest                │
 │    ├─ Create manifest.json          │
-│    ├─ List pages & screenshots      │
-│    └─ Include metadata              │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 6. Inject GoSnap Widget             │
-│    ├─ Scan pages/ directory         │
-│    ├─ Add go-snap element           │
-│    └─ Skip with --skip-gosnap       │
+│    ├─ Map pages to screenshot paths │
+│    └─ Include capture stats         │
 └─────────────────────────────────────┘
     ↓
 Output Directory
 ├─ manifest.json
-├─ pages/
-│  ├─ index.html
-│  ├─ about.html
-│  └─ ...
-├─ analysis/
-│  ├─ desktop/
-│  ├─ tablet/
-│  └─ mobile/
-└─ shared.css
+├─ capture-results.json
+└─ analysis/
+   ├─ desktop/
+   ├─ tablet/
+   └─ mobile/
 ```
 
 **Key Features:**
 - Discovers navigation automatically
 - Captures all viewports for each page
-- Deduplicates CSS across pages
-- Relinks internal navigation
-- Optionally injects gosnap-widget
+- Screenshot-only output for Claude Code vision
+- Progress reporting with per-page status
 
 ### Figma-to-Code Workflow (/design:figma-to-code)
 
@@ -554,6 +535,11 @@ cloned-designs/
 - **Better JSON handling:** Easier design token parsing
 - **Stdlib sufficient:** urllib, json, argparse cover all needs
 - **Cross-platform:** Windows/Mac/Linux compatible
+
+### Playwright as Regular Dependency (Feb 23)
+- **Before:** Optional peerDependency, required manual install
+- **After:** Regular dependency, auto-installed with `npm install`
+- **Benefit:** Simpler setup, guaranteed availability, init.js simplified (20 lines removed)
 
 ### Why CSS Custom Properties for Tokens?
 - **Runtime flexibility:** Change values without compilation

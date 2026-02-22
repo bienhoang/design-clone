@@ -1,7 +1,8 @@
 /**
  * Clone Site Command
  *
- * Clone multiple pages from a website with shared CSS and working navigation.
+ * Capture multi-viewport screenshots of multiple pages from a website.
+ * Screenshots are used by Claude Code vision to generate new HTML/CSS.
  *
  * Usage:
  *   design-clone clone-site <url> [options]
@@ -12,20 +13,13 @@
  *   --viewports <list>  Viewport list (default: desktop,tablet,mobile)
  *   --yes               Skip confirmation prompt
  *   --output <dir>      Custom output directory
- *
- * Note: AI analysis (structure, design tokens, UX audit) is now handled
- * by Claude Code's built-in vision via SKILL.md prompt templates.
  */
 
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 import { discoverPages } from '../../src/core/discovery/discover-pages.js';
 import { captureMultiplePages } from '../../src/core/capture/multi-page-screenshot.js';
-import { mergeCssFiles } from '../../src/core/css/merge-css.js';
-import { rewriteLinks, createPageManifest, rewriteAllLinks } from '../../src/core/links/rewrite-links.js';
-import { injectGosnap } from '../../src/post-process/inject-gosnap.js';
 
 /**
  * Generate output directory name
@@ -55,8 +49,7 @@ export function parseArgs(args) {
     maxPages: 10,
     viewports: ['desktop', 'tablet', 'mobile'],
     skipConfirm: false,
-    output: null,
-    skipGosnap: false
+    output: null
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -72,8 +65,6 @@ export function parseArgs(args) {
       options.skipConfirm = true;
     } else if (arg === '--output' && args[i + 1]) {
       options.output = args[++i];
-    } else if (arg === '--skip-gosnap') {
-      options.skipGosnap = true;
     } else if (!arg.startsWith('--') && !options.url) {
       options.url = arg;
     }
@@ -83,7 +74,7 @@ export function parseArgs(args) {
 }
 
 /**
- * Clone multiple pages from a website
+ * Clone multiple pages from a website (screenshot-only capture)
  * @param {string} url - Target URL
  * @param {Object} options - Clone options
  * @returns {Promise<Object>} Clone result
@@ -94,9 +85,7 @@ export async function cloneSite(url, options = {}) {
     pages: manualPages,
     maxPages = 10,
     viewports = ['desktop', 'tablet', 'mobile'],
-    skipConfirm = false,
-    output,
-    skipGosnap = false
+    output
   } = options;
 
   // Validate URL
@@ -114,11 +103,10 @@ export async function cloneSite(url, options = {}) {
   console.error(`[clone-site] Output: ${outputDir}`);
 
   // Step 1: Discover or use manual pages
-  console.error('\n[1/6] Discovering pages...');
+  console.error('\n[1/3] Discovering pages...');
 
   let pageList;
   if (manualPages && manualPages.length > 0) {
-    // Use manual page list
     pageList = {
       success: true,
       pages: manualPages.map(p => ({
@@ -129,7 +117,6 @@ export async function cloneSite(url, options = {}) {
     };
     console.error(`   Using ${pageList.pages.length} manual pages`);
   } else {
-    // Auto-discover
     pageList = await discoverPages(url, { maxPages });
     if (!pageList.success) {
       console.error(`   Warning: Discovery failed - ${pageList.error}`);
@@ -138,13 +125,12 @@ export async function cloneSite(url, options = {}) {
     console.error(`   Found ${pageList.pages.length} pages`);
   }
 
-  // Show discovered pages
   for (const page of pageList.pages) {
     console.error(`   - ${page.path} (${page.name})`);
   }
 
-  // Step 2: Capture all pages
-  console.error('\n[2/6] Capturing pages...');
+  // Step 2: Capture all pages (screenshots only)
+  console.error('\n[2/3] Capturing screenshots...');
 
   const captureResult = await captureMultiplePages(pageList.pages, {
     outputDir,
@@ -161,85 +147,34 @@ export async function cloneSite(url, options = {}) {
   console.error(`   Captured ${captureResult.stats.successfulPages}/${captureResult.stats.totalPages} pages`);
   console.error(`   Screenshots: ${captureResult.stats.totalScreenshots}`);
 
-  // Step 3: Merge CSS files (prefer filtered CSS)
-  console.error('\n[3/6] Merging CSS...');
+  // Step 3: Generate manifest
+  console.error('\n[3/3] Generating manifest...');
 
-  const mergedCssPath = path.join(outputDir, 'styles.css');
-  let mergeResult = { success: false };
-
-  // Use filtered CSS if available, fallback to raw CSS
-  const cssToMerge = captureResult.cssFilesFiltered?.length > 0
-    ? captureResult.cssFilesFiltered
-    : captureResult.cssFiles;
-
-  const cssType = captureResult.cssFilesFiltered?.length > 0 ? 'filtered' : 'raw';
-
-  if (cssToMerge.length > 0) {
-    mergeResult = await mergeCssFiles(cssToMerge, mergedCssPath);
-    if (mergeResult.success) {
-      console.error(`   Merged ${mergeResult.input.fileCount} ${cssType} files`);
-      console.error(`   Reduction: ${mergeResult.stats.reduction}`);
-    } else {
-      console.error(`   Warning: Merge failed - ${mergeResult.error}`);
-    }
-  } else {
-    console.error('   No CSS files to merge');
-  }
-
-  // Step 4: Rewrite links
-  console.error('\n[4/6] Rewriting links...');
-
-  const manifest = createPageManifest(pageList.pages, {
-    hasTokens: false,
+  const manifest = {
+    baseUrl: url,
+    capturedAt: new Date().toISOString(),
+    pages: captureResult.pages
+      .filter(p => p.success)
+      .map(p => ({
+        path: p.path,
+        name: p.name,
+        originalUrl: p.url,
+        screenshots: Object.fromEntries(
+          Object.entries(p.screenshots)
+            .filter(([, v]) => !v.failed)
+            .map(([vp, v]) => [vp, path.relative(outputDir, v.path)])
+        )
+      })),
     stats: {
-      totalPages: pageList.pages.length,
+      totalPages: captureResult.stats.totalPages,
       totalScreenshots: captureResult.stats.totalScreenshots,
-      cssReduction: mergeResult.stats?.reduction || '0%',
       captureTimeMs: captureResult.stats.totalTimeMs
     }
-  });
-
-  // Copy HTML files to pages/ directory and rewrite links
-  const pagesDir = path.join(outputDir, 'pages');
-  await fs.mkdir(pagesDir, { recursive: true });
-
-  for (const page of manifest.pages) {
-    const sourceHtml = path.join(outputDir, 'html', page.file);
-    const destHtml = path.join(pagesDir, page.file);
-
-    try {
-      let html = await fs.readFile(sourceHtml, 'utf-8');
-      html = rewriteLinks(html, manifest, {
-        baseUrl: url,
-        injectTokensCss: false
-      });
-      await fs.writeFile(destHtml, html, 'utf-8');
-      console.error(`   Rewritten: ${page.file}`);
-    } catch (err) {
-      console.error(`   Warning: Failed to rewrite ${page.file}: ${err.message}`);
-    }
-  }
-
-  // Step 5: Generate manifest
-  console.error('\n[5/6] Generating manifest...');
+  };
 
   const manifestPath = path.join(outputDir, 'manifest.json');
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
   console.error(`   Created: manifest.json`);
-
-  // Step 6: Inject gosnap-widget
-  let gosnapResult = null;
-  if (!skipGosnap) {
-    console.error('\n[6/6] Injecting gosnap-widget...');
-    try {
-      gosnapResult = await injectGosnap(pagesDir);
-      console.error(`   Injected into ${gosnapResult.injectedCount} file(s)`);
-    } catch (error) {
-      console.error(`   Warning: gosnap injection failed: ${error.message}`);
-    }
-  } else {
-    console.error('\n[6/6] Skipping gosnap-widget (--skip-gosnap)');
-  }
 
   // Summary
   const totalTime = Date.now() - startTime;
@@ -253,8 +188,6 @@ export async function cloneSite(url, options = {}) {
     outputDir: path.resolve(outputDir),
     manifest,
     captureResult,
-    mergeResult,
-    gosnapResult,
     totalTimeMs: totalTime
   };
 }
@@ -266,7 +199,7 @@ export function showHelp() {
   console.log(`
 Usage: design-clone clone-site <url> [options]
 
-Clone multiple pages from a website with shared CSS and working navigation.
+Capture multi-viewport screenshots of multiple pages from a website.
 
 Options:
   --pages <paths>     Comma-separated paths (e.g., /,/about,/contact)
@@ -274,7 +207,7 @@ Options:
   --viewports <list>  Viewport list (default: desktop,tablet,mobile)
   --yes               Skip confirmation prompt
   --output <dir>      Custom output directory
-  --skip-gosnap       Skip gosnap-widget injection
+
 Examples:
   design-clone clone-site https://example.com
   design-clone clone-site https://example.com --max-pages 5

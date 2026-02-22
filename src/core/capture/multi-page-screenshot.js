@@ -1,7 +1,7 @@
 /**
  * Multi-page Screenshot Capture
  *
- * Capture screenshots + extract HTML/CSS for multiple pages
+ * Capture multi-viewport screenshots for multiple pages
  * using a shared browser session for efficiency.
  *
  * Usage:
@@ -44,8 +44,6 @@ export async function captureMultiplePages(pages, options = {}) {
     baseUrl: pages[0]?.url ? new URL(pages[0].url).origin : null,
     outputDir: path.resolve(opts.outputDir),
     pages: [],
-    cssFiles: [],
-    cssFilesFiltered: [],
     stats: {
       totalPages: pages.length,
       successfulPages: 0,
@@ -75,13 +73,6 @@ export async function captureMultiplePages(pages, options = {}) {
       try {
         const pageResult = await captureSinglePage(page, pageInfo, opts.outputDir, opts);
         results.pages.push(pageResult);
-
-        if (pageResult.css?.path && !pageResult.css.failed) {
-          results.cssFiles.push(pageResult.css.path);
-        }
-        if (pageResult.cssFiltered?.path) {
-          results.cssFilesFiltered.push(pageResult.cssFiltered.path);
-        }
 
         if (pageResult.success) {
           results.stats.successfulPages++;

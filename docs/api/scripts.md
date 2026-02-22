@@ -98,17 +98,17 @@ node src/core/design-tokens.js --css <file> --output <file>
 - Border radius
 - Shadows
 
-### merge-css.js
+### merge-css.js (dormant)
 
-Merge multiple CSS files with deduplication.
+Merge multiple CSS files with deduplication. Not used by current pipelines.
 
 ```bash
 node src/core/css/merge-css.js --input <files> --output <file>
 ```
 
-### rewrite-links.js
+### rewrite-links.js (dormant)
 
-Rewrite internal links for local navigation.
+Rewrite internal links for local navigation. Not used by current pipelines.
 
 ```bash
 node src/core/links/rewrite-links.js --html <file> --output <file> --base <url>

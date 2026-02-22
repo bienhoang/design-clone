@@ -7,8 +7,6 @@
 
 import { normalizeUrl, isSameDomain, extractPageName } from '../src/core/discovery/discover-pages.js';
 import { pathToFilename } from '../src/core/capture/multi-page-screenshot.js';
-import { rewriteLinks, createPageManifest, pathToFilename as linkPathToFilename } from '../src/core/links/rewrite-links.js';
-import { mergeStylesheets } from '../src/core/css/merge-css.js';
 
 let passed = 0;
 let failed = 0;
@@ -125,99 +123,6 @@ test('pathToFilename: nested path', () => {
 test('pathToFilename: deep path', () => {
   const result = pathToFilename('/blog/2026/01/post');
   assertEqual(result, 'blog-2026-01-post');
-});
-
-// ============================================
-// rewrite-links.js tests
-// ============================================
-console.log('\n=== rewrite-links.js ===\n');
-
-test('linkPathToFilename: root', () => {
-  const result = linkPathToFilename('/');
-  assertEqual(result, 'index.html');
-});
-
-test('linkPathToFilename: simple', () => {
-  const result = linkPathToFilename('/about');
-  assertEqual(result, 'about.html');
-});
-
-test('rewriteLinks: internal link', () => {
-  const html = '<a href="/about">About</a>';
-  const manifest = {
-    pages: [{ path: '/about', file: 'about.html', originalUrl: 'https://example.com/about' }]
-  };
-  const result = rewriteLinks(html, manifest, { baseUrl: 'https://example.com' });
-  assertTrue(result.includes('href="about.html"'), 'Should rewrite to about.html');
-});
-
-test('rewriteLinks: external link preserved', () => {
-  const html = '<a href="https://external.com">External</a>';
-  const manifest = { pages: [] };
-  const result = rewriteLinks(html, manifest, { baseUrl: 'https://example.com' });
-  assertTrue(result.includes('https://external.com'), 'Should preserve external link');
-});
-
-test('rewriteLinks: fragment preserved', () => {
-  const html = '<a href="/contact#form">Contact</a>';
-  const manifest = {
-    pages: [{ path: '/contact', file: 'contact.html', originalUrl: 'https://example.com/contact' }]
-  };
-  const result = rewriteLinks(html, manifest, { baseUrl: 'https://example.com' });
-  assertTrue(result.includes('href="contact.html#form"'), 'Should preserve fragment');
-});
-
-test('rewriteLinks: mailto preserved', () => {
-  const html = '<a href="mailto:test@test.com">Email</a>';
-  const manifest = { pages: [] };
-  const result = rewriteLinks(html, manifest, {});
-  assertTrue(result.includes('mailto:test@test.com'), 'Should preserve mailto');
-});
-
-test('createPageManifest: basic', () => {
-  const pages = [
-    { path: '/', name: 'Home', url: 'https://example.com/' },
-    { path: '/about', name: 'About', url: 'https://example.com/about' }
-  ];
-  const manifest = createPageManifest(pages);
-  assertEqual(manifest.pages.length, 2);
-  assertEqual(manifest.pages[0].file, 'index.html');
-  assertEqual(manifest.pages[1].file, 'about.html');
-});
-
-// ============================================
-// merge-css.js tests
-// ============================================
-console.log('\n=== merge-css.js ===\n');
-
-test('mergeStylesheets: deduplicates identical rules', () => {
-  const css1 = '.header { color: red; }';
-  const css2 = '.header { color: red; }';
-  const { css, stats } = mergeStylesheets([css1, css2]);
-  assertEqual(stats.duplicateRulesRemoved, 1);
-});
-
-test('mergeStylesheets: keeps different rules', () => {
-  const css1 = '.header { color: red; }';
-  const css2 = '.footer { color: blue; }';
-  const { css, stats } = mergeStylesheets([css1, css2]);
-  assertEqual(stats.duplicateRulesRemoved, 0);
-  assertTrue(css.includes('.header'));
-  assertTrue(css.includes('.footer'));
-});
-
-test('mergeStylesheets: deduplicates @font-face', () => {
-  const css1 = "@font-face { font-family: 'Test'; src: url(test.woff); }";
-  const css2 = "@font-face { font-family: 'Test'; src: url(test.woff); }";
-  const { stats } = mergeStylesheets([css1, css2]);
-  assertEqual(stats.fontFacesDeduped, 1);
-});
-
-test('mergeStylesheets: deduplicates @keyframes', () => {
-  const css1 = '@keyframes fade { from { opacity: 0; } to { opacity: 1; } }';
-  const css2 = '@keyframes fade { from { opacity: 0; } to { opacity: 1; } }';
-  const { stats } = mergeStylesheets([css1, css2]);
-  assertEqual(stats.keyframesDeduped, 1);
 });
 
 // ============================================

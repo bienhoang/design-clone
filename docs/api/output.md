@@ -55,25 +55,19 @@ cloned-design/
 cloned-designs/{timestamp}-{domain}/
 ├── analysis/
 │   ├── desktop/
-│   │   ├── home.png
+│   │   ├── index.png
 │   │   ├── about.png
 │   │   └── contact.png
 │   ├── tablet/
-│   │   ├── home.png
+│   │   ├── index.png
 │   │   ├── about.png
 │   │   └── contact.png
 │   └── mobile/
-│       ├── home.png
+│       ├── index.png
 │       ├── about.png
 │       └── contact.png
-├── pages/
-│   ├── index.html
-│   ├── about.html
-│   └── contact.html
-├── styles.css              # Merged CSS
-├── manifest.json           # Site metadata
-└── assets/
-    └── ...
+├── manifest.json           # Page metadata + screenshot paths
+└── capture-results.json    # Detailed capture results
 ```
 
 ## File Descriptions
@@ -98,13 +92,6 @@ Cleaned HTML with:
 - Data attributes preserved
 - Structure maintained
 
-#### pages/*.html (multi-page)
-
-Individual page HTML with:
-- Internal links rewritten
-- Shared stylesheet linked
-- Assets path updated
-
 ### CSS Files
 
 #### source-raw.css
@@ -121,13 +108,6 @@ Filtered CSS with:
 - Duplicates removed
 - @keyframes preserved
 - @font-face preserved
-
-#### styles.css (multi-page)
-
-Merged CSS from all pages:
-- Deduplicated rules
-- Combined media queries
-- Shared styles extracted
 
 #### animations.css
 
@@ -211,22 +191,24 @@ Hover state differences:
 
 #### manifest.json (multi-page)
 
-Site metadata:
+Page metadata and screenshot paths:
 ```json
 {
-  "domain": "example.com",
-  "timestamp": "2024-01-15T10:30:00Z",
+  "baseUrl": "https://example.com",
+  "capturedAt": "2026-02-23T10:30:00Z",
   "pages": [
     {
       "path": "/",
-      "file": "index.html",
-      "title": "Home"
+      "name": "Home",
+      "originalUrl": "https://example.com/",
+      "screenshots": {
+        "desktop": "analysis/desktop/index.png",
+        "tablet": "analysis/tablet/index.png",
+        "mobile": "analysis/mobile/index.png"
+      }
     }
   ],
-  "cssSize": {
-    "original": 45000,
-    "merged": 32000
-  }
+  "stats": { "totalPages": 3, "totalScreenshots": 9, "captureTimeMs": 12000 }
 }
 ```
 

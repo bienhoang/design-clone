@@ -105,7 +105,7 @@ python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" -
 
 ### design:clone-site
 
-Multi-page site cloning with shared CSS and working navigation.
+Multi-page screenshot capture for Claude Code vision to generate new HTML/CSS.
 
 ```bash
 /design:clone-site https://example.com
@@ -134,18 +134,13 @@ cloned-designs/{timestamp}-{domain}/
 │   ├── desktop/*.png
 │   ├── tablet/*.png
 │   └── mobile/*.png
-├── pages/              # HTML with rewritten links
-│   ├── index.html
-│   ├── about.html
-│   └── contact.html
-├── styles.css          # Merged + deduplicated CSS
-└── manifest.json       # Page metadata + mapping
+├── manifest.json       # Page metadata + screenshot paths
+└── capture-results.json
 ```
 
 **Features:**
 - Auto-discovers pages from navigation (SPA-aware)
-- Shared CSS with deduplication (15-30% reduction)
-- Working internal links
+- Multi-viewport screenshots (desktop, tablet, mobile)
 - Progress reporting
 - Graceful error handling (continues on page failures)
 

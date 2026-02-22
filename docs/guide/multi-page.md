@@ -1,6 +1,6 @@
 # Multi-Page Sites
 
-Clone entire websites with shared CSS and working navigation.
+Capture multi-viewport screenshots of entire websites for Claude Code vision.
 
 ## Command
 
@@ -11,9 +11,9 @@ Clone entire websites with shared CSS and working navigation.
 ## Features
 
 - **Auto-discovery** - Finds pages from navigation links
-- **Shared CSS** - Merges and deduplicates styles
-- **Working links** - Rewrites internal navigation
+- **Multi-viewport screenshots** - Desktop, tablet, mobile captures per page
 - **SPA support** - Handles React, Vue, Next.js sites
+- **Progress reporting** - Real-time capture status
 
 ## Basic Usage
 
@@ -57,100 +57,47 @@ design-clone clone-site https://example.com --max-pages 5
 cloned-designs/{timestamp}-{domain}/
 ├── analysis/
 │   ├── desktop/
-│   │   ├── home.png
+│   │   ├── index.png
 │   │   ├── about.png
 │   │   └── contact.png
 │   ├── tablet/
 │   │   └── ...
 │   └── mobile/
 │       └── ...
-├── pages/
-│   ├── index.html
-│   ├── about.html
-│   └── contact.html
-├── styles.css          # Merged CSS
-└── manifest.json       # Page metadata
-```
-
-## CSS Handling
-
-### Deduplication
-
-CSS from all pages is merged and deduplicated:
-
-```css
-/* Page 1 CSS */
-.header { color: blue; }
-.hero { padding: 20px; }
-
-/* Page 2 CSS */
-.header { color: blue; }  /* Duplicate - removed */
-.about { margin: 10px; }
-```
-
-**Result:**
-```css
-.header { color: blue; }
-.hero { padding: 20px; }
-.about { margin: 10px; }
-```
-
-Typical reduction: **15-30%** smaller than combined CSS.
-
-### Shared Styles
-
-The merged `styles.css` is linked in all HTML files:
-
-```html
-<link rel="stylesheet" href="styles.css">
-```
-
-## Link Rewriting
-
-Internal links are rewritten to work locally:
-
-**Before:**
-```html
-<a href="https://example.com/about">About</a>
-<a href="/contact">Contact</a>
-```
-
-**After:**
-```html
-<a href="about.html">About</a>
-<a href="contact.html">Contact</a>
+├── manifest.json           # Page metadata + screenshot paths
+└── capture-results.json    # Detailed capture results
 ```
 
 ## manifest.json
 
-Contains metadata about cloned pages:
+Contains metadata about captured pages and screenshot paths:
 
 ```json
 {
-  "domain": "example.com",
-  "timestamp": "2024-01-15T10:30:00Z",
+  "baseUrl": "https://example.com",
+  "capturedAt": "2026-02-23T10:30:00Z",
   "pages": [
     {
       "path": "/",
-      "file": "index.html",
-      "title": "Home - Example",
+      "name": "Home",
+      "originalUrl": "https://example.com/",
       "screenshots": {
-        "desktop": "analysis/desktop/home.png",
-        "tablet": "analysis/tablet/home.png",
-        "mobile": "analysis/mobile/home.png"
+        "desktop": "analysis/desktop/index.png",
+        "tablet": "analysis/tablet/index.png",
+        "mobile": "analysis/mobile/index.png"
       }
     },
     {
       "path": "/about",
-      "file": "about.html",
-      "title": "About Us - Example",
-      "screenshots": { ... }
+      "name": "About",
+      "originalUrl": "https://example.com/about",
+      "screenshots": { "..." : "..." }
     }
   ],
-  "cssSize": {
-    "original": 45000,
-    "merged": 32000,
-    "reduction": "29%"
+  "stats": {
+    "totalPages": 3,
+    "totalScreenshots": 9,
+    "captureTimeMs": 12000
   }
 }
 ```
@@ -192,5 +139,5 @@ Completed: 4/5 pages (1 failed)
 
 1. **Start with auto-discovery** - Usually finds all important pages
 2. **Review manifest.json** - Verify all pages captured
-3. **Check CSS reduction** - Confirms deduplication worked
-4. **Test navigation** - Open index.html and click around
+3. **Check screenshots** - Ensure all viewports rendered correctly
+4. **Use Claude Code vision** - Feed screenshots to generate new HTML/CSS

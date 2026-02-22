@@ -1,7 +1,7 @@
 # Design Clone Codebase Summary
 
 **Version:** 2.1.0 (Phase 3 Complete)
-**Last Updated:** February 5, 2026
+**Last Updated:** February 23, 2026
 
 ## Overview
 
@@ -88,7 +88,8 @@ design-clone/
 │       ├── browser.js            # Playwright browser management
 │       ├── playwright.js         # Playwright configuration
 │       ├── env.js / env.py       # Environment variable handling
-│       └── helpers.js
+│       ├── helpers.js
+│       ├── log.js                # Centralized logging (NEW Feb 23)
 │
 ├── templates/                    # HTML/CSS base templates
 │   ├── base.html                 # HTML scaffold
@@ -207,25 +208,29 @@ Extract and manage animations and interactive states (5 modules).
 - `state-capture-detection.js` - Interactive element detection
 
 ### html/ - HTML Processing
-Extract and enhance HTML semantics (5 modules).
+Extract and enhance HTML semantics (5 modules, refactored).
 
 **Key Modules:**
 - `html-extractor.js` - Main extractor
 - `html-extractor-inline-styler.js` - Inline style handling
-- `semantic-enhancer.js` - WordPress semantic optimization
+- `semantic-enhancer.js` - Orchestrator (refactored Feb 23)
 - `semantic-enhancer-page.js` - Per-page enhancement
 - `semantic-enhancer-mappings.js` - Semantic mapping rules
 
+**Change (Feb 23):** semantic-enhancer decomposed into 3 modules to reduce duplication across filter-css.js and other modules.
+
 ### dimension/ - DOM Structure Analysis
-Analyze layout and dimensional properties (6 modules).
+Analyze layout and dimensional properties (6 modules, refactored).
 
 **Key Modules:**
-- `dimension-extractor.js` - Orchestrator
+- `dimension-extractor.js` - Orchestrator (refactored Feb 23)
 - `dimension-extractor-card-detector.js` - Card/component detection
 - `dimension-output.js` - Output formatting
 - `dimension-output-ai-summary.js` - AI-powered summaries
 - `dom-tree-analyzer.js` - DOM tree analysis
 - `dom-tree-analyzer-tree-builders.js` - Tree building logic
+
+**Change (Feb 23):** dimension-extractor decomposed into 4 modules + supporting files to reduce code smell and improve maintainability.
 
 ### section/ - Section Detection & Cropping
 Detect page sections and generate section-based crops (5 modules).
@@ -252,8 +257,8 @@ Analyze page content (2 modules).
 - `content-counter.js` - Content metrics
 - `content-counter-dom.js` - DOM-based counting
 
-### links/ - Link Rewriting
-Rewrite internal links for cloned sites (2 modules).
+### links/ - Link Rewriting (dormant)
+Link rewriting utilities, not used by current pipelines (2 modules).
 
 **Key Modules:**
 - `rewrite-links.js` - Orchestrator
@@ -322,7 +327,7 @@ Manages 3-step asset enhancement pipeline.
 **Steps:**
 1. **Fetch Images** - Download real images from Unsplash (requires UNSPLASH_ACCESS_KEY)
 2. **Inject Icons** - Replace placeholders with Japanese-style SVG icons
-3. **Inject GoSnap** - Add gosnap-widget Web Component to pages/ directory
+3. **Inject GoSnap** - Add gosnap-widget Web Component (clone-px only)
 
 **Flags:**
 - `--skip-images` - Skip image fetching
@@ -333,7 +338,7 @@ Manages 3-step asset enhancement pipeline.
 Injects gosnap-widget Web Component into HTML files.
 
 **Features:**
-- Scans pages/ directory for HTML files
+- Scans HTML directory for HTML files
 - Adds `<go-snap>` element with embed script before `</body>`
 - Idempotent (skips files that already contain widget)
 - Supports position, theme, and persist configuration
@@ -359,10 +364,9 @@ URL → Screenshot 3 viewports → Extract HTML/CSS → Filter CSS
 
 ### /design:clone-site (Multi-Page)
 ```
-URL → Discover pages → Screenshot all pages (3 viewports each)
-  → Merge CSS → Rewrite internal links → Verify navigation → Output
+URL → Discover pages → Screenshot all pages (3 viewports each) → Generate manifest → Output
 ```
-**Time:** ~2-5 minutes (depends on page count)
+**Time:** ~1-3 minutes (depends on page count)
 
 ### /design:figma-to-code (Figma Conversion)
 ```
@@ -384,12 +388,13 @@ Figma URL → Parse URL → Extract nodes & tokens → Generate HTML+CSS/Tailwin
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | CLI | Node.js, yargs | Command-line interface |
-| Browsers | Playwright | Multi-browser automation |
+| Browsers | Playwright (dependency) | Multi-browser automation |
 | Parsing | cheerio, jsdom | HTML/DOM manipulation |
 | CSS | PostCSS, PurgeCSS | CSS processing |
 | AI | Claude Code Vision (built-in) | Design analysis |
 | Python | Python 3.9+ | Figma processing |
 | Templates | HTML5, CSS3 | Output templates |
+| Logging | log.js (TTY-aware) | Centralized output (NEW Feb 23) |
 
 ## Quality Standards
 
