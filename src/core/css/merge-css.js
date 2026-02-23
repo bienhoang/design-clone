@@ -6,15 +6,12 @@
  * File I/O (reading/writing CSS files) lives in merge-css-file-io.js.
  *
  * Usage:
- *   import { mergeCssFiles } from './merge-css.js';
+ *   import { mergeCssFiles } from './merge-css-file-io.js';
  *   const result = await mergeCssFiles(['a.css', 'b.css'], 'merged.css');
  */
 
 import { sanitizeCss } from './filter-css.js';
 import { getRuleHash, processAtrule } from './merge-css-atrule-processor.js';
-
-// Re-export mergeCssFiles for backward compatibility
-export { mergeCssFiles } from './merge-css-file-io.js';
 
 // Import css-tree (already in package.json)
 let csstree;

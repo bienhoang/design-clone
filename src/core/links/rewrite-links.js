@@ -12,7 +12,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { normalizeUrl } from '../discovery/discover-pages.js';
+import { normalizeUrl } from '../discovery/discover-pages-utils.js';
 import { rewriteCssLinks } from './rewrite-links-css-rewriter.js';
 
 /**
