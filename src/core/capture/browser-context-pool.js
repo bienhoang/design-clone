@@ -9,25 +9,29 @@ import os from 'os';
 
 const DEFAULT_MAX_CONTEXTS = 3;
 const MIN_FREE_MEMORY_MB = 500;
+const DEFAULT_ACQUIRE_TIMEOUT = 30000;
 
 export class BrowserContextPool {
   #browser;
   #maxContexts;
+  #acquireTimeout;
   #active = new Set();
   #waitQueue = [];
 
   /**
    * @param {import('playwright').Browser} browser
-   * @param {{ maxContexts?: number }} options
+   * @param {{ maxContexts?: number, acquireTimeout?: number }} options
    */
   constructor(browser, options = {}) {
     this.#browser = browser;
     this.#maxContexts = options.maxContexts || DEFAULT_MAX_CONTEXTS;
+    this.#acquireTimeout = options.acquireTimeout ?? DEFAULT_ACQUIRE_TIMEOUT;
   }
 
   /**
    * Acquire a browser context + page from the pool.
    * Waits if pool is full or memory is low.
+   * Rejects with an error if acquireTimeout is exceeded.
    * @returns {Promise<{context: import('playwright').BrowserContext, page: import('playwright').Page}>}
    */
   async acquire() {
@@ -62,7 +66,22 @@ export class BrowserContextPool {
 
   /** @returns {Promise<{context, page}>} */
   #waitForRelease() {
-    return new Promise(resolve => { this.#waitQueue.push(resolve); });
+    const timeout = this.#acquireTimeout;
+    return new Promise((resolve, reject) => {
+      let timer;
+      const entry = (result) => {
+        clearTimeout(timer);
+        resolve(result);
+      };
+      this.#waitQueue.push(entry);
+      if (timeout > 0) {
+        timer = setTimeout(() => {
+          const idx = this.#waitQueue.indexOf(entry);
+          if (idx !== -1) this.#waitQueue.splice(idx, 1);
+          reject(new Error(`Context pool acquire timed out after ${timeout}ms`));
+        }, timeout);
+      }
+    });
   }
 
   /** Close all active contexts */

@@ -30,10 +30,11 @@ export async function captureViewport(options) {
     outputPath,
     fullPage = true,
     maxSize = 5,
-    scrollDelay = DEFAULT_SCROLL_DELAY
+    scrollDelay = DEFAULT_SCROLL_DELAY,
+    viewportMap = VIEWPORTS
   } = options;
 
-  await page.setViewportSize(VIEWPORTS[viewport]);
+  await page.setViewportSize(viewportMap[viewport]);
   await new Promise(r => setTimeout(r, VIEWPORT_SETTLE_DELAY));
   await waitForDomStable(page, 300, 5000);
   await waitForFontsLoaded(page, 3000);
@@ -81,7 +82,7 @@ export async function captureViewport(options) {
   return {
     viewport,
     path: path.resolve(outputPath),
-    dimensions: VIEWPORTS[viewport],
+    dimensions: viewportMap[viewport],
     componentDimensions,
     domHierarchy,
     scrollInfo,

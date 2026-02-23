@@ -46,6 +46,8 @@ export async function validateAsset(filePath) {
     const content = await fs.readFile(filePath, 'utf-8');
     if (/<script[\s>]/i.test(content)) issues.push('SVG contains script tags');
     if (/\son\w+\s*=/i.test(content)) issues.push('SVG contains event handlers');
+    if (/javascript\s*:/i.test(content)) issues.push('SVG contains javascript: URIs');
+    if (/<(iframe|object|embed)[\s>]/i.test(content)) issues.push('SVG contains unsafe elements');
     if (issues.length > 0) {
       const sanitized = sanitizeSvg(content);
       await fs.writeFile(filePath, sanitized, 'utf-8');
@@ -103,6 +105,14 @@ export async function validateBatch(assetsDir) {
  */
 export function sanitizeSvg(content) {
   return content
+    // Strip <script> blocks
     .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '');
+    // Strip dangerous elements: <iframe>, <object>, <embed>
+    .replace(/<(iframe|object|embed)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<(iframe|object|embed)(\s[^>]*)?\s*\/>/gi, '')
+    // Strip javascript: URIs from href, xlink:href, src attributes
+    .replace(/((?:xlink:)?href|src)\s*=\s*["']\s*javascript\s*:[^"']*["']/gi, '')
+    // Strip on* event handler attributes
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/\son\w+\s*=\s*\{[^}]*\}/gi, '');
 }

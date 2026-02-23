@@ -69,6 +69,8 @@ async function captureMultiViewport() {
     }
 
     // Breakpoint detection: override viewports with CSS-detected breakpoints
+    // Use a local copy to avoid mutating the global VIEWPORTS object (side-effect prevention)
+    let localViewports = { ...VIEWPORTS };
     let detectedBreakpoints = null;
     if (options.detectBreakpoints && extraction?.css?.path && !extraction.css.failed) {
       try {
@@ -80,9 +82,8 @@ async function captureMultiViewport() {
         if (detectedBreakpoints.breakpoints.length > 0) {
           const mergedViewports = mergeWithFixed(detectedBreakpoints.breakpoints);
           requestedViewports = Object.keys(mergedViewports);
-          // Extend VIEWPORTS with detected entries for captureViewport
           for (const [name, config] of Object.entries(mergedViewports)) {
-            if (!VIEWPORTS[name]) VIEWPORTS[name] = config;
+            if (!localViewports[name]) localViewports[name] = config;
           }
         }
       } catch { /* breakpoint detection optional, continue with defaults */ }
@@ -98,17 +99,17 @@ async function captureMultiViewport() {
     if (allHeadless) {
       // Fast path: single browser session, just resize viewport
       for (const viewport of requestedViewports) {
-        vpProgress.step(`Capturing ${viewport}`, `${VIEWPORTS[viewport].width}px`);
+        vpProgress.step(`Capturing ${viewport}`, `${localViewports[viewport].width}px`);
         screenshots.push(await captureViewport({
           page: browserMgr.getPage(), viewport,
           outputPath: path.join(output, `${viewport}.png`),
-          fullPage, maxSize, scrollDelay
+          fullPage, maxSize, scrollDelay, viewportMap: localViewports
         }));
       }
     } else {
       // Restart path for mixed headless/headed scenarios
       for (const viewport of requestedViewports) {
-        vpProgress.step(`Capturing ${viewport}`, `${VIEWPORTS[viewport].width}px`);
+        vpProgress.step(`Capturing ${viewport}`, `${localViewports[viewport].width}px`);
         const viewportHeadless = getHeadlessForViewport(viewport);
         if (browserMgr.getCurrentHeadless() !== viewportHeadless) {
           browserRestarts.push({ viewport, from: browserMgr.getCurrentHeadless() ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
@@ -118,7 +119,7 @@ async function captureMultiViewport() {
         screenshots.push(await captureViewport({
           page: browserMgr.getPage(), viewport,
           outputPath: path.join(output, `${viewport}.png`),
-          fullPage, maxSize, scrollDelay
+          fullPage, maxSize, scrollDelay, viewportMap: localViewports
         }));
       }
     }

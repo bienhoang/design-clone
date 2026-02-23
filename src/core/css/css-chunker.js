@@ -19,9 +19,41 @@ export function splitCssAtTopLevel(cssString, targetSize = DEFAULT_CHUNK_SIZE) {
   let depth = 0;
   let chunkStart = 0;
   let lastTopLevelClose = 0;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inComment = false;
 
   for (let i = 0; i < cssString.length; i++) {
     const ch = cssString[i];
+    const prev = i > 0 ? cssString[i - 1] : '';
+
+    // Track comment state
+    if (!inSingleQuote && !inDoubleQuote) {
+      if (!inComment && ch === '/' && cssString[i + 1] === '*') {
+        inComment = true;
+        i++; // skip '*'
+        continue;
+      }
+      if (inComment && ch === '*' && cssString[i + 1] === '/') {
+        inComment = false;
+        i++; // skip '/'
+        continue;
+      }
+    }
+    if (inComment) continue;
+
+    // Track string state (skip escaped quotes)
+    if (!inDoubleQuote && ch === "'" && prev !== '\\') {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+    if (!inSingleQuote && ch === '"' && prev !== '\\') {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+    if (inSingleQuote || inDoubleQuote) continue;
+
+    // Count braces only at top level (outside strings and comments)
     if (ch === '{') depth++;
     else if (ch === '}') {
       depth--;
