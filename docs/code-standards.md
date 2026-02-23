@@ -475,12 +475,13 @@ design-clone/
 │       └── validate.js
 │
 ├── src/
-│   ├── core/                   # Core extraction engines (11 semantic subdirectories)
+│   ├── core/                   # Core extraction engines (12 semantic subdirectories)
 │   │   ├── capture/            # Screenshot pipeline (7 modules)
 │   │   ├── css/                # CSS processing (7 modules)
 │   │   ├── html/               # HTML extraction (5 modules)
 │   │   ├── animation/          # Animation & hover states (5 modules)
-│   │   ├── discovery/          # Page & framework detection (9 modules)
+│   │   ├── discovery/          # Page discovery (6 modules)
+│   │   ├── detection/          # Framework detection (3 modules)
 │   │   ├── dimension/          # DOM analysis (6 modules)
 │   │   ├── section/            # Section detection (5 modules)
 │   │   ├── media/              # Asset extraction (5 modules)
@@ -567,7 +568,7 @@ CLI Layer
   ↓
 Workflow Layer (clone, clone-px, clone-site, figma-to-code)
   ↓
-Core Engines (capture/, css/, discovery/, etc. via direct imports)
+Core Engines (capture/, css/, discovery/, detection/, etc. via direct imports)
   ↓
 Utilities (browser, env, helpers, log, playwright)
 ```

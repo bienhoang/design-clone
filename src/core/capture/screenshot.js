@@ -114,7 +114,6 @@ async function captureMultiViewport() {
     if (shouldClose) await closeBrowser(); else await disconnectBrowser();
     process.exit(0);
   } catch (error) {
-    const { outputError } = await import('../utils/browser.js');
     outputError(error);
     process.exit(1);
   } finally {

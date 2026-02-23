@@ -38,7 +38,8 @@ design-clone/
 │   │   ├── css/                  # CSS processing (7 modules + index)
 │   │   ├── html/                 # HTML extraction (5 modules + index)
 │   │   ├── animation/            # Animation & hover states (5 modules + index)
-│   │   ├── discovery/            # Page & framework discovery (9 modules + index)
+│   │   ├── discovery/            # Page discovery (6 modules + index)
+│   │   ├── detection/            # Framework detection (3 modules)
 │   │   ├── dimension/            # DOM structure analysis (6 modules + index)
 │   │   ├── section/              # Section detection (5 modules + index)
 │   │   ├── media/                # Video & asset extraction (5 modules + index)
@@ -181,19 +182,24 @@ Download images, fonts, and icons from websites (5 modules).
 
 **Output:** `assets/images/`, `assets/fonts/`, `assets/icons/`, `assets/videos/`
 
-### discovery/ - Page & Framework Detection
-Discover pages and detect framework routing patterns (9 modules).
+### discovery/ - Page Discovery
+Discover pages and extract navigation patterns (6 modules).
 
 **Key Modules:**
 - `discover-pages.js` - Navigation discovery orchestrator
 - `discover-pages-utils.js` - Discovery utilities
 - `discover-pages-routes.js` - Route extraction
-- `framework-detector.js` - Framework detection
-- `framework-detector-signals.js` - Detection signal analysis
-- `framework-detector-routing.js` - Routing pattern detection
 - `app-state-snapshot.js` - State capture
 - `app-state-snapshot-utils.js` - State utilities
 - `app-state-snapshot-capture.js` - Capture logic
+
+### detection/ - Framework Detection
+Detect JavaScript frameworks via global objects and DOM patterns (3 modules).
+
+**Key Modules:**
+- `framework-detector.js` - Framework detection orchestrator
+- `framework-detector-signals.js` - Detection signal analysis
+- `framework-detector-routing.js` - Routing pattern detection
 
 **Framework Support:** React, Vue, Angular, Svelte, Next.js, Nuxt.js, Astro
 

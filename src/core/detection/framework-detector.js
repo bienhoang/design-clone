@@ -178,7 +178,7 @@ export function formatDetectionResult(info) {
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] === __filename) {
-  const { getBrowser, getPage, disconnectBrowser } = await import('../utils/browser.js');
+  const { getBrowser, getPage, disconnectBrowser } = await import('../../utils/browser.js');
   const url = process.argv[2];
   if (!url) { console.error('Usage: node framework-detector.js <url>'); process.exit(1); }
   try {

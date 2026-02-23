@@ -109,6 +109,7 @@ URL Input
 | extract-assets.js | media/ | Asset downloads | HTML + CSS | images/, fonts/, icons/ |
 | filter-css.js | css/ | Remove unused rules | HTML + CSS | Optimized CSS |
 | discover-pages.js | discovery/ | SPA navigation | URL | Page list |
+| framework-detector.js | detection/ | Framework detection | Page DOM | Framework info |
 | multi-page-screenshot.js | capture/ | Multi-page capture | Page list | Screenshots |
 | animation-extractor.js | animation/ | Extract animations | CSS | animation-tokens.json |
 | semantic-enhancer.js | html/ | HTML optimization (Feb 23) | HTML + CSS | Enhanced HTML |
