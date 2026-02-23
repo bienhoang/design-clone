@@ -27,21 +27,25 @@ design-clone/
 │   ├── commands/           # CLI commands (init, verify, help)
 │   └── utils/              # CLI utilities
 ├── src/
-│   ├── core/               # Core extraction scripts
-│   │   ├── screenshot.js   # Multi-viewport screenshots
-│   │   ├── filter-css.js   # CSS filtering
-│   │   └── extract-assets.js
-│   ├── ai/                 # AI analysis scripts
-│   │   ├── analyze-structure.py
-│   │   └── extract-design-tokens.py
-│   ├── verification/       # Verification scripts
-│   │   ├── verify-menu.js
-│   │   └── verify-layout.js
+│   ├── core/               # Core extraction (13 subdirectories)
+│   │   ├── capture/        # Screenshot pipeline
+│   │   ├── css/            # CSS processing
+│   │   ├── html/           # HTML extraction
+│   │   ├── animation/      # Animation & hover states
+│   │   ├── discovery/      # Page discovery
+│   │   ├── detection/      # Framework detection
+│   │   ├── dimension/      # DOM structure analysis
+│   │   ├── section/        # Section detection
+│   │   ├── media/          # Asset extraction
+│   │   ├── page-prep/      # Page readiness
+│   │   ├── content/        # Content analysis
+│   │   └── links/          # URL rewriting
+│   ├── ai/                 # AI analysis prompts (Claude Code vision)
+│   ├── verification/       # Quality assurance (19 modules)
 │   ├── utils/              # Shared utilities
 │   │   ├── browser.js      # Browser abstraction
-│   │   ├── puppeteer.js    # Puppeteer wrapper
-│   │   ├── env.js          # Environment resolution
-│   │   └── env.py          # Python env resolution
+│   │   ├── playwright.js   # Playwright configuration
+│   │   └── env.js          # Environment resolution
 │   └── post-process/       # Post-processing scripts
 ├── docs/                   # Documentation
 ├── templates/              # HTML/CSS templates

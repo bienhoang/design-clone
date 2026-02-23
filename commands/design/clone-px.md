@@ -13,12 +13,21 @@ Create a pixel-perfect clone of this page with full asset extraction and AI anal
 ## Pipeline Overview
 
 ```
-URL -> Screenshots + Hover -> CSS Filter -> Assets -> AI Analysis -> Design Tokens -> Verify -> Quality Check -> Output
+URL -> Page Prep -> Capture + Hover -> CSS Filter -> Section/Framework Detection -> Dimensions -> Assets -> AI Analysis -> Tokens -> Verify Suite -> Quality Score -> Output
 ```
 
 ## Workflow
 
-### STEP 1: Capture + Extract (with Hover States)
+### STEP 1: Page Preparation
+
+```bash
+node ~/.claude/skills/design-clone/src/core/page-prep/page-readiness.js \
+  --url "$ARGUMENTS"
+```
+
+Handles cookie banners, triggers lazy loading, ensures page fully loaded.
+
+### STEP 2: Capture + Extract (with Hover States)
 
 ```bash
 node ~/.claude/skills/design-clone/src/core/capture/screenshot.js \
@@ -31,7 +40,7 @@ node ~/.claude/skills/design-clone/src/core/capture/screenshot.js \
 
 **Output:** desktop.png, tablet.png, mobile.png, source.html, source-raw.css, hover-states/, hover.css
 
-### STEP 2: Filter CSS
+### STEP 3: Filter CSS
 
 ```bash
 node ~/.claude/skills/design-clone/src/core/css/filter-css.js \
@@ -40,7 +49,57 @@ node ~/.claude/skills/design-clone/src/core/css/filter-css.js \
   --output ./output/source.css
 ```
 
-### STEP 3: Extract Assets (Images, Fonts, Icons)
+### STEP 4: Section Detection
+
+```bash
+node ~/.claude/skills/design-clone/src/core/section/section-detector.js \
+  --html ./output/source.html \
+  --screenshots ./output \
+  --output ./output
+```
+
+**Output:** sections.json, section crop images
+
+### STEP 5: Framework Detection
+
+```bash
+node ~/.claude/skills/design-clone/src/core/detection/framework-detector.js \
+  --url "$ARGUMENTS" \
+  --output ./output
+```
+
+**Output:** framework-info.json (framework name, version, routing type)
+
+### STEP 6: Dimension Extraction
+
+```bash
+node ~/.claude/skills/design-clone/src/core/dimension/dimension-extractor.js \
+  --url "$ARGUMENTS" \
+  --html ./output/source.html \
+  --output ./output
+```
+
+**Output:** dimensions-summary.json, dom-hierarchy.json
+
+### STEP 7: Content Counting
+
+```bash
+node ~/.claude/skills/design-clone/src/core/content/content-counter.js \
+  --html ./output/source.html \
+  --output ./output
+```
+
+**Output:** content-summary.md
+
+### STEP 8: Semantic Enhancement
+
+```bash
+node ~/.claude/skills/design-clone/src/core/html/semantic-enhancer.js \
+  --html ./output/source.html \
+  --output ./output/source.html
+```
+
+### STEP 9: Extract Assets (Images, Fonts, Icons)
 
 ```bash
 node ~/.claude/skills/design-clone/src/core/media/extract-assets.js \
@@ -48,56 +107,72 @@ node ~/.claude/skills/design-clone/src/core/media/extract-assets.js \
   --output ./output
 ```
 
-### STEP 4: AI Structure Analysis (Claude Code Vision)
+### STEP 10: AI Structure Analysis (Claude Code Vision)
 
 Select prompt based on available context (highest accuracy first):
 
 - **If** `dom-hierarchy.json` AND `dimensions-summary.json` exist:
-  - Read `src/ai/prompts/structure-analysis/with-hierarchy.md`
+  - Read `~/.claude/skills/design-clone/src/ai/prompts/structure-analysis/with-hierarchy.md`
   - Read `output/dom-hierarchy.json` and `output/dimensions-summary.json`
 - **Else if** `dimensions-summary.json` exists:
-  - Read `src/ai/prompts/structure-analysis/with-dimensions.md`
-  - Read `output/dimensions-summary.json`
+  - Read `~/.claude/skills/design-clone/src/ai/prompts/structure-analysis/with-dimensions.md`
 - **Else if** `source.html` AND `source.css` exist:
-  - Read `src/ai/prompts/structure-analysis/with-context.md`
-  - Read `output/source.html` (first 100KB) and `output/source.css` (first 100KB)
-- **Else:**
-  - Read `src/ai/prompts/structure-analysis/basic.md`
+  - Read `~/.claude/skills/design-clone/src/ai/prompts/structure-analysis/with-context.md`
+- **Else:** Read `~/.claude/skills/design-clone/src/ai/prompts/structure-analysis/basic.md`
 
-Then: Read `output/desktop.png` (Claude vision analyzes the screenshot).
-If `content-summary.md` exists: Read `output/content-summary.md`.
-Analyze following prompt instructions. Write result to `output/structure.md`.
+Then: Read `output/desktop.png`. If `content-summary.md` exists, read it too.
+Write result to `output/structure.md`.
 
-### STEP 5: Extract Design Tokens (Claude Code Vision)
+### STEP 11: Extract Design Tokens (Claude Code Vision)
 
-Select prompt:
-- **If** `source.css` exists:
-  - Read `src/ai/prompts/design-tokens/with-css.md`
-  - Read `output/source.css` (first 15KB)
-- **Else:**
-  - Read `src/ai/prompts/design-tokens/basic.md`
+- **If** `source.css` exists: Read `~/.claude/skills/design-clone/src/ai/prompts/design-tokens/with-css.md` + `output/source.css` (first 15KB)
+- **Else:** Read `~/.claude/skills/design-clone/src/ai/prompts/design-tokens/basic.md`
 
-Read `output/desktop.png`, `output/tablet.png`, `output/mobile.png`.
-Analyze following prompt instructions.
-Write JSON result to `output/design-tokens.json`.
-Generate CSS custom properties and write to `output/tokens.css`.
+Read all viewport screenshots. Write JSON to `output/design-tokens.json`, CSS to `output/tokens.css`.
 
-**Token CSS generation rules:**
-- Map colors to `--color-*` variables
-- Map typography to `--font-*`, `--font-size-*`, `--font-weight-*`, `--line-height-*`
-- Map spacing to `--space-*` variables
-- Map border-radius to `--radius-*` variables
-- Map shadows to `--shadow-*` variables
-- Use `:root {}` selector
-
-### STEP 6: Verify Menu
+### STEP 12: Verification Suite
 
 ```bash
+# Menu
 node ~/.claude/skills/design-clone/src/verification/verify-menu.js \
+  --html ./output/source.html
+
+# Header
+node ~/.claude/skills/design-clone/src/verification/verify-header.js \
+  --html ./output/source.html
+
+# Footer
+node ~/.claude/skills/design-clone/src/verification/verify-footer.js \
+  --html ./output/source.html
+
+# Layout
+node ~/.claude/skills/design-clone/src/verification/verify-layout.js \
+  --html ./output/source.html --css ./output/source.css
+
+# Slider (if detected)
+node ~/.claude/skills/design-clone/src/verification/verify-slider.js \
   --html ./output/source.html
 ```
 
-### STEP 7: Quality Check with ui-ux-pro-max (REQUIRED)
+### STEP 13: Audit Report
+
+```bash
+node ~/.claude/skills/design-clone/src/verification/generate-audit-report.js \
+  --output ./output
+```
+
+**Output:** audit-report.md
+
+### STEP 14: Quality Scoring
+
+```bash
+node ~/.claude/skills/design-clone/src/verification/quality-scorer.js \
+  --output ./output
+```
+
+**Output:** quality-score.json
+
+### STEP 15: Quality Check with ui-ux-pro-max (REQUIRED)
 
 ```bash
 python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
@@ -105,51 +180,17 @@ python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" -
 python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "z-index" --domain ux
 ```
 
-### STEP 8: Build the Clone
+### STEP 16: Build the Clone
 
-Using all extracted data:
-
-1. **Read structure.md** - Understand layout and component hierarchy
-2. **Read design-tokens.json** - Apply exact colors, typography, spacing
-3. **Read source.html + source.css** - Reference for HTML structure and CSS
-4. **Read hover.css** - Apply hover state interactions
-5. **Check screenshots** - Visual reference for pixel-perfect accuracy
-6. **Build HTML/CSS** - Produce production-ready code matching the original
+Read structure.md, design-tokens.json, source.html, source.css, hover.css, and screenshots. Build production HTML/CSS matching the original.
 
 ## Output Structure
 
 ```
 output/
-├── desktop.png           # Desktop screenshot (1440px)
-├── tablet.png            # Tablet screenshot (768px)
-├── mobile.png            # Mobile screenshot (375px)
-├── source.html           # Extracted HTML
-├── source-raw.css        # Raw extracted CSS
-├── source.css            # Filtered CSS
-├── hover-states/         # Hover state screenshots
-├── hover.css             # Generated :hover rules
-├── hover-diff.json       # Style diff data
-├── assets/               # Downloaded images, fonts, icons
-├── structure.md          # AI structure analysis
-├── design-tokens.json    # Extracted design tokens
-└── tokens.css            # CSS custom properties
-```
-
-## Key Features
-
-- **Full asset extraction** - Images, fonts, icons downloaded locally
-- **Hover state capture** - Before/after screenshots + generated CSS
-- **AI structure analysis** - Layout hierarchy via Claude Code vision
-- **Design tokens** - Colors, typography, spacing as CSS variables
-- **Menu verification** - Navigation structure validation
-- **ui-ux-pro-max quality check** - Comprehensive quality validation
-
-## Examples
-
-```bash
-# Pixel-perfect clone of a page
-/design:clone-px https://example.com
-
-# Clone a specific page
-/design:clone-px https://example.com/landing
+├── desktop.png, tablet.png, mobile.png  # Viewport screenshots
+├── source.html, source-raw.css, source.css, hover-states/, hover.css
+├── assets/, structure.md, design-tokens.json, tokens.css
+├── sections.json, framework-info.json, dimensions-summary.json
+├── content-summary.md, audit-report.md, quality-score.json
 ```

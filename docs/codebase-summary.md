@@ -34,25 +34,28 @@ Design Clone is a comprehensive design extraction and code generation tool for C
 design-clone/
 ├── bin/                          # CLI entry points
 │   ├── cli.js                    # Main CLI router
-│   └── commands/                 # Command implementations
+│   └── commands/                 # Command implementations (6 modules)
 │       ├── clone-site.js         # Multi-page site cloning
 │       ├── init.js               # Installation setup
-│       └── verify.js             # Verification checks
+│       ├── verify.js             # Verification checks
+│       ├── help.js               # Usage help
+│       ├── update.js             # Version update
+│       └── uninstall.js          # Skill removal
 ├── src/
-│   ├── core/                     # Core extraction engines (11 semantic subdirectories)
-│   │   ├── capture/              # Screenshot pipeline (7 modules + index)
-│   │   ├── css/                  # CSS processing (7 modules + index)
-│   │   ├── html/                 # HTML extraction (5 modules + index)
-│   │   ├── animation/            # Animation & hover states (5 modules + index)
-│   │   ├── discovery/            # Page discovery (6 modules + index)
+│   ├── core/                     # Core extraction engines (13 subdirectories)
+│   │   ├── capture/              # Screenshot pipeline (8 modules)
+│   │   ├── css/                  # CSS processing (12 modules)
+│   │   ├── html/                 # HTML extraction (5 modules)
+│   │   ├── animation/            # Animation & hover states (5 modules)
+│   │   ├── discovery/            # Page discovery (6 modules)
 │   │   ├── detection/            # Framework detection (3 modules)
-│   │   ├── dimension/            # DOM structure analysis (6 modules + index)
-│   │   ├── section/              # Section detection (5 modules + index)
-│   │   ├── media/                # Video & asset extraction (5 modules + index)
-│   │   ├── page-prep/            # Page readiness (3 modules + index)
-│   │   ├── content/              # Content analysis (2 modules + index)
-│   │   ├── links/                # URL rewriting (2 modules + index)
-│   │   └── tests/                # Core tests (2 modules)
+│   │   ├── dimension/            # DOM structure analysis (6 modules)
+│   │   ├── section/              # Section detection (5 modules)
+│   │   ├── media/                # Video & asset extraction (6 modules)
+│   │   ├── page-prep/            # Page readiness (3 modules)
+│   │   ├── content/              # Content analysis (2 modules)
+│   │   ├── links/                # URL rewriting (2 modules)
+│   │   └── tests/                # Core tests
 │   │
 │   ├── figma/                    # Figma-to-code integration (Phase 3)
 │   │   ├── parse-url.js          # Figma URL parser (Phase 1)
@@ -74,14 +77,18 @@ design-clone/
 │   │   ├── verify-footer.js      # Footer structure
 │   │   └── [more verifications]
 │   │
-│   ├── post-process/             # Asset enhancement
+│   ├── post-process/             # Asset enhancement (6 modules)
 │   │   ├── fetch-images.js       # Image downloading
+│   │   ├── fetch-images-unsplash-client.js  # Unsplash API client
 │   │   ├── inject-icons.js       # Font Awesome injection
+│   │   ├── inject-icons-svg-replacer.js     # SVG replacement logic
 │   │   ├── inject-gosnap.js      # GoSnap widget injection
 │   │   └── enhance-assets.js     # Asset optimization (3 steps)
 │   │
-│   ├── route-discoverers/        # Framework-aware routing
+│   ├── route-discoverers/        # Framework-aware routing (11 modules)
+│   │   ├── index.js              # Discoverer registry
 │   │   ├── base-discoverer.js
+│   │   ├── base-discoverer-utils.js  # Shared discovery utilities
 │   │   ├── react-discoverer.js
 │   │   ├── vue-discoverer.js
 │   │   ├── angular-discoverer.js
@@ -94,7 +101,7 @@ design-clone/
 │   └── utils/                    # Shared utilities
 │       ├── browser.js            # Playwright browser management
 │       ├── playwright.js         # Playwright configuration
-│       ├── env.js / env.py       # Environment variable handling
+│       ├── env.js       # Environment variable handling
 │       ├── helpers.js
 │       ├── log.js                # Centralized logging (NEW Feb 23)
 │
@@ -158,15 +165,17 @@ Multi-viewport screenshot capture with Playwright (8 modules + browser context p
 **Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source.css`, `quality-score.json` (optional)
 
 ### css/ - CSS Processing
-Remove unused CSS rules and handle stylesheet optimization (10 modules).
+Remove unused CSS rules and handle stylesheet optimization (12 modules).
 
 **Key Modules:**
 - `filter-css.js` - Main CSS filtering orchestrator (v3.0: error codes, chunked processing, aggressive filter pass)
 - `merge-css.js` - CSS deduplication
 - `filter-css-selector-matcher.js` - Selector matching logic (v3.0: async filterCssRules, dead code pass)
 - `filter-css-html-analyzer.js` - HTML selector extraction
-- `filter-css-atrule-processor.js` - @media/@keyframe handling
-- `filter-css-file-io.js` - File I/O utilities
+- `merge-css-atrule-processor.js` - @media/@keyframe handling for CSS merge
+- `merge-css-file-io.js` - File I/O utilities for CSS merge
+- `css-extractor.js` - CSS extraction from pages
+- `chromium-defaults.json` - Chromium default computed style reference
 - `breakpoint-detector.js` - Parse @media queries, detect actual breakpoints (v3.0 NEW)
 - `filter-css-dead-code.js` - Two-pass removal of unused @media, @keyframes, CSS vars (v3.0 NEW)
 - `css-chunker.js` - Chunk-based streaming for large stylesheets (v3.0 NEW)
@@ -189,8 +198,8 @@ Remove unused CSS rules and handle stylesheet optimization (10 modules).
 
 **Impact:** 40-60% CSS size reduction on average, up to 80% with aggressive filter
 
-### media/ - Asset Extraction
-Download images, fonts, and icons from websites with integrity verification (6 modules).
+### media/ - Asset Extraction & Video
+Download images, fonts, and icons with integrity verification; video recording (6 modules).
 
 **Key Modules:**
 - `extract-assets.js` - Orchestrator (v3.0: concurrency flag, asset validation)
@@ -310,7 +319,8 @@ Centralized utilities and helpers (v3.0).
 - `log.js` - Centralized logging with TTY detection (existing)
 - `browser.js` - Playwright browser management
 - `playwright.js` - Playwright configuration
-- `env.js / env.py` - Environment variable handling
+- `playwright-loader.js` - Playwright browser instance loader
+- `env.js` - Environment variable handling
 - `helpers.js` - General utility functions
 
 **v3.0 Progress Reporting:**
@@ -319,25 +329,40 @@ Centralized utilities and helpers (v3.0).
 - Methods: start(), step(), complete()
 
 ### shared/ - Shared Code
-Cross-module shared definitions.
+Cross-module shared definitions (3 modules).
 
 **Key Modules:**
 - `error-codes.js` - DesignCloneError with structured codes (v3.0 NEW)
 - `config.js` - SIZE_LIMITS, CHUNK_THRESHOLD, BROWSER_POOL constants (v3.0: updated limits)
+- `viewports.js` - Viewport definitions (desktop, tablet, mobile) shared across capture modules
 
 **v3.0 Error Catalog:**
 - ERROR_CODES map: CSS_SIZE_EXCEEDED, CSS_PARSE_FAILED, CSS_CORS_BLOCKED, HTML_EXTRACTION_FAILED, ASSET_DOWNLOAD_FAILED, BROWSER_LAUNCH_FAILED, NAV_TIMEOUT, FILE_IO_FAILED, DISCOVERY_FAILED, SCREENSHOT_FAILED, INVALID_ARGS
 - DesignCloneError class: extends Error, includes code + suggestion + context
 
 ### verification/ - Quality Assurance
-Quality checks and scoring (v3.0).
+Quality checks and scoring (19 modules).
 
 **Key Modules:**
 - `quality-scorer.js` - 5-metric weighted scoring (v3.0 NEW)
 - `verify-menu.js` - Navigation validation
+- `verify-menu-checks.js` - Menu test logic
+- `verify-menu-helpers.js` - Menu DOM utilities
 - `verify-layout.js` - Layout consistency
+- `verify-layout-report.js` - Layout report generation
 - `verify-header.js` - Header structure
+- `verify-header-checks.js` - Header test logic
+- `verify-header-helpers.js` - Header DOM utilities
 - `verify-footer.js` - Footer structure
+- `verify-footer-checks.js` - Footer test logic
+- `verify-footer-helpers.js` - Footer DOM utilities
+- `verify-slider.js` - Slider/carousel detection
+- `verify-slider-checks.js` - Slider test logic
+- `verify-slider-constants.js` - Slider selector constants
+- `verify-slider-helpers.js` - Slider DOM utilities
+- `generate-audit-report.js` - Audit report generation
+- `generate-audit-report-css-fixes.js` - CSS fix suggestions
+- `generate-audit-report-sections.js` - Section analysis
 
 **v3.0 Quality Scoring:**
 - Metrics: cssCoverage (30%), assetCompleteness (25%), responsiveFidelity (20%), htmlSemantics (15%), accessibility (10%)

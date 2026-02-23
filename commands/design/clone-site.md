@@ -34,6 +34,12 @@ node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --pag
 
 # With AI design token extraction (requires GEMINI_API_KEY)
 node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --ai
+
+# Preview discovery without capture (v3.0)
+node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --dry-run
+
+# Auto-detect CSS breakpoints (v3.0)
+node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --detect-breakpoints
 ```
 
 ### CLI Options
@@ -46,6 +52,8 @@ node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --ai
 | `--yes` | false | Skip confirmation prompt |
 | `--output <dir>` | ./cloned-designs/{timestamp}-{domain} | Custom output directory |
 | `--ai` | false | Extract design tokens using Gemini AI |
+| `--dry-run` | false | Preview discovered pages without capture (v3.0) |
+| `--detect-breakpoints` | false | Auto-detect CSS breakpoints from media queries (v3.0) |
 
 ### STEP 2: Process Flow (Automatic)
 
@@ -64,15 +72,12 @@ The command executes these steps automatically:
 cloned-designs/{timestamp}-{domain}/
 ├── analysis/           # Screenshots by viewport
 │   ├── desktop/
-│   │   ├── index.png
-│   │   ├── about.png
-│   │   └── contact.png
 │   ├── tablet/
 │   └── mobile/
 ├── html/               # Raw extracted HTML (source)
 ├── css/                # Per-page CSS (raw + filtered)
 ├── pages/              # HTML with rewritten links
-│   ├── index.html      # Links to ../styles.css
+│   ├── index.html
 │   ├── about.html
 │   └── contact.html
 ├── styles.css          # Merged + deduplicated CSS
@@ -120,8 +125,8 @@ GEMINI_API_KEY=your-key
 # Clone with AI token extraction
 /design:clone-site https://example.com --ai --max-pages 5
 
-# Clone to custom directory
-/design:clone-site https://example.com --output ./my-clone
+# Preview pages before cloning (v3.0)
+/design:clone-site https://example.com --dry-run
 ```
 
 ## Error Handling

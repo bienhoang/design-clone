@@ -13,7 +13,7 @@ Clone the design of this single page with Font Awesome icons and Unsplash images
 ## Pipeline Overview
 
 ```
-URL -> Screenshots + HTML/CSS -> CSS Filtering -> Quality Check -> Output
+URL -> Screenshots + HTML/CSS -> CSS Filtering -> [Optional Steps] -> Quality Check -> Output
 ```
 
 ## Workflow
@@ -39,14 +39,49 @@ node ~/.claude/skills/design-clone/src/core/css/filter-css.js \
   --output ./output/source.css
 ```
 
-### STEP 3: Quality Check with ui-ux-pro-max (REQUIRED)
+### STEP 3 (OPTIONAL): Dimension Extraction
+
+When: Complex layouts where AI needs explicit dimension data.
+
+```bash
+node ~/.claude/skills/design-clone/src/core/dimension/dimension-extractor.js \
+  --url "$ARGUMENTS" \
+  --html ./output/source.html \
+  --output ./output
+```
+
+**Output:** dimensions-summary.json, dom-hierarchy.json
+
+### STEP 4 (OPTIONAL): Content Counting
+
+When: Understand content volume before building clone.
+
+```bash
+node ~/.claude/skills/design-clone/src/core/content/content-counter.js \
+  --html ./output/source.html \
+  --output ./output
+```
+
+**Output:** content-summary.md
+
+### STEP 5 (OPTIONAL): Semantic Enhancement
+
+When: Extracted HTML needs better semantic structure.
+
+```bash
+node ~/.claude/skills/design-clone/src/core/html/semantic-enhancer.js \
+  --html ./output/source.html \
+  --output ./output/source.html
+```
+
+### STEP 6: Quality Check with ui-ux-pro-max (REQUIRED)
 
 ```bash
 python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
 python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" --domain ux
 ```
 
-### STEP 4: Review Output
+### STEP 7: Review Output
 
 After capture:
 

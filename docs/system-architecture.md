@@ -78,6 +78,11 @@ URL Input
     │       ├─► Wait for network idle
     │       └─► Trigger lazy-loading
     │
+    ├─► Page Preparation (page-prep/)
+    │       ├─► Handle cookie banners (cookie-handler.js)
+    │       ├─► Trigger lazy loading (lazy-loader.js)
+    │       └─► Wait for page readiness (page-readiness.js)
+    │
     ├─► Screenshot Capture (3 viewports)
     │       ├─► Desktop: 1920x1080
     │       ├─► Tablet: 768x1024
@@ -94,6 +99,9 @@ URL Input
     │       ├─► Inline critical CSS
     │       ├─► Preserve animations
     │       └─► Extract @keyframes
+    │
+    ├─► [Optional] Content Analysis (content/)
+    │       └─► Count headings, paragraphs, images, links (content-counter.js)
     │
     └─► [Optional] Asset Extraction
             ├─► Images (WebP/JPG/PNG)
@@ -258,12 +266,16 @@ Screenshot(s) + Context Files
 
 | Check | Module | Validates |
 |-------|--------|-----------|
-| Menu Verification | verify-menu.js | Navigation structure, links |
-| Layout Consistency | verify-layout.js | Grid, flexbox, positioning |
-| Header Structure | verify-header.js | Logo, nav, search presence |
-| Footer Structure | verify-footer.js | Links, copyright, social |
-| Slider Detection | verify-slider.js | Carousel elements |
+| Menu Verification | verify-menu.js (+checks, +helpers) | Navigation structure, links, dropdowns |
+| Layout Consistency | verify-layout.js (+report) | Grid, flexbox, positioning |
+| Header Structure | verify-header.js (+checks, +helpers) | Logo, nav, CTA, sticky behavior |
+| Footer Structure | verify-footer.js (+checks, +helpers) | Links, copyright, social icons |
+| Slider Detection | verify-slider.js (+checks, +constants, +helpers) | Carousel controls, autoplay, indicators |
+| Audit Report | generate-audit-report.js (+css-fixes, +sections) | Consolidated verification results |
+| Quality Score | quality-scorer.js | 5-metric weighted score (0-100) |
 | Semantic HTML | semantic-enhancer.js | Proper heading hierarchy |
+
+Each verifier is decomposed into `-checks.js` (test logic) and `-helpers.js` (DOM utilities) companion modules. Total: 19 verification modules.
 
 **Execution:**
 ```bash
@@ -711,8 +723,33 @@ npm run test:accessibility # A11y checks
 
 ---
 
+### 7. Route Discoverers
+
+**Location:** `src/route-discoverers/` (11 modules)
+
+Framework-specific page discovery for SPA routing. Each discoverer extends `base-discoverer.js` with framework-specific URL patterns and navigation detection.
+
+| Discoverer | Framework | Strategy |
+|-----------|-----------|----------|
+| react-discoverer.js | React | React Router, client-side routes |
+| vue-discoverer.js | Vue | Vue Router, hash/history mode |
+| angular-discoverer.js | Angular | Angular Router, lazy-loaded modules |
+| svelte-discoverer.js | Svelte | SvelteKit routes |
+| next-discoverer.js | Next.js | File-system routing, API routes |
+| nuxt-discoverer.js | Nuxt.js | File-based routing |
+| astro-discoverer.js | Astro | Static + dynamic routes |
+| universal-discoverer.js | Generic | Anchor tag crawling |
+
+Supporting: `base-discoverer-utils.js` (shared utilities), `index.js` (registry).
+
+---
+
 ## Documentation References
 
 - **Codebase Summary:** [codebase-summary.md](./codebase-summary.md)
 - **Code Standards:** [code-standards.md](./code-standards.md)
 - **Project Overview PDR:** [project-overview-pdr.md](./project-overview-pdr.md)
+- **Basic Clone:** [basic-clone.md](./basic-clone.md) - Step-by-step basic workflow
+- **Pixel Perfect:** [pixel-perfect.md](./pixel-perfect.md) - Full pixel-perfect workflow
+- **CLI Reference:** [cli-reference.md](./cli-reference.md) - All script options and flags
+- **Troubleshooting:** [troubleshooting.md](./troubleshooting.md) - Common issues and error codes
