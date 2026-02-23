@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-02-23
+
+### Changed
+- **clone-px** — Added v3.0 flags (`--detect-breakpoints`, `--extract-computed`, `--aggressive-filter`) to capture step, removed redundant standalone filter-css step, added per-section token extraction and per-viewport UX audit prompts replacing external ui-ux-pro-max dependency
+- **clone** — Added optional enhanced capture variant with v3.0 flags, documented css-chunker auto-activation for large CSS files
+- **clone-site** — Added SPA state preservation guidance, `--aggressive-filter` CLI option, dead code removal in process flow
+- Updated docs: basic-clone.md, cli-reference.md, codebase-summary.md, pixel-perfect.md synced with command changes
+
+## [3.1.0] - 2026-02-23
+
+### Changed
+- Restructured SKILL.md with accurate directory hierarchy and complete script reference
+- Enhanced clone.md with optional analysis pipeline steps
+- Expanded clone-px.md to comprehensive 16-step pixel-perfect workflow
+- Enhanced clone-site.md with v3.0 flags for dry-run and breakpoint detection
+- Created missing documentation: basic-clone.md, pixel-perfect.md, cli-reference.md, troubleshooting.md
+- Updated codebase-summary.md with missing modules across all sections
+
+### Fixed
+- Removed clone-site from standalone CLI (requires Claude Code, not standalone)
+
+## [3.0.0] - 2026-02-23
+
+### Added
+- **Browser Context Pool** — Reusable browser contexts for multi-page capture
+- **Breakpoint Detection** — Auto-detect CSS breakpoints from media queries (`--detect-breakpoints`)
+- **Computed Style Extraction** — Capture JS-applied styles (`--extract-computed`)
+- **CSS Dead Code Removal** — Two-pass aggressive filter (`--aggressive-filter`)
+- **CSS Chunker** — Streaming CSS processing for files >5MB
+- **Asset Validator** — Magic byte verification and SVG sanitization (auto in extract-assets)
+- **UX Audit Prompts** — Per-viewport AI prompts for desktop, tablet, mobile + aggregation
+- **Per-Section Design Tokens** — Section-level token extraction prompts
+- **App State Snapshot** — SPA state capture (framework data, store state, sensitive filtering)
+
+### Changed
+- Modularized screenshot pipeline into capture/, css/, animation/ submodules
+- Split large modules for <200 LOC file size targets
+- Refactored VIEWPORTS singleton to prevent mutation bugs
+
+### Fixed
+- VIEWPORTS singleton mutation in breakpoint detection
+- SVG sanitization missing javascript: URI protection
+
 ## [2.1.0] - 2026-02-04
 
 ### Added
