@@ -23,7 +23,7 @@ node src/core/capture/screenshot.js \
 
 Captures desktop (1440px), tablet (768px), mobile (375px) screenshots and extracts source HTML/CSS.
 
-**Output:** desktop.png, tablet.png, mobile.png, source.html, source-raw.css, animations.css, animation-tokens.json
+**Output:** desktop.png, tablet.png, mobile.png, source.html, source-raw.css, animations.css, animation-tokens.json (+ breakpoints.json if `--detect-breakpoints` used)
 
 ### 2. Filter Unused CSS
 
@@ -37,6 +37,8 @@ node src/core/css/filter-css.js \
 Parses HTML to find used selectors, removes unused CSS rules. Typically 40-60% size reduction.
 
 **Output:** source.css (filtered)
+
+**Note:** If using `--aggressive-filter` from Step 1, this step is redundant (two-pass CSS dead code removal already ran).
 
 ### 3. Optional: Dimension Extraction
 
@@ -77,7 +79,7 @@ Rewrites generic divs to semantic elements (header, nav, main, section, footer) 
 
 ### 6. Quality Check
 
-Use `ui-ux-pro-max` skill for accessibility, hover states, and contrast validation.
+Review screenshots and extracted CSS. Optional: Use built-in UX audit prompts for accessibility validation.
 
 ## Output Structure
 

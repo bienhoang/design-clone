@@ -40,7 +40,7 @@ Show installed version.
 
 | Script | Location | Flags |
 |--------|----------|-------|
-| screenshot.js | src/core/capture/ | `--url`, `--output`, `--extract-html`, `--extract-css`, `--capture-hover`, `--full-page`, `--video`, `--video-format`, `--video-duration`, `--detect-breakpoints`, `--extract-computed` |
+| screenshot.js | src/core/capture/ | `--url`, `--output`, `--extract-html`, `--extract-css`, `--capture-hover`, `--full-page`, `--video`, `--video-format`, `--video-duration`, `--detect-breakpoints`, `--extract-computed`, `--aggressive-filter` |
 | multi-page-screenshot.js | src/core/capture/ | `--url`, `--output`, `--pages`, `--viewports` |
 | browser-context-pool.js | src/core/capture/ | Internal module (parallel context management) |
 

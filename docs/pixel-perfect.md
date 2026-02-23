@@ -24,16 +24,19 @@ Handles cookie banners (`cookie-handler.js`), triggers lazy loading (`lazy-loade
 ```bash
 node src/core/capture/screenshot.js \
   --url "URL" --output ./output \
-  --extract-html --extract-css --capture-hover true --full-page
+  --extract-html --extract-css --capture-hover true --full-page \
+  --detect-breakpoints --extract-computed --aggressive-filter
 ```
 
-Multi-viewport screenshots + HTML/CSS + hover state captures. Uses `browser-context-pool.js` for parallel contexts with memory guards.
+Multi-viewport screenshots + HTML/CSS + hover state captures. v3.0 flags: `--detect-breakpoints` detects @media queries, `--extract-computed` captures JS-applied styles, `--aggressive-filter` runs two-pass CSS dead code removal. Uses `browser-context-pool.js` for parallel contexts with memory guards.
 
 ### 3. CSS Processing
 
+CSS filtering is integrated into capture step with `--aggressive-filter` flag. Optional standalone run:
+
 ```bash
 node src/core/css/filter-css.js \
-  --html ./output/source.html --css ./output/source-raw.css --output ./output/source.css
+  --html ./output/source.html --css ./output/source-raw.css --output ./output/source.css --aggressive-filter
 ```
 
 Pipeline: `filter-css-html-analyzer.js` parses HTML selectors, `filter-css-selector-matcher.js` matches against CSS, `filter-css-dead-code.js` removes unreachable rules.
@@ -124,15 +127,22 @@ Claude Code vision extracts colors, typography, spacing. Prompts: `with-css.md` 
 
 Each verifier has `-checks.js` (test logic) and `-helpers.js` (DOM utilities) modules.
 
-### 13. Audit Report
+### 13. Audit Report + Per-Section Token Extraction
+
+Audit report consolidates verification results. Per-section design tokens are extracted for each section:
 
 ```bash
 node src/verification/generate-audit-report.js --output ./output
 ```
 
-Consolidates all verification results. Uses `generate-audit-report-sections.js` for section analysis and `generate-audit-report-css-fixes.js` for CSS fix suggestions.
-
 **Output:** audit-report.md
+
+Then, for each section in `sections.json`, extract per-section design tokens:
+
+For each section:
+- Read section crop image + section HTML context
+- Generate tokens using `design-tokens/section-with-css.md` or `design-tokens/section.md` prompts
+- **Output:** `section-tokens/{section-name}.json`
 
 ### 14. Quality Scoring
 
@@ -143,6 +153,29 @@ node src/verification/quality-scorer.js --output ./output
 5-metric scoring: structural fidelity, CSS coverage, asset completeness, responsive behavior, accessibility. Weighted composite score 0-100.
 
 **Output:** quality-score.json
+
+## Output Structure
+
+```
+output/
+├── desktop.png, tablet.png, mobile.png  # Viewport screenshots
+├── source.html, source-raw.css, source.css
+├── hover-states/, hover.css
+├── breakpoints.json                     # Detected responsive breakpoints
+├── computed-gap.css                     # JS-applied computed styles
+├── animations.css                       # Extracted @keyframes definitions
+├── animation-tokens.json                # Animation timing/easing data
+├── sections.json, framework-info.json, dimensions-summary.json
+├── content-summary.md
+├── structure.md, design-tokens.json, tokens.css
+├── section-tokens/                      # Per-section design tokens
+│   ├── header.json
+│   ├── hero.json
+│   └── ...
+├── ux-audit.md                          # Per-viewport UX audit results
+├── assets/
+├── audit-report.md, quality-score.json
+```
 
 ## v3.0 Enhancements
 

@@ -8,12 +8,11 @@ Clone the design of this single page with Font Awesome icons and Unsplash images
 
 ## Required Skills (Priority Order)
 1. **`chrome-devtools`** - Multi-viewport screenshot capture
-2. **`ui-ux-pro-max`** - Quality validation (accessibility, hover states, contrast)
 
 ## Pipeline Overview
 
 ```
-URL -> Screenshots + HTML/CSS -> CSS Filtering -> [Optional Steps] -> Quality Check -> Output
+URL -> Screenshots + HTML/CSS (+ Breakpoints) -> CSS Filtering (+ Dead Code) -> [Optional Steps] -> Quality Check -> Output
 ```
 
 ## Workflow
@@ -30,6 +29,21 @@ node ~/.claude/skills/design-clone/src/core/capture/screenshot.js \
 
 **Output:** desktop.png, tablet.png, mobile.png, source.html, source-raw.css
 
+**Enhanced capture (optional):**
+
+```bash
+node ~/.claude/skills/design-clone/src/core/capture/screenshot.js \
+  --url "$ARGUMENTS" \
+  --output ./output \
+  --extract-html --extract-css \
+  --detect-breakpoints \
+  --aggressive-filter
+```
+
+When: Site has complex responsive layouts or heavy CSS (>2MB).
+
+**Additional output:** breakpoints.json, source.css (with dead code removed)
+
 ### STEP 2: Filter Unused CSS
 
 ```bash
@@ -38,6 +52,8 @@ node ~/.claude/skills/design-clone/src/core/css/filter-css.js \
   --css ./output/source-raw.css \
   --output ./output/source.css
 ```
+
+> **Skip if** `--aggressive-filter` was used in Step 1 — it runs both basic filtering AND dead code removal (unused @media, @keyframes, CSS vars). For CSS files >5MB, chunked processing activates automatically.
 
 ### STEP 3 (OPTIONAL): Dimension Extraction
 
@@ -74,14 +90,7 @@ node ~/.claude/skills/design-clone/src/core/html/semantic-enhancer.js \
   --output ./output/source.html
 ```
 
-### STEP 6: Quality Check with ui-ux-pro-max (REQUIRED)
-
-```bash
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" --domain ux
-```
-
-### STEP 7: Review Output
+### STEP 6: Review Output
 
 After capture:
 
@@ -94,11 +103,13 @@ After capture:
 - Multi-viewport screenshots (desktop, tablet, mobile)
 - HTML + CSS extraction from live page
 - CSS filtering (removes unused rules)
+- Responsive breakpoint detection (optional, via `--detect-breakpoints`)
+- Two-pass CSS dead code removal (optional, via `--aggressive-filter`)
+- Large CSS streaming (automatic for files >5MB)
 - Font Awesome 6 CDN icons (no inline SVG)
 - Direct Unsplash image URLs (no API key)
 - Japanese design principles (Ma, Kanso, Shibui, Seijaku)
 - Mobile-first responsive CSS
-- **ui-ux-pro-max quality validation**
 
 ## Output Structure
 
@@ -109,7 +120,8 @@ output/
 ├── mobile.png         # Mobile screenshot (375px)
 ├── source.html        # Extracted HTML
 ├── source-raw.css     # Raw extracted CSS
-└── source.css         # Filtered CSS (unused rules removed)
+├── source.css         # Filtered CSS (unused rules removed)
+├── breakpoints.json   # (optional) Detected responsive breakpoints
 ```
 
 ## Examples

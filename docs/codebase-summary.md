@@ -158,11 +158,11 @@ Multi-viewport screenshot capture with Playwright (8 modules + browser context p
 **v3.0 New Flags:**
 - `--detect-breakpoints` - Auto-detect @media queries, capture at breakpoints
 - `--extract-computed` - Fill gaps via getComputedStyle() diffed vs Chromium defaults
-- `--aggressive-filter` - Two-pass CSS dead code removal
+- `--aggressive-filter` - Two-pass CSS dead code removal (integrated into capture step)
 - `--quality-score` - Output 5-metric quality score
 - `--dry-run` - Show discovery + estimate, no capture
 
-**Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source.css`, `quality-score.json` (optional)
+**Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source-raw.css`, `source.css`, `hover.css`, `animations.css`, `animation-tokens.json`, `breakpoints.json` (if --detect-breakpoints), `computed-gap.css` (if --extract-computed), `quality-score.json` (optional)
 
 ### css/ - CSS Processing
 Remove unused CSS rules and handle stylesheet optimization (12 modules).
@@ -195,6 +195,8 @@ Remove unused CSS rules and handle stylesheet optimization (12 modules).
 6. (If --extract-computed): Fill gaps via computed styles
 7. Preserve critical animations
 8. Output deduplicated CSS
+
+**Integration Note:** `--aggressive-filter` in screenshot.js integrates the two-pass removal, making standalone filter-css step redundant for pixel-perfect workflow.
 
 **Impact:** 40-60% CSS size reduction on average, up to 80% with aggressive filter
 
@@ -456,29 +458,38 @@ Injects gosnap-widget Web Component into HTML files.
 
 ### /design:clone (Basic)
 ```
-URL → Screenshot 3 viewports (fast-path for headless) → Extract HTML/CSS (streaming) → Filter CSS (chunked) → Output
+URL → Screenshots + HTML/CSS (+ Breakpoints) → CSS Filtering (+ Dead Code) → [Optional Steps] → Output
 ```
 **Time:** ~8-12 seconds (v3.0: faster with fast-path)
 
+**Optional Enhancements:**
+```bash
+/design:clone <url> --detect-breakpoints --aggressive-filter
+```
+
 ### /design:clone-px (Pixel-Perfect)
 ```
-URL → Screenshot 3 viewports → Extract HTML/CSS → Filter CSS
-  → Extract assets (concurrency 10) → Asset validation → AI analysis → Design tokens → Verify menu → Quality score → Output
+URL -> Page Prep -> Capture (+ Hover + Computed + Breakpoints) -> CSS Filter (+ Dead Code) -> Animations -> Section/Framework -> Dimensions -> Assets (+ Validation) -> AI Analysis -> Tokens (Global + Section) -> Verify -> UX Audit -> Quality Score -> Build
 ```
-**Time:** ~50-90 seconds (v3.0: improved with parallel context pool, optimized download)
+**Time:** ~50-90 seconds (v3.0: improved with parallel context pool, optimized download, built-in UX audit)
 
 ### /design:clone-site (Multi-Page)
 ```
-URL → Discover pages (with progress) → Parallel context pool capture → Merge CSS → Generate manifest → Output
+URL -> Page Discovery -> [SPA State] -> Multi-page Capture -> CSS Filter & Merge (+ Dead Code) -> Link Rewriting -> [AI Tokens] -> Output
 ```
-**Time:** ~1-3 minutes (v3.0: faster with parallel contexts, memory guards)
+**Time:** ~1-3 minutes (v3.0: faster with parallel contexts, memory guards, SPA state preservation)
 
-**v3.0 Additions (Opt-In):**
-- `--detect-breakpoints` - Detect @media queries, capture at actual breakpoints
-- `--aggressive-filter` - Two-pass CSS dead code removal
-- `--extract-computed` - Gap-fill via computed styles
-- `--quality-score` - Output quality metrics
-- `--dry-run` - Show discovery + estimate (no capture)
+**v3.0 CLI Flags:**
+
+Basic & Pixel-Perfect:
+- `--detect-breakpoints` - Auto-detect @media queries from CSS
+- `--extract-computed` - Extract JS-applied computed styles
+- `--aggressive-filter` - Two-pass CSS dead code removal (integrated in capture)
+
+Multi-Page Site:
+- `--detect-breakpoints` - Auto-detect CSS breakpoints from media queries
+- `--aggressive-filter` - Two-pass CSS dead code removal on merged CSS
+- `--dry-run` - Preview discovered pages without capture
 
 ### /design:figma-to-code (Figma Conversion)
 ```
