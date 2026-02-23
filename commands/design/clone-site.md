@@ -18,22 +18,22 @@ URL -> Page Discovery -> Multi-page Capture -> CSS Filtering & Merge -> Link Rew
 
 ## Workflow
 
-### STEP 1: Run Clone-Site Command
+### STEP 1: Run Clone-Site Module
 
-Use the design-clone CLI to clone multiple pages:
+Run the clone-site module directly (this is NOT a CLI command - it requires Claude Code):
 
 ```bash
 # Basic usage - auto-discovers pages from navigation
-design-clone clone-site "$ARGUMENTS"
+node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS"
 
 # With options
-design-clone clone-site "$ARGUMENTS" --max-pages 5
+node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --max-pages 5
 
 # Specific pages
-design-clone clone-site "$ARGUMENTS" --pages /,/about,/contact
+node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --pages /,/about,/contact
 
 # With AI design token extraction (requires GEMINI_API_KEY)
-design-clone clone-site "$ARGUMENTS" --ai
+node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --ai
 ```
 
 ### CLI Options

@@ -11,7 +11,6 @@ Usage:
   design-clone verify               Check installation status
   design-clone update [options]     Update to latest version
   design-clone uninstall [options]  Remove skill installation
-  design-clone clone-site <url>     Clone multiple pages from a website
   design-clone help                 Show this help
   design-clone --version            Show version
 
@@ -26,14 +25,6 @@ Update Options:
 Uninstall Options:
   --yes, -y      Skip confirmation prompt
 
-Clone-site Options:
-  --pages <paths>     Comma-separated paths (e.g., /,/about,/contact)
-  --max-pages <n>     Maximum pages to auto-discover (default: 10)
-  --viewports <list>  Viewport list (default: desktop,tablet,mobile)
-  --yes               Skip confirmation prompt
-  --output <dir>      Custom output directory
-  --ai                (Removed: AI analysis is now built-in via Claude Code)
-
 Examples:
   design-clone init                     # Install skill
   design-clone init --force             # Reinstall, overwrite existing
@@ -41,13 +32,11 @@ Examples:
   design-clone update                   # Update to latest version
   design-clone uninstall                # Remove skill installation
   design-clone --version                # Show version
-  design-clone clone-site https://example.com
-  design-clone clone-site https://example.com --max-pages 5
-  design-clone clone-site https://example.com --pages /,/about,/contact
 
 After installation:
   1. AI analysis is built-in via Claude Code vision (no API key needed)
   2. Use /design:clone or /design:clone-px in Claude Code
+  3. Use /design:clone-site in Claude Code for multi-page cloning
 
 For more info: https://github.com/bienhoang/design-clone
 `);

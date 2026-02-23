@@ -48,7 +48,7 @@ Design Clone is built as a modular, pipeline-based system where each component h
 ```
 design-clone <url>                    # Basic clone
 design-clone clone-px <url>           # Pixel-perfect
-design-clone clone-site <url>         # Multi-page
+/design:clone-site <url>              # Multi-page (Claude Code only)
 design-clone figma-to-code <url>      # Figma conversion
 ```
 

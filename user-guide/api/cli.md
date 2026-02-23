@@ -99,27 +99,6 @@ All options from `clone` plus:
 design-clone clone-px https://example.com --output ./pixel-perfect
 ```
 
-### design-clone clone-site
-
-Clone multiple pages from a website.
-
-```bash
-design-clone clone-site <url> [options]
-```
-
-**Options:**
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--pages <paths>` | auto-discover | Comma-separated paths |
-| `--max-pages <n>` | `10` | Maximum pages |
-| `--output <dir>` | auto | Output directory |
-| `--yes` | `false` | Skip confirmation |
-
-**Example:**
-```bash
-design-clone clone-site https://example.com --pages /,/about,/contact
-```
-
 ## Claude Code Commands
 
 These commands are used within Claude Code:

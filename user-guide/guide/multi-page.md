@@ -20,7 +20,7 @@ Capture multi-viewport screenshots of entire websites for Claude Code vision.
 ### Auto-Discover Pages
 
 ```bash
-design-clone clone-site https://example.com
+/design:clone-site https://example.com
 ```
 
 The tool will:
@@ -32,14 +32,16 @@ The tool will:
 ### Specify Pages Manually
 
 ```bash
-design-clone clone-site https://example.com --pages /,/about,/contact,/pricing
+/design:clone-site https://example.com --pages /,/about,/contact,/pricing
 ```
 
 ### Limit Page Count
 
 ```bash
-design-clone clone-site https://example.com --max-pages 5
+/design:clone-site https://example.com --max-pages 5
 ```
+
+> **Note:** `clone-site` is only available via Claude Code slash command, not as a standalone CLI command.
 
 ## Options
 

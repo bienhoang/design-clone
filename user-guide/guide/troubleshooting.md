@@ -306,9 +306,8 @@ Manually download from font service or use fallbacks.
 **Solution:**
 
 ```bash
-# Specify pages manually
-design-clone clone-site https://example.com \
-  --pages /,/about,/contact,/blog
+# Specify pages manually (in Claude Code)
+/design:clone-site https://example.com --pages /,/about,/contact,/blog
 ```
 
 ### Links Not Working

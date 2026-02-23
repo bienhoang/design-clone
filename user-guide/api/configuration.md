@@ -155,13 +155,10 @@ design-clone clone-px <url> \
   --no-tokens
 ```
 
-### Clone-site Command
+### Clone-site (Claude Code only)
 
 ```bash
-design-clone clone-site <url> \
-  --pages /,/about,/contact \
-  --max-pages 20 \
-  --yes
+/design:clone-site <url> --pages /,/about,/contact --max-pages 20 --yes
 ```
 
 ## Browser Configuration

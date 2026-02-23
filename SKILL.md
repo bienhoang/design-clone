@@ -1,6 +1,7 @@
 ---
 name: design-clone
-description: Clone website designs via multi-viewport screenshots, HTML/CSS extraction, and built-in AI analysis. Generates production HTML/CSS with Font Awesome icons, direct Unsplash images, and Japanese design principles. Commands - design:clone (basic), design:clone-px (pixel-perfect).
+description: Clone website designs via multi-viewport screenshots, HTML/CSS extraction, and built-in AI analysis. Generates production HTML/CSS with Font Awesome icons, direct Unsplash images, and Japanese design principles. Commands - design:clone (basic), design:clone-site (multi-page), design:clone-px (pixel-perfect).
+user-invocable: false
 ---
 
 # Design Clone Skill
@@ -111,21 +112,19 @@ Multi-page screenshot capture for Claude Code vision to generate new HTML/CSS.
 /design:clone-site https://example.com
 ```
 
-**Workflow:**
+**Usage (Claude Code only):**
 ```bash
-# Auto-discover pages from navigation
-design-clone clone-site https://example.com
-
-# Or specify pages manually
-design-clone clone-site https://example.com --pages /,/about,/contact
-
-# Options:
-#   --pages <paths>     Comma-separated paths
-#   --max-pages <n>     Limit pages (default: 10)
-#   --viewports <list>  Viewports (default: desktop,tablet,mobile)
-#   --yes               Skip confirmation
-#   --output <dir>      Custom output directory
+/design:clone-site https://example.com
+/design:clone-site https://example.com --pages /,/about,/contact
+/design:clone-site https://example.com --max-pages 5
 ```
+
+**Options:**
+- `--pages <paths>` - Comma-separated paths
+- `--max-pages <n>` - Limit pages (default: 10)
+- `--viewports <list>` - Viewports (default: desktop,tablet,mobile)
+- `--yes` - Skip confirmation
+- `--output <dir>` - Custom output directory
 
 **Output Structure:**
 ```
@@ -372,7 +371,7 @@ Create `.env` file (see `.env.example`):
 | multi-page-screenshot.js | src/core/ | Capture multiple pages |
 | merge-css.js | src/core/ | Merge + deduplicate CSS |
 | rewrite-links.js | src/core/ | Rewrite internal links |
-| clone-site.js | bin/commands/ | Multi-page clone CLI |
+| clone-site.js | bin/commands/ | Multi-page clone module (slash command only) |
 | prompts/structure-analysis/*.md | src/ai/ | AI structure analysis prompts (Claude Code vision) |
 | prompts/design-tokens/*.md | src/ai/ | Design token extraction prompts (Claude Code vision) |
 | prompts/ux-audit/*.md | src/ai/ | UX audit prompts (Claude Code vision) |
