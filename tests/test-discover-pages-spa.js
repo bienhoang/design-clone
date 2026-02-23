@@ -123,7 +123,7 @@ test('discoverPages accepts SPA options', async () => {
 // Test: Framework detector integration
 // ========================================
 test('Framework detector is imported correctly', async () => {
-  const detectorMod = await import('../src/core/discovery/framework-detector.js');
+  const detectorMod = await import('../src/core/detection/framework-detector.js');
   assertTrue(typeof detectorMod.detectFramework === 'function', 'detectFramework should be exported');
 });
 
@@ -160,7 +160,7 @@ test('App state snapshot is imported correctly', async () => {
 test('Full SPA module chain imports successfully', async () => {
   // Import all modules to verify no circular dependencies or import errors
   const [detector, discoverers, snapshot, pages] = await Promise.all([
-    import('../src/core/discovery/framework-detector.js'),
+    import('../src/core/detection/framework-detector.js'),
     import('../src/route-discoverers/index.js'),
     import('../src/core/discovery/app-state-snapshot.js'),
     import('../src/core/discovery/discover-pages.js')

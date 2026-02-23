@@ -17,7 +17,7 @@
 import { getBrowser, getPage, disconnectBrowser } from '../../utils/browser.js';
 import { waitForDomStable } from '../page-prep/page-readiness.js';
 import { dismissCookieBanner } from '../page-prep/cookie-handler.js';
-import { detectFramework } from './framework-detector.js';
+import { detectFramework } from '../detection/framework-detector.js';
 import { discoverRoutes as discoverFrameworkRoutes } from '../../route-discoverers/index.js';
 import { captureAppState } from './app-state-snapshot.js';
 import {

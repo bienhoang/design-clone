@@ -63,7 +63,7 @@ export async function discoverRoutes(page, baseUrl, frameworkInfo = null) {
 
   if (!frameworkInfo) {
     try {
-      const { detectFramework } = await import('../core/framework-detector.js');
+      const { detectFramework } = await import('../core/detection/framework-detector.js');
       const info = await detectFramework(page);
       detectedFramework = info.framework;
     } catch {
