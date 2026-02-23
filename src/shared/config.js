@@ -14,8 +14,15 @@ export const TIMING = {
 
 /** Size limits (bytes) */
 export const SIZE_LIMITS = {
-  MAX_CSS_INPUT: 10 * 1024 * 1024,   // 10MB
+  MAX_CSS_INPUT: 50 * 1024 * 1024,   // 50MB (supports large enterprise CSS)
   MAX_STATE: 1024 * 1024,             // 1MB
+  CSS_CHUNK_THRESHOLD: 2 * 1024 * 1024, // 2MB: use chunked processing above this
+};
+
+/** Browser context pool defaults */
+export const POOL = {
+  MAX_BROWSER_CONTEXTS: 3,
+  MIN_FREE_MEMORY_MB: 500,
 };
 
 /** CDN URLs */

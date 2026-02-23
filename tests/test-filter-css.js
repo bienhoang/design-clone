@@ -128,7 +128,7 @@ test('filter-css.js enforces CSS input size limit', () => {
   const filterCssPath = path.join(__dirname, '../src/core/css/filter-css.js');
   const content = fs.readFileSync(filterCssPath, 'utf-8');
   assertContains(content, 'SIZE_LIMITS.MAX_CSS_INPUT', 'Should check CSS size limit from shared config');
-  assertContains(content, 'exceeds', 'Should have size limit error message');
+  assertContains(content, 'CSS_SIZE_EXCEEDED', 'Should throw CSS_SIZE_EXCEEDED error');
 });
 
 test('filter-css-html-analyzer.js has keep patterns for critical selectors', () => {

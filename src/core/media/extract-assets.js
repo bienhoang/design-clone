@@ -100,7 +100,16 @@ async function extractAssets() {
     }
 
     // Download all assets
-    const downloadResults = await downloadBatch(downloads, verbose);
+    const parsedConcurrency = args.concurrency ? parseInt(args.concurrency) : NaN;
+    const concurrency = Number.isNaN(parsedConcurrency) ? undefined : parsedConcurrency;
+    const downloadResults = await downloadBatch(downloads, verbose, { maxConcurrent: concurrency });
+
+    // Validate downloaded assets
+    let integrity = null;
+    try {
+      const { validateBatch } = await import('./asset-validator.js');
+      integrity = await validateBatch(assetsDir);
+    } catch { /* validation optional */ }
 
     // Save inline SVGs
     let savedSvgs = 0;
@@ -135,6 +144,7 @@ async function extractAssets() {
         skipped: downloadResults.skipped,
         inlineSvgs: savedSvgs
       },
+      integrity: integrity || undefined,
       errors: downloadResults.errors.length > 0 ? downloadResults.errors.slice(0, 10) : undefined
     });
     process.exit(0);

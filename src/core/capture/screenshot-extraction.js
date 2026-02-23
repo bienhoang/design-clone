@@ -17,6 +17,7 @@ import { extractContentCounts, generateContentSummary } from '../content/content
 import { extractAllCss, MAX_CSS_SIZE } from '../css/css-extractor.js';
 import { extractAnimations, generateAnimationsCss, generateAnimationTokens } from '../animation/animation-extractor.js';
 import { logInfo, logWarn, isTTY } from '../../utils/log.js';
+import { createProgress } from '../../utils/progress.js';
 
 /** Extract and write content counts (grids, repeated items) to output dir. */
 export async function runContentCounting(page, output) {
@@ -62,9 +63,9 @@ export async function runCssExtraction(page, url, output) {
 }
 
 /** Filter CSS against HTML to remove unused selectors. */
-export async function runCssFiltering(htmlPath, cssPath, output) {
+export async function runCssFiltering(htmlPath, cssPath, output, aggressiveFilter = false) {
   const filteredCssPath = path.join(output, 'source.css');
-  const fr = await filterCssFile(htmlPath, cssPath, filteredCssPath, false, output);
+  const fr = await filterCssFile(htmlPath, cssPath, filteredCssPath, false, output, aggressiveFilter);
   logInfo(`CSS filtered: ${fr.stats.reduction} reduction`);
   return { path: fr.output.path, size: fr.output.size, reduction: fr.stats.reduction, stats: { totalRules: fr.stats.totalRules, keptRules: fr.stats.keptRules, removedRules: fr.stats.removedRules } };
 }
@@ -97,8 +98,13 @@ export async function runExtractionPipeline(page, url, output, opts) {
   const extraction = { html: null, css: null, warnings: [] };
   const extractionWarnings = [];
 
+  const progress = createProgress();
+  const stepCount = [extractHtml && 'content', extractHtml && 'html', extractCss && 'css', filterUnused && 'filter', extractAnimsFlag && 'animations'].filter(Boolean).length;
+  progress.start(stepCount, 'Extraction pipeline');
+
   // Content counts (before HTML cleanup)
   if (extractHtml) {
+    progress.step('Content counting');
     try {
       extraction.contentCounts = await runContentCounting(page, output);
     } catch (error) {
@@ -107,6 +113,7 @@ export async function runExtractionPipeline(page, url, output, opts) {
   }
 
   if (extractHtml) {
+    progress.step('HTML extraction');
     try {
       const r = await runHtmlExtraction(page, output, enhanceSemantic);
       const { warnings, ...htmlData } = r;
@@ -119,6 +126,7 @@ export async function runExtractionPipeline(page, url, output, opts) {
   }
 
   if (extractCss) {
+    progress.step('CSS extraction');
     try {
       const r = await runCssExtraction(page, url, output);
       const { warnings, ...cssData } = r;
@@ -133,15 +141,33 @@ export async function runExtractionPipeline(page, url, output, opts) {
 
   if (filterUnused && extraction?.html?.path && extraction?.css?.path &&
       !extraction.html.failed && !extraction.css.failed) {
+    progress.step('CSS filtering');
     try {
-      extraction.filtered = await runCssFiltering(extraction.html.path, extraction.css.path, output);
+      extraction.filtered = await runCssFiltering(extraction.html.path, extraction.css.path, output, opts.aggressiveFilter);
     } catch (error) {
       extraction.filtered = { error: error.message, failed: true };
       extractionWarnings.push(`CSS filtering failed: ${error.message}`);
     }
   }
 
+  // Computed style gap-fill (opt-in via --extract-computed)
+  if (opts.extractComputed && extraction?.filtered?.path && !extraction.filtered.failed) {
+    try {
+      const { extractComputedGapFill } = await import('../css/computed-style-extractor.js');
+      const filteredCss = await fs.readFile(extraction.filtered.path, 'utf-8');
+      const computed = await extractComputedGapFill(page, filteredCss);
+      const computedPath = path.join(output, 'computed-gap.css');
+      await fs.writeFile(computedPath, computed.css, 'utf-8');
+      extraction.computedGap = { path: path.resolve(computedPath), ...computed.stats };
+      logInfo(`Computed gap-fill: ${computed.rules} rules for ${computed.stats.elementsAnalyzed} elements`);
+    } catch (error) {
+      extraction.computedGap = { error: error.message, failed: true };
+      extractionWarnings.push(`Computed style extraction failed: ${error.message}`);
+    }
+  }
+
   if (extractCss && extractAnimsFlag && extraction?.css?.path && !extraction.css.failed) {
+    progress.step('Animation extraction');
     try {
       extraction.animations = await runAnimationExtraction(extraction.css.path, output);
     } catch (error) {
@@ -149,6 +175,8 @@ export async function runExtractionPipeline(page, url, output, opts) {
       extractionWarnings.push(`Animation extraction failed: ${error.message}`);
     }
   }
+
+  progress.complete(`${stepCount} steps completed`);
 
   extraction.warnings = extractionWarnings;
   if (extractionWarnings.length > 0) {

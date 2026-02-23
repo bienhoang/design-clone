@@ -29,8 +29,8 @@ export const ASSET_TYPES = {
 
 // Rate limiting configuration
 export const RATE_LIMIT = {
-  maxConcurrent: 5,
-  delayBetweenBatches: 200
+  maxConcurrent: 10,
+  delayBetweenBatches: 50
 };
 
 /**
@@ -58,6 +58,16 @@ export async function downloadFile(url, destPath, timeout = 30000, retries = 2) 
           if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
             clearTimeout(timeoutId);
             downloadFile(response.headers.location, destPath, timeout, 0).then(resolve).catch(reject);
+            return;
+          }
+
+          if (response.statusCode === 429) {
+            clearTimeout(timeoutId);
+            const retryAfter = parseInt(response.headers['retry-after'] || '0', 10);
+            const backoffMs = retryAfter > 0
+              ? retryAfter * 1000
+              : Math.min(1000 * Math.pow(2, attempt), 8000);
+            reject(new Error(`HTTP 429 (retry after ${backoffMs}ms)`));
             return;
           }
 
@@ -89,7 +99,11 @@ export async function downloadFile(url, destPath, timeout = 30000, retries = 2) 
       return { success: true };
     } catch (err) {
       if (attempt === retries) return { success: false, error: err.message };
-      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      const is429 = err.message.includes('HTTP 429');
+      const delay = is429
+        ? parseInt(err.message.match(/(\d+)ms/)?.[1] || '2000')
+        : 500 * (attempt + 1);
+      await new Promise(r => setTimeout(r, delay));
     }
   }
 }
@@ -100,11 +114,12 @@ export async function downloadFile(url, destPath, timeout = 30000, retries = 2) 
  * @param {boolean} verbose
  * @returns {Promise<{ success: number, failed: number, skipped: number, errors: Array }>}
  */
-export async function downloadBatch(downloads, verbose = false) {
+export async function downloadBatch(downloads, verbose = false, options = {}) {
+  const { maxConcurrent = RATE_LIMIT.maxConcurrent, delayBetween = RATE_LIMIT.delayBetweenBatches } = options;
   const results = { success: 0, failed: 0, skipped: 0, errors: [] };
 
-  for (let i = 0; i < downloads.length; i += RATE_LIMIT.maxConcurrent) {
-    const batch = downloads.slice(i, i + RATE_LIMIT.maxConcurrent);
+  for (let i = 0; i < downloads.length; i += maxConcurrent) {
+    const batch = downloads.slice(i, i + maxConcurrent);
 
     await Promise.all(batch.map(async ({ url, destPath, type }) => {
       try {
@@ -124,8 +139,8 @@ export async function downloadBatch(downloads, verbose = false) {
       }
     }));
 
-    if (i + RATE_LIMIT.maxConcurrent < downloads.length) {
-      await new Promise(r => setTimeout(r, RATE_LIMIT.delayBetweenBatches));
+    if (i + maxConcurrent < downloads.length) {
+      await new Promise(r => setTimeout(r, delayBetween));
     }
   }
 

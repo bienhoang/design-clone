@@ -22,6 +22,7 @@ import { parseArgs } from '../../utils/helpers.js';
 import { SIZE_LIMITS } from '../../shared/config.js';
 import { filterCssRules } from './filter-css-selector-matcher.js';
 import { analyzeHtml, validatePath, sanitizeCss } from './filter-css-html-analyzer.js';
+import { createError } from '../../shared/error-codes.js';
 
 // Dependency check for css-tree
 let csstree;
@@ -45,7 +46,7 @@ try {
  * @param {string|null} allowedDir - Base directory for path validation (optional)
  * @returns {Promise<Object>} Result object
  */
-async function filterCssFile(htmlPath, cssPath, outputPath, verbose = false, allowedDir = null) {
+async function filterCssFile(htmlPath, cssPath, outputPath, verbose = false, allowedDir = null, aggressiveFilter = false) {
   const startTime = Date.now();
 
   const resolvedHtml   = allowedDir ? validatePath(htmlPath, allowedDir)   : path.resolve(htmlPath);
@@ -66,11 +67,11 @@ async function filterCssFile(htmlPath, cssPath, outputPath, verbose = false, all
   const inputSize = Buffer.byteLength(css, 'utf-8');
 
   if (inputSize > SIZE_LIMITS.MAX_CSS_INPUT) {
-    throw new Error(
-      `CSS file "${resolvedCss}" (${(inputSize / 1024 / 1024).toFixed(1)}MB) ` +
-      `exceeds ${SIZE_LIMITS.MAX_CSS_INPUT / 1024 / 1024}MB limit. ` +
-      `Consider splitting the CSS file or increasing SIZE_LIMITS.MAX_CSS_INPUT.`
-    );
+    throw createError('CSS_SIZE_EXCEEDED', {
+      file: resolvedCss,
+      size: `${(inputSize / 1024 / 1024).toFixed(1)}MB`,
+      limit: `${SIZE_LIMITS.MAX_CSS_INPUT / 1024 / 1024}MB`
+    });
   }
 
   if (verbose) console.error(`[CSS Filter] Input CSS size: ${(inputSize / 1024).toFixed(1)}KB`);
@@ -84,26 +85,49 @@ async function filterCssFile(htmlPath, cssPath, outputPath, verbose = false, all
     console.error(`  Attributes: ${htmlAnalysis.attributes.size}`);
   }
 
-  // Parse CSS with css-tree
-  let ast;
-  try {
-    ast = csstree.parse(css, { parseRulePrelude: true, parseValue: false });
-  } catch (parseError) {
-    if (verbose) {
-      console.error(`[CSS Filter] Parse error: ${parseError.message}`);
-      console.error(`[CSS Filter] Attempting lenient parse...`);
-    }
+  let filteredCss, stats;
+
+  // Chunked processing for large CSS files
+  if (inputSize > (SIZE_LIMITS.CSS_CHUNK_THRESHOLD || 2 * 1024 * 1024)) {
+    if (verbose) console.error(`[CSS Filter] Large CSS (${(inputSize / 1024 / 1024).toFixed(1)}MB) — using chunked processing`);
     try {
-      ast = csstree.parse(css, { parseRulePrelude: false, parseValue: false });
-    } catch (lenientError) {
-      throw new Error(`Failed to parse CSS: ${lenientError.message}`);
+      const { splitCssAtTopLevel, processChunks } = await import('./css-chunker.js');
+      const chunks = splitCssAtTopLevel(css);
+      const result = await processChunks(chunks, async (chunkCss) => {
+        const chunkAst = csstree.parse(chunkCss, { parseRulePrelude: true, parseValue: false });
+        const chunkStats = await filterCssRules(chunkAst, htmlAnalysis, csstree, false);
+        return { css: csstree.generate(chunkAst), stats: chunkStats };
+      });
+      filteredCss = sanitizeCss(result.css);
+      stats = result.stats;
+    } catch (chunkError) {
+      if (verbose) console.error(`[CSS Filter] Chunked processing failed, falling back to full parse: ${chunkError.message}`);
+      // Fall through to standard path below
+      filteredCss = null;
     }
   }
 
-  const stats = filterCssRules(ast, htmlAnalysis, csstree, verbose);
+  // Standard full-parse path (or fallback from chunked failure)
+  if (!filteredCss) {
+    let ast;
+    try {
+      ast = csstree.parse(css, { parseRulePrelude: true, parseValue: false });
+    } catch (parseError) {
+      if (verbose) {
+        console.error(`[CSS Filter] Parse error: ${parseError.message}`);
+        console.error(`[CSS Filter] Attempting lenient parse...`);
+      }
+      try {
+        ast = csstree.parse(css, { parseRulePrelude: false, parseValue: false });
+      } catch (lenientError) {
+        throw createError('CSS_PARSE_FAILED', { parseError: lenientError.message });
+      }
+    }
 
-  let filteredCss = csstree.generate(ast);
-  filteredCss = sanitizeCss(filteredCss);
+    stats = await filterCssRules(ast, htmlAnalysis, csstree, verbose, !!aggressiveFilter);
+    filteredCss = sanitizeCss(csstree.generate(ast));
+  }
+
   const outputSize = Buffer.byteLength(filteredCss, 'utf-8');
 
   try {
@@ -150,11 +174,16 @@ async function main() {
   }
 
   try {
+    const isClonePx = process.argv.some(a => a.includes('clone-px') || a.includes('capture-hover'));
+    const aggressive = args['aggressive-filter'] === 'true' ||
+      (args['aggressive-filter'] !== 'false' && isClonePx);
     const result = await filterCssFile(
       args.html,
       args.css,
       args.output,
-      args.verbose === 'true' || args.verbose === true
+      args.verbose === 'true' || args.verbose === true,
+      null,
+      aggressive
     );
     console.log(JSON.stringify(result, null, 2));
     process.exit(0);

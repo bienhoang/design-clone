@@ -61,10 +61,14 @@ export function outputJSON(data) {
 export function outputError(error) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : undefined;
+  const isDesignCloneError = error?.name === 'DesignCloneError';
 
   console.error(JSON.stringify({
     success: false,
     error: errorMessage,
+    code: isDesignCloneError ? error.code : undefined,
+    suggestion: isDesignCloneError ? error.suggestion : undefined,
+    context: isDesignCloneError ? error.context : undefined,
     stack: process.env.DEBUG ? errorStack : undefined
   }, null, 2));
   process.exit(1);

@@ -19,6 +19,7 @@ import {
   pathToFilename,
   DEFAULT_OPTIONS
 } from './multi-page-screenshot-page.js';
+import { BrowserContextPool } from './browser-context-pool.js';
 
 // ============================================================================
 // Batch Capture
@@ -56,42 +57,76 @@ export async function captureMultiplePages(pages, options = {}) {
 
   try {
     browser = await getBrowser({ headless: true });
+    const concurrency = opts.concurrency || 3;
 
-    for (let i = 0; i < pages.length; i++) {
-      const pageInfo = pages[i];
-
-      if (opts.onProgress) {
-        opts.onProgress(i + 1, pages.length, {
-          path: pageInfo.path,
-          name: pageInfo.name,
-          status: 'capturing'
-        });
-      }
-
-      const page = await getPage(browser);
-
+    // Try parallel capture with context pool
+    let usePool = concurrency > 1 && pages.length > 1;
+    if (usePool) {
       try {
-        const pageResult = await captureSinglePage(page, pageInfo, opts.outputDir, opts);
-        results.pages.push(pageResult);
+        const pool = new BrowserContextPool(browser, { maxContexts: concurrency });
+        const pageResults = new Array(pages.length);
 
-        if (pageResult.success) {
-          results.stats.successfulPages++;
-          results.stats.totalScreenshots += Object.keys(pageResult.screenshots)
-            .filter(vp => !pageResult.screenshots[vp].failed).length;
-        } else {
-          results.stats.failedPages++;
+        const pagePromises = pages.map(async (pageInfo, i) => {
+          const { context, page } = await pool.acquire();
+          try {
+            if (opts.onProgress) {
+              opts.onProgress(i + 1, pages.length, { path: pageInfo.path, name: pageInfo.name, status: 'capturing' });
+            }
+            pageResults[i] = await captureSinglePage(page, pageInfo, opts.outputDir, opts);
+            if (opts.onProgress) {
+              opts.onProgress(i + 1, pages.length, { path: pageInfo.path, name: pageInfo.name, status: 'done' });
+            }
+          } finally {
+            await pool.release(context);
+          }
+        });
+
+        await Promise.allSettled(pagePromises);
+        await pool.drain();
+
+        for (const pageResult of pageResults) {
+          if (!pageResult) { results.stats.failedPages++; continue; }
+          results.pages.push(pageResult);
+          if (pageResult.success) {
+            results.stats.successfulPages++;
+            results.stats.totalScreenshots += Object.keys(pageResult.screenshots)
+              .filter(vp => !pageResult.screenshots[vp].failed).length;
+          } else {
+            results.stats.failedPages++;
+          }
+          results.stats.totalWarnings += pageResult.warnings?.length || 0;
         }
-        results.stats.totalWarnings += pageResult.warnings.length;
+      } catch {
+        // Pool failed, fall back to sequential
+        usePool = false;
+      }
+    }
 
+    // Sequential fallback (single page or pool failure)
+    if (!usePool) {
+      for (let i = 0; i < pages.length; i++) {
+        const pageInfo = pages[i];
         if (opts.onProgress) {
-          opts.onProgress(i + 1, pages.length, {
-            path: pageInfo.path,
-            name: pageInfo.name,
-            status: 'done'
-          });
+          opts.onProgress(i + 1, pages.length, { path: pageInfo.path, name: pageInfo.name, status: 'capturing' });
         }
-      } finally {
-        await page.close().catch(() => {});
+        const page = await getPage(browser);
+        try {
+          const pageResult = await captureSinglePage(page, pageInfo, opts.outputDir, opts);
+          results.pages.push(pageResult);
+          if (pageResult.success) {
+            results.stats.successfulPages++;
+            results.stats.totalScreenshots += Object.keys(pageResult.screenshots)
+              .filter(vp => !pageResult.screenshots[vp].failed).length;
+          } else {
+            results.stats.failedPages++;
+          }
+          results.stats.totalWarnings += pageResult.warnings.length;
+          if (opts.onProgress) {
+            opts.onProgress(i + 1, pages.length, { path: pageInfo.path, name: pageInfo.name, status: 'done' });
+          }
+        } finally {
+          await page.close().catch(() => {});
+        }
       }
     }
   } catch (err) {
@@ -134,7 +169,7 @@ if (isMainModule) {
     process.exit(1);
   }
 
-  import('../discovery/discover-pages.js').then(async ({ discoverPages }) => {
+  import('../discovery/discover-pages.js').then(async ({ discoverPages, estimateCapture }) => {
     console.error(`[INFO] Discovering pages from ${url}...`);
     const discovery = await discoverPages(url, { maxPages: 5 });
 
@@ -144,6 +179,18 @@ if (isMainModule) {
     }
 
     console.error(`[INFO] Found ${discovery.pages.length} pages`);
+
+    // Dry-run: show discovery + estimate, exit without capture
+    if (process.argv.includes('--dry-run')) {
+      const estimate = estimateCapture(discovery.pages);
+      console.log(JSON.stringify({
+        dryRun: true,
+        discovery: { pages: discovery.pages, framework: discovery.framework },
+        estimate,
+        hint: 'Remove --dry-run to execute capture'
+      }, null, 2));
+      process.exit(0);
+    }
 
     const result = await captureMultiplePages(discovery.pages, {
       outputDir,

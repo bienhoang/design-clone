@@ -77,6 +77,9 @@ export function parseScreenshotArgs(argv) {
     sectionMode: args['section-mode'] === 'true',
     enhanceSemantic: args['no-semantic'] !== 'true',
     extractAnimations: args['extract-animations'] !== 'false',
+    detectBreakpoints: args['detect-breakpoints'] === 'true',
+    extractComputed: args['extract-computed'] === 'true',
+    aggressiveFilter: args['aggressive-filter'],
     headless: args.headless === 'true',
     close: args.close === 'true'
   };

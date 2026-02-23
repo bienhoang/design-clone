@@ -16,10 +16,11 @@ import fs from 'fs/promises';
 
 import { getBrowser, getPage, closeBrowser, disconnectBrowser } from '../../utils/browser.js';
 import { parseArgs, outputJSON, outputError } from '../../utils/helpers.js';
-import { parseScreenshotArgs, createBrowserManager } from './screenshot-helpers.js';
+import { parseScreenshotArgs, createBrowserManager, VIEWPORTS } from './screenshot-helpers.js';
 import { runExtractionPipeline } from './screenshot-extraction.js';
 import { runHoverCapture, runVideoCapture, runSectionCapture, runDimensionOutput, writeDomHierarchy } from './screenshot-orchestrator.js';
 import { logInfo } from '../../utils/log.js';
+import { createProgress } from '../../utils/progress.js';
 import { captureViewport } from './screenshot-viewport.js';
 
 // ============================================================================
@@ -28,7 +29,7 @@ import { captureViewport } from './screenshot-viewport.js';
 
 async function captureMultiViewport() {
   const options = parseScreenshotArgs(process.argv.slice(2));
-  const {
+  let {
     url, output, viewports: requestedViewports,
     fullPage, maxSize, scrollDelay,
     extractHtml, extractCss, filterUnused,
@@ -52,7 +53,9 @@ async function captureMultiViewport() {
     if (extractHtml || extractCss) {
       extraction = await runExtractionPipeline(browserMgr.getPage(), url, output, {
         extractHtml, extractCss, filterUnused, enhanceSemantic,
-        extractAnimations: extractAnimationsFlag
+        extractAnimations: extractAnimationsFlag,
+        extractComputed: options.extractComputed,
+        aggressiveFilter: options.aggressiveFilter
       });
     }
 
@@ -65,22 +68,61 @@ async function captureMultiViewport() {
       );
     }
 
+    // Breakpoint detection: override viewports with CSS-detected breakpoints
+    let detectedBreakpoints = null;
+    if (options.detectBreakpoints && extraction?.css?.path && !extraction.css.failed) {
+      try {
+        const rawCss = await fs.readFile(extraction.css.path, 'utf-8');
+        const { detectBreakpoints, mergeWithFixed } = await import('../css/breakpoint-detector.js');
+        detectedBreakpoints = detectBreakpoints(rawCss);
+        const bpPath = path.join(output, 'breakpoints.json');
+        await fs.writeFile(bpPath, JSON.stringify(detectedBreakpoints, null, 2));
+        if (detectedBreakpoints.breakpoints.length > 0) {
+          const mergedViewports = mergeWithFixed(detectedBreakpoints.breakpoints);
+          requestedViewports = Object.keys(mergedViewports);
+          // Extend VIEWPORTS with detected entries for captureViewport
+          for (const [name, config] of Object.entries(mergedViewports)) {
+            if (!VIEWPORTS[name]) VIEWPORTS[name] = config;
+          }
+        }
+      } catch { /* breakpoint detection optional, continue with defaults */ }
+    }
+
     // Per-viewport screenshots
     const screenshots = [];
     const browserRestarts = [];
-    for (const viewport of requestedViewports) {
-      const viewportHeadless = getHeadlessForViewport(viewport);
-      if (browserMgr.getCurrentHeadless() !== viewportHeadless) {
-        browserRestarts.push({ viewport, from: browserMgr.getCurrentHeadless() ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
-        logInfo(`Switching to ${viewportHeadless ? 'headless' : 'headed'} for ${viewport}`);
-        await initBrowser(viewportHeadless, url);
+    const allHeadless = requestedViewports.every(vp => getHeadlessForViewport(vp));
+    const vpProgress = createProgress();
+    vpProgress.start(requestedViewports.length, 'Viewport capture');
+
+    if (allHeadless) {
+      // Fast path: single browser session, just resize viewport
+      for (const viewport of requestedViewports) {
+        vpProgress.step(`Capturing ${viewport}`, `${VIEWPORTS[viewport].width}px`);
+        screenshots.push(await captureViewport({
+          page: browserMgr.getPage(), viewport,
+          outputPath: path.join(output, `${viewport}.png`),
+          fullPage, maxSize, scrollDelay
+        }));
       }
-      screenshots.push(await captureViewport({
-        page: browserMgr.getPage(), viewport,
-        outputPath: path.join(output, `${viewport}.png`),
-        fullPage, maxSize, scrollDelay
-      }));
+    } else {
+      // Restart path for mixed headless/headed scenarios
+      for (const viewport of requestedViewports) {
+        vpProgress.step(`Capturing ${viewport}`, `${VIEWPORTS[viewport].width}px`);
+        const viewportHeadless = getHeadlessForViewport(viewport);
+        if (browserMgr.getCurrentHeadless() !== viewportHeadless) {
+          browserRestarts.push({ viewport, from: browserMgr.getCurrentHeadless() ? 'headless' : 'headed', to: viewportHeadless ? 'headless' : 'headed' });
+          logInfo(`Switching to ${viewportHeadless ? 'headless' : 'headed'} for ${viewport}`);
+          await initBrowser(viewportHeadless, url);
+        }
+        screenshots.push(await captureViewport({
+          page: browserMgr.getPage(), viewport,
+          outputPath: path.join(output, `${viewport}.png`),
+          fullPage, maxSize, scrollDelay
+        }));
+      }
     }
+    vpProgress.complete(`${screenshots.length} viewports captured`);
 
     // Optional: video, dimensions, DOM hierarchy, sections
     const videoResult = captureVideoFlag
@@ -94,9 +136,24 @@ async function captureMultiViewport() {
       ? await runSectionCapture(browserMgr, desktopScreenshot, output)
       : null;
 
+    // Quality score: auto for clone-px, opt-in for basic clone
+    const isClonePx = captureHover || options.extractAssets;
+    let qualityScore = null;
+    if (isClonePx || options.qualityScore) {
+      try {
+        const { scoreCapture } = await import('../../verification/quality-scorer.js');
+        qualityScore = await scoreCapture({
+          extraction, screenshots, assetStats: null, outputDir: output
+        });
+        const scorePath = path.join(output, 'quality-score.json');
+        await fs.writeFile(scorePath, JSON.stringify(qualityScore, null, 2));
+      } catch { /* quality scoring optional */ }
+    }
+
     outputJSON({
       success: true, url, outputDir: path.resolve(output), cookieHandling: cookieResult,
       extraction,
+      qualityScore: qualityScore || undefined,
       hoverStates: hoverResult && !hoverResult.failed
         ? { directory: hoverResult.directory, detected: hoverResult.detected, captured: hoverResult.captured, summaryPath: hoverResult.summaryPath, generatedCss: hoverResult.generatedCss }
         : (hoverResult?.error ? { error: hoverResult.error } : undefined),

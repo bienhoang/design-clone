@@ -21,7 +21,8 @@
     "extract-assets": "node src/core/media/extract-assets.js",
     "verify-menu": "node src/verification/verify-menu.js",
     "verify-layout": "node src/verification/verify-layout.js",
-    "test": "node tests/run-all-tests.js",
+    "test": "c8 node tests/run-all-tests.js",
+    "test:no-coverage": "node tests/run-all-tests.js",
     "docs:dev": "npm run docs:dev --prefix docs",
     "docs:build": "npm run docs:build --prefix docs",
     "docs:preview": "npm run docs:preview --prefix docs"
@@ -53,5 +54,8 @@
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "fluent-ffmpeg": "^2.1.2"
+  },
+  "devDependencies": {
+    "c8": "^10.1.3"
   }
 }

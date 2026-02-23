@@ -1,0 +1,7 @@
+{
+  "all": true,
+  "src": ["src/"],
+  "reporter": ["text", "text-summary", "html"],
+  "report-dir": "coverage",
+  "exclude": ["tests/", "node_modules/", "bin/", "commands/", "templates/"]
+}

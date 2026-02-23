@@ -29,6 +29,24 @@ import { mergeRoutes } from './discover-pages-routes.js';
 export { normalizeUrl, isSameDomain, extractPageName } from './discover-pages-utils.js';
 
 /**
+ * Estimate capture time for discovered pages
+ * @param {Array} pages - Discovered pages
+ * @param {string[]} viewports - Viewport names
+ * @returns {Object} Estimate with pages, viewports, totalCaptures, estimatedSeconds
+ */
+export function estimateCapture(pages, viewports = ['desktop', 'tablet', 'mobile']) {
+  const perCapture = 6; // seconds per viewport capture (avg)
+  const totalCaptures = pages.length * viewports.length;
+  return {
+    pages: pages.length,
+    viewports: viewports.length,
+    totalCaptures,
+    estimatedSeconds: totalCaptures * perCapture,
+    estimatedMinutes: Math.ceil((totalCaptures * perCapture) / 60)
+  };
+}
+
+/**
  * Scrape navigation links from the loaded page.
  * @param {import('playwright').Page} page
  * @param {string} baseUrl

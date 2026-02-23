@@ -101,9 +101,9 @@ export function shouldAlwaysKeep(selectorText) {
  * @param {Object} htmlAnalysis - Result from analyzeHtml
  * @param {Object} csstree - css-tree module reference
  * @param {boolean} verbose - Enable verbose logging
- * @returns {{ totalRules: number, keptRules: number, removedRules: number, atRules: number, mediaQueries: number }}
+ * @returns {Promise<{ totalRules: number, keptRules: number, removedRules: number, atRules: number, mediaQueries: number, deadCode: Object|null }>}
  */
-export function filterCssRules(cssAst, htmlAnalysis, csstree, verbose) {
+export async function filterCssRules(cssAst, htmlAnalysis, csstree, verbose, aggressiveFilter = false) {
   const stats = {
     totalRules: 0,
     keptRules: 0,
@@ -151,12 +151,22 @@ export function filterCssRules(cssAst, htmlAnalysis, csstree, verbose) {
     }
   });
 
+  // Pass 2: dead code removal (aggressive mode only)
+  let deadCode = null;
+  if (aggressiveFilter) {
+    try {
+      const { runDeadCodePass } = await import('./filter-css-dead-code.js');
+      deadCode = runDeadCodePass(cssAst, csstree);
+    } catch { /* dead code pass optional */ }
+  }
+
   if (verbose) {
     console.error(`[CSS Filter] Total rules: ${stats.totalRules}`);
     console.error(`[CSS Filter] Kept: ${stats.keptRules} (${Math.round(stats.keptRules / stats.totalRules * 100)}%)`);
     console.error(`[CSS Filter] Removed: ${stats.removedRules}`);
     console.error(`[CSS Filter] At-rules: ${stats.atRules} (${stats.mediaQueries} media queries)`);
+    if (deadCode) console.error(`[CSS Filter] Dead code: ${deadCode.emptyMediaRemoved} empty @media, ${deadCode.orphanKeyframesRemoved} orphan @keyframes, ${deadCode.unusedCustomPropsRemoved} unused vars`);
   }
 
-  return stats;
+  return { ...stats, deadCode };
 }
