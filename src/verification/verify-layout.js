@@ -18,7 +18,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from '../utils/browser.js';
+import { getBrowser, getPage, closeBrowser, disconnectBrowser } from '../utils/browser.js';
+import { parseArgs, outputJSON, outputError } from '../utils/helpers.js';
 import { VIEWPORTS_HD as VIEWPORTS } from '../shared/viewports.js';
 import { generateCSSFixes, writeReport } from './verify-layout-report.js';
 

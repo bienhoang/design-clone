@@ -20,7 +20,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { parseArgs, outputJSON, outputError } from '../utils/browser.js';
+import { parseArgs, outputJSON, outputError } from '../utils/helpers.js';
 import { generateMarkdownReport } from './generate-audit-report-sections.js';
 
 // Component types and their result files

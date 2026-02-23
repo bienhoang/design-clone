@@ -10,7 +10,8 @@
 import fs from 'fs/promises';
 
 import { filterCssFile } from '../css/filter-css.js';
-import { getBrowser, getPage, closeBrowser, parseArgs, outputError } from '../../utils/browser.js';
+import { getBrowser, getPage, closeBrowser } from '../../utils/browser.js';
+import { parseArgs, outputError } from '../../utils/helpers.js';
 import { waitForPageReady } from '../page-prep/page-readiness.js';
 import { dismissCookieBanner } from '../page-prep/cookie-handler.js';
 import { VIEWPORTS } from '../../shared/viewports.js';

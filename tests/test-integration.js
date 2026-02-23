@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseArgs, outputJSON, outputError } from '../src/utils/browser.js';
+import { parseArgs, outputJSON, outputError } from '../src/utils/helpers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = path.join(__dirname, '../src');
@@ -84,10 +84,11 @@ try {
   assert(typeof browser.getPage === 'function', 'getPage not function');
   assert(typeof browser.closeBrowser === 'function', 'closeBrowser not function');
   assert(typeof browser.disconnectBrowser === 'function', 'disconnectBrowser not function');
-  assert(typeof browser.parseArgs === 'function', 'parseArgs not re-exported');
-  assert(typeof browser.outputJSON === 'function', 'outputJSON not re-exported');
-  assert(typeof browser.outputError === 'function', 'outputError not re-exported');
   assert(typeof browser.getProviderName === 'function', 'getProviderName not exported');
+  // CLI helpers (parseArgs, outputJSON, outputError) now come from helpers.js, not browser.js
+  assert(browser.parseArgs === undefined, 'parseArgs should not be on browser.js');
+  assert(browser.outputJSON === undefined, 'outputJSON should not be on browser.js');
+  assert(browser.outputError === undefined, 'outputError should not be on browser.js');
 
   console.log('  ✓ PASSED\n');
   tests.passed++;

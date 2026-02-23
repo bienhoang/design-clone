@@ -8,9 +8,6 @@
  * - getPage(browser)
  * - closeBrowser()
  * - disconnectBrowser()
- * - parseArgs(argv)
- * - outputJSON(data)
- * - outputError(error)
  */
 
 let browserModule = null;
@@ -26,10 +23,6 @@ async function initProvider() {
   providerName = 'playwright';
   console.error('[browser] Using Playwright wrapper');
 }
-
-// Import utilities (always use local helpers)
-import { parseArgs, outputJSON, outputError } from './helpers.js';
-export { parseArgs, outputJSON, outputError };
 
 /**
  * Get current browser provider name
