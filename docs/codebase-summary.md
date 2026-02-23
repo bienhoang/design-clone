@@ -1,26 +1,32 @@
 # Design Clone Codebase Summary
 
-**Version:** 2.1.0 (Phase 3 Complete)
+**Version:** 3.0.0 (v3.0 Improvement Roadmap Complete)
 **Last Updated:** February 23, 2026
 
 ## Overview
 
 Design Clone is a comprehensive design extraction and code generation tool for Claude Code. It captures website designs with multi-viewport screenshots, extracts clean HTML/CSS, and can convert Figma designs to production-ready code.
 
-**Phase 3 Achievement:** Full Figma-to-code pipeline with CSS (BEM) and Tailwind CSS output modes.
+**v3.0 Achievement:** 13 performance and UX improvements across 5 phases: parallel viewport capture fast-path, download concurrency tuning, progress reporting, error diagnostics, dry-run mode, responsive breakpoint detection, asset integrity verification, two-pass CSS filtering, parallel multi-page capture with memory guards, streaming CSS processing, computed style extraction, output quality scoring, and test framework upgrade (c8 coverage).
 
 ## Key Capabilities
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Multi-viewport screenshots | Active | Desktop (1920px), tablet (768px), mobile (375px) |
-| HTML/CSS extraction | Active | Clean source with unused CSS removal |
-| Design token extraction | Active | Automatic color, typography, spacing detection |
-| Figma-to-code conversion | Phase 3 | Convert Figma designs to HTML/CSS or Tailwind |
+| Multi-viewport screenshots | Active | Desktop (1920px), tablet (768px), mobile (375px), parallel fast-path for headless |
+| HTML/CSS extraction | Active | Clean source with unused CSS removal, streaming processing for 50MB+ |
+| Design token extraction | Active | Automatic color, typography, spacing detection, computed style gap-fill |
+| Figma-to-code conversion | v3.0 | Convert Figma designs to HTML/CSS or Tailwind |
+| Responsive breakpoint detection | v3.0 | Auto-detect @media queries, capture at actual breakpoints |
+| Asset integrity verification | v3.0 | Magic byte validation, SVG sanitization |
+| Dead code CSS filtering | v3.0 | Two-pass removal of @media/@keyframes/unused vars |
 | Hover state capture | Active | Interactive element state documentation |
 | AI structure analysis | Active | Built-in Claude Code vision |
-| Asset extraction | Active | Images, fonts, icons download |
-| Multi-page cloning | Active | Site-wide cloning with shared CSS |
+| Asset extraction | v3.0 | Images, fonts, icons with concurrency tuning (5→10) |
+| Multi-page cloning | v3.0 | Parallel capture with browser context pool, memory guards |
+| Progress reporting | v3.0 | TTY-aware stderr output, discovery + estimate in dry-run |
+| Error diagnostics | v3.0 | Structured error catalog with actionable suggestions |
+| Output quality scoring | v3.0 | 5-metric weighted system (CSS, assets, responsive, HTML, A11y) |
 
 ## Architecture Overview
 
@@ -125,58 +131,84 @@ design-clone/
 ## Core Modules (Organized by Feature Domain)
 
 ### capture/ - Screenshot Pipeline
-Multi-viewport screenshot capture with Playwright (7 modules).
+Multi-viewport screenshot capture with Playwright (8 modules + browser context pool).
 
 **Key Modules:**
-- `screenshot.js` - Multi-viewport capture orchestrator
-- `screenshot-helpers.js` - Viewport setup and utilities
-- `screenshot-extraction.js` - HTML/CSS extraction
+- `screenshot.js` - Multi-viewport capture orchestrator (v3.0: viewport fast-path, breakpoint detection, quality score)
+- `screenshot-helpers.js` - Viewport setup and utilities (v3.0: new CLI flags)
+- `screenshot-extraction.js` - HTML/CSS extraction (v3.0: progress reporting, computed gap-fill, aggressive filter)
 - `screenshot-viewport.js` - Individual viewport capture
 - `screenshot-orchestrator.js` - Batch processing
-- `multi-page-screenshot.js` - Multi-page orchestration
+- `multi-page-screenshot.js` - Multi-page orchestration (v3.0: context pool parallel, dry-run)
 - `multi-page-screenshot-page.js` - Per-page capture logic
+- `browser-context-pool.js` - Context reuse with memory guards (v3.0 NEW)
 
 **Key Functions:**
-- `captureViewports()` - Capture at 3 viewports
+- `captureViewports()` - Capture at 3 viewports, fast-path for headless
 - `extractHTML()` - Preserve semantic HTML, remove scripts
-- `extractCSS()` - Full stylesheet extraction
+- `extractCSS()` - Full stylesheet extraction, streaming for 50MB+
 
-**Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source.css`
+**v3.0 New Flags:**
+- `--detect-breakpoints` - Auto-detect @media queries, capture at breakpoints
+- `--extract-computed` - Fill gaps via getComputedStyle() diffed vs Chromium defaults
+- `--aggressive-filter` - Two-pass CSS dead code removal
+- `--quality-score` - Output 5-metric quality score
+- `--dry-run` - Show discovery + estimate, no capture
+
+**Output:** `desktop.png`, `tablet.png`, `mobile.png`, `source.html`, `source.css`, `quality-score.json` (optional)
 
 ### css/ - CSS Processing
-Remove unused CSS rules and handle stylesheet optimization (7 modules).
+Remove unused CSS rules and handle stylesheet optimization (10 modules).
 
 **Key Modules:**
-- `filter-css.js` - Main CSS filtering orchestrator
+- `filter-css.js` - Main CSS filtering orchestrator (v3.0: error codes, chunked processing, aggressive filter pass)
 - `merge-css.js` - CSS deduplication
-- `filter-css-selector-matcher.js` - Selector matching logic
+- `filter-css-selector-matcher.js` - Selector matching logic (v3.0: async filterCssRules, dead code pass)
 - `filter-css-html-analyzer.js` - HTML selector extraction
 - `filter-css-atrule-processor.js` - @media/@keyframe handling
 - `filter-css-file-io.js` - File I/O utilities
+- `breakpoint-detector.js` - Parse @media queries, detect actual breakpoints (v3.0 NEW)
+- `filter-css-dead-code.js` - Two-pass removal of unused @media, @keyframes, CSS vars (v3.0 NEW)
+- `css-chunker.js` - Chunk-based streaming for large stylesheets (v3.0 NEW)
+- `computed-style-extractor.js` - getComputedStyle() gap-fill with Chromium defaults (v3.0 NEW)
 
-**Process:**
-1. Parse HTML for used selectors
-2. Analyze CSS rules
-3. Remove unused declarations
-4. Preserve media queries, animations
-5. Output deduplicated CSS
+**v3.0 Streaming & Performance:**
+- MAX_CSS_INPUT raised to 50MB (from 500KB)
+- Chunk threshold: 5MB per operation
+- Streaming parser for stylesheets
 
-**Impact:** 40-60% CSS size reduction on average
+**Process (v3.0):**
+1. Chunk input CSS if >5MB
+2. Parse HTML for used selectors
+3. Analyze CSS rules
+4. Pass 1: Remove unused declarations
+5. Pass 2 (if --aggressive-filter): Remove dead @media/@keyframes/unused vars
+6. (If --extract-computed): Fill gaps via computed styles
+7. Preserve critical animations
+8. Output deduplicated CSS
+
+**Impact:** 40-60% CSS size reduction on average, up to 80% with aggressive filter
 
 ### media/ - Asset Extraction
-Download images, fonts, and icons from websites (5 modules).
+Download images, fonts, and icons from websites with integrity verification (6 modules).
 
 **Key Modules:**
-- `extract-assets.js` - Orchestrator
-- `extract-assets-downloader.js` - Download logic
+- `extract-assets.js` - Orchestrator (v3.0: concurrency flag, asset validation)
+- `extract-assets-downloader.js` - Download logic (v3.0: maxConcurrent 5→10, adaptive 429 throttling with exponential backoff)
 - `extract-assets-page-scraper.js` - Asset discovery
+- `asset-validator.js` - Magic byte validation, SVG sanitization (v3.0 NEW)
 - `video-capture.js` - Video extraction
 - `video-capture-convert.js` - Video conversion
 
+**v3.0 Concurrency & Throttling:**
+- maxConcurrent: 5→10 (configurable via --max-concurrent flag)
+- HTTP 429 handling: Exponential backoff (1s, 2s, 4s, 8s)
+- Asset validation prevents corrupted/malicious files
+
 **Asset Types:**
-- Images (WebP, JPG, PNG)
+- Images (WebP, JPG, PNG) - validated via magic bytes
 - Web fonts (WOFF2, TTF)
-- Icon sets (SVG, Font Awesome)
+- Icon sets (SVG, Font Awesome) - SVG sanitized
 - Data URIs (embedded graphics)
 - Videos (MP4, WebM)
 
@@ -270,6 +302,48 @@ Link rewriting utilities, not used by current pipelines (2 modules).
 - `rewrite-links.js` - Orchestrator
 - `rewrite-links-css-rewriter.js` - CSS link rewriting
 
+### utils/ - Shared Utilities
+Centralized utilities and helpers (v3.0).
+
+**Key Modules:**
+- `progress.js` - ProgressReporter class for TTY-aware output (v3.0 NEW)
+- `log.js` - Centralized logging with TTY detection (existing)
+- `browser.js` - Playwright browser management
+- `playwright.js` - Playwright configuration
+- `env.js / env.py` - Environment variable handling
+- `helpers.js` - General utility functions
+
+**v3.0 Progress Reporting:**
+- ProgressReporter: TTY-aware, writes to stderr (keeps stdout clean)
+- Tracks: current step, total steps, operation label
+- Methods: start(), step(), complete()
+
+### shared/ - Shared Code
+Cross-module shared definitions.
+
+**Key Modules:**
+- `error-codes.js` - DesignCloneError with structured codes (v3.0 NEW)
+- `config.js` - SIZE_LIMITS, CHUNK_THRESHOLD, BROWSER_POOL constants (v3.0: updated limits)
+
+**v3.0 Error Catalog:**
+- ERROR_CODES map: CSS_SIZE_EXCEEDED, CSS_PARSE_FAILED, CSS_CORS_BLOCKED, HTML_EXTRACTION_FAILED, ASSET_DOWNLOAD_FAILED, BROWSER_LAUNCH_FAILED, NAV_TIMEOUT, FILE_IO_FAILED, DISCOVERY_FAILED, SCREENSHOT_FAILED, INVALID_ARGS
+- DesignCloneError class: extends Error, includes code + suggestion + context
+
+### verification/ - Quality Assurance
+Quality checks and scoring (v3.0).
+
+**Key Modules:**
+- `quality-scorer.js` - 5-metric weighted scoring (v3.0 NEW)
+- `verify-menu.js` - Navigation validation
+- `verify-layout.js` - Layout consistency
+- `verify-header.js` - Header structure
+- `verify-footer.js` - Footer structure
+
+**v3.0 Quality Scoring:**
+- Metrics: cssCoverage (30%), assetCompleteness (25%), responsiveFidelity (20%), htmlSemantics (15%), accessibility (10%)
+- Scale: 0-100
+- Auto-runs for clone-px, opt-in for basic clone
+
 ### AI Prompt Templates (src/ai/prompts/)
 Claude Code vision-based design analysis via markdown prompt templates.
 
@@ -278,7 +352,7 @@ Claude Code vision-based design analysis via markdown prompt templates.
 - `design-tokens/` -- Design system extraction (4 variants)
 - `ux-audit/` -- UX quality assessment (3 viewports + aggregation)
 
-**Output:** `structure.md`, `design-tokens.json`, `tokens.css`, `ux-audit.json`
+**Output:** `structure.md`, `design-tokens.json`, `tokens.css`, `ux-audit.json`, `quality-score.json` (v3.0)
 
 ### figma/extract-figma.py (Phase 2)
 Extract design system from Figma files.
@@ -357,22 +431,29 @@ Injects gosnap-widget Web Component into HTML files.
 
 ### /design:clone (Basic)
 ```
-URL → Screenshot 3 viewports → Extract HTML/CSS → Filter CSS → Output
+URL → Screenshot 3 viewports (fast-path for headless) → Extract HTML/CSS (streaming) → Filter CSS (chunked) → Output
 ```
-**Time:** ~10-15 seconds
+**Time:** ~8-12 seconds (v3.0: faster with fast-path)
 
 ### /design:clone-px (Pixel-Perfect)
 ```
 URL → Screenshot 3 viewports → Extract HTML/CSS → Filter CSS
-  → Extract assets → AI analysis → Design tokens → Verify menu → Output
+  → Extract assets (concurrency 10) → Asset validation → AI analysis → Design tokens → Verify menu → Quality score → Output
 ```
-**Time:** ~45-60 seconds (depends on asset count)
+**Time:** ~50-90 seconds (v3.0: improved with parallel context pool, optimized download)
 
 ### /design:clone-site (Multi-Page)
 ```
-URL → Discover pages → Screenshot all pages (3 viewports each) → Generate manifest → Output
+URL → Discover pages (with progress) → Parallel context pool capture → Merge CSS → Generate manifest → Output
 ```
-**Time:** ~1-3 minutes (depends on page count)
+**Time:** ~1-3 minutes (v3.0: faster with parallel contexts, memory guards)
+
+**v3.0 Additions (Opt-In):**
+- `--detect-breakpoints` - Detect @media queries, capture at actual breakpoints
+- `--aggressive-filter` - Two-pass CSS dead code removal
+- `--extract-computed` - Gap-fill via computed styles
+- `--quality-score` - Output quality metrics
+- `--dry-run` - Show discovery + estimate (no capture)
 
 ### /design:figma-to-code (Figma Conversion)
 ```

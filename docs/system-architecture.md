@@ -1,6 +1,6 @@
 # Design Clone System Architecture
 
-**Version:** 2.1.0 (Phase 3)
+**Version:** 3.0.0 (v3.0 Improvement Roadmap)
 **Last Updated:** February 23, 2026
 
 ## System Design Overview
@@ -103,27 +103,39 @@ URL Input
 
 **Key Modules (by Domain):**
 
-| Module | Location | Purpose | Input | Output |
-|--------|----------|---------|-------|--------|
-| screenshot.js | capture/ | Viewport capture | URL | PNG screenshots |
-| extract-assets.js | media/ | Asset downloads | HTML + CSS | images/, fonts/, icons/ |
-| filter-css.js | css/ | Remove unused rules | HTML + CSS | Optimized CSS |
-| discover-pages.js | discovery/ | SPA navigation | URL | Page list |
-| framework-detector.js | detection/ | Framework detection | Page DOM | Framework info |
-| multi-page-screenshot.js | capture/ | Multi-page capture | Page list | Screenshots |
-| animation-extractor.js | animation/ | Extract animations | CSS | animation-tokens.json |
-| semantic-enhancer.js | html/ | HTML optimization (Feb 23) | HTML + CSS | Enhanced HTML |
-| dimension-extractor.js | dimension/ | Structure analysis (Feb 23) | DOM tree | layout-analysis.json |
-| section-detector.js | section/ | Section detection | HTML + viewport | sections.json |
-| clone-site.js | bin/commands/ | Multi-page clone CLI | URL | Screenshots + manifest |
+| Module | Location | Purpose | v3.0 Changes | Input | Output |
+|--------|----------|---------|-------------|-------|--------|
+| screenshot.js | capture/ | Viewport capture | Fast-path, breakpoint detect, quality score | URL | PNG screenshots |
+| screenshot-extraction.js | capture/ | HTML/CSS extract | Progress reporting, computed gap-fill, aggressive filter | Page | HTML + CSS |
+| browser-context-pool.js | capture/ | Context reuse | NEW: Parallel multi-page, memory guards | - | Browser contexts |
+| extract-assets.js | media/ | Asset downloads | Concurrency 5→10, validation | HTML + CSS | images/, fonts/, icons/ |
+| asset-validator.js | media/ | Asset verification | NEW: Magic bytes, SVG sanitize | Assets | Valid/invalid report |
+| filter-css.js | css/ | Remove unused rules | Chunked streaming, error codes, aggressive pass | HTML + CSS | Optimized CSS |
+| breakpoint-detector.js | css/ | Breakpoint detection | NEW: Parse @media, actual breakpoints | CSS | Breakpoint list |
+| filter-css-dead-code.js | css/ | Dead code removal | NEW: Two-pass @media/@keyframes removal | CSS | Cleaned CSS |
+| css-chunker.js | css/ | Streaming chunks | NEW: 50MB limit, 5MB chunks | CSS | Chunked stream |
+| computed-style-extractor.js | css/ | Style gap-fill | NEW: getComputedStyle vs Chromium defaults | Page | Gap-filled CSS |
+| quality-scorer.js | verification/ | Quality metrics | NEW: 5-metric weighted score | Extraction | quality-score.json |
+| progress.js | utils/ | Progress reporting | NEW: TTY-aware stderr output | - | Progress events |
+| error-codes.js | shared/ | Error catalog | NEW: Structured codes + suggestions | - | DesignCloneError |
+| discover-pages.js | discovery/ | SPA navigation | Progress reporting added | URL | Page list |
+| multi-page-screenshot.js | capture/ | Multi-page capture | Context pool, memory guards, dry-run | Page list | Screenshots |
+| animation-extractor.js | animation/ | Extract animations | - | CSS | animation-tokens.json |
+| semantic-enhancer.js | html/ | HTML optimization | - | HTML + CSS | Enhanced HTML |
+| dimension-extractor.js | dimension/ | Structure analysis | - | DOM tree | layout-analysis.json |
+| section-detector.js | section/ | Section detection | - | HTML + viewport | sections.json |
+| clone-site.js | bin/commands/ | Multi-page clone CLI | Dry-run, progress, parallel | URL | Screenshots + manifest |
 
 **Critical Features:**
 
 - **Lazy Loading:** Waits for dynamic content via `page.waitForLoadState('networkidle')`
 - **JavaScript Removal:** Strips all `<script>` tags, preserves HTML structure
 - **CSS Preservation:** Keeps all stylesheets, including animations
-- **Asset Integrity:** Downloads with original naming and structure
-- **Centralized Logging:** TTY-aware output via src/utils/log.js (NEW Feb 23)
+- **Asset Integrity:** Validates magic bytes, sanitizes SVG (v3.0)
+- **Centralized Logging:** TTY-aware output via src/utils/log.js
+- **Progress Reporting:** Real-time feedback via ProgressReporter (v3.0)
+- **Streaming CSS:** Processes 50MB+ stylesheets in chunks (v3.0)
+- **Parallel Context Pool:** Multi-page capture with memory guards (v3.0)
 
 **Recent Refactoring (Feb 23):**
 
@@ -292,34 +304,36 @@ User Input (URL)
     ↓
 CLI Router
     ↓
-┌─────────────────────────────────────┐
-│ 1. Launch Browser                   │
-│    ├─ Initialize Playwright         │
-│    └─ Create new context            │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 1. Launch Browser                                   │
+│    ├─ Initialize Playwright                         │
+│    └─ Create context (or reuse from pool if exists) │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 2. Capture Screenshots              │
-│    ├─ Desktop (1920x1080)          │
-│    ├─ Tablet (768x1024)            │
-│    └─ Mobile (375x812)             │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 2. Capture Screenshots (v3.0: Fast-path)           │
+│    ├─ Desktop (1920x1080)                          │
+│    ├─ Tablet (768x1024)                            │
+│    └─ Mobile (375x812)                             │
+│    └─ (If all headless: skip browser restart)      │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 3. Extract HTML & CSS               │
-│    ├─ Serialize DOM                 │
-│    ├─ Remove scripts                │
-│    ├─ Collect stylesheets           │
-│    └─ Preserve animations           │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 3. Extract HTML & CSS (v3.0: Streaming)             │
+│    ├─ Report progress via TTY-aware stderr          │
+│    ├─ Serialize DOM, remove scripts                │
+│    ├─ Collect stylesheets (stream if >5MB)         │
+│    └─ Preserve animations                          │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 4. Filter Unused CSS                │
-│    ├─ Parse selectors from HTML     │
-│    ├─ Match against CSS rules       │
-│    ├─ Remove unused declarations    │
-│    └─ Output optimized CSS          │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 4. Filter Unused CSS (v3.0: Chunked + Errors)      │
+│    ├─ Parse selectors from HTML                    │
+│    ├─ Chunk CSS (5MB threshold)                    │
+│    ├─ Match rules against selectors                │
+│    ├─ Remove unused declarations (Pass 1)          │
+│    └─ (Optional --aggressive-filter: Pass 2)       │
+└─────────────────────────────────────────────────────┘
     ↓
 Output Directory
 ├─ desktop.png
@@ -329,42 +343,52 @@ Output Directory
 └─ source.css
 ```
 
-Note: Use `--skip-gosnap` flag in `/design:clone-px` to disable gosnap injection.
+**v3.0 Additions:**
+- Use `--detect-breakpoints` to capture at actual @media breakpoints
+- Use `--extract-computed` to fill style gaps via getComputedStyle()
+- Use `--aggressive-filter` for stronger CSS dead code removal
+- Use `--quality-score` to output quality metrics
+- Use `--skip-gosnap` flag in `/design:clone-px` to disable gosnap injection
 
 ### Pixel-Perfect Workflow (/design:clone-px)
 
 ```
 Basic Clone Output
     ↓
-┌─────────────────────────────────────┐
-│ 5. Extract Assets                   │
-│    ├─ Download all images           │
-│    ├─ Fetch web fonts               │
-│    └─ Cache Font Awesome icons      │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 5. Extract Assets (v3.0: Validated, Concurrent)    │
+│    ├─ Download images (maxConcurrent: 10)           │
+│    ├─ Validate magic bytes (v3.0)                   │
+│    ├─ Fetch web fonts                              │
+│    ├─ Sanitize SVG icons (v3.0)                     │
+│    ├─ Retry on 429 with exponential backoff (v3.0)  │
+│    └─ Cache Font Awesome icons                     │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 6. AI Analysis (Built-in)            │
-│    ├─ Read prompt template          │
-│    ├─ Claude Code vision analysis   │
-│    └─ Generate structure report     │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 6. AI Analysis (Built-in)                           │
+│    ├─ Read prompt template                         │
+│    ├─ Claude Code vision analysis                  │
+│    └─ Generate structure report                    │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 7. Design Token Extraction          │
-│    ├─ Analyze visual patterns       │
-│    ├─ Extract tokens                │
-│    └─ Generate CSS custom props     │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 7. Design Token Extraction                          │
+│    ├─ Analyze visual patterns                      │
+│    ├─ Extract tokens                               │
+│    └─ Generate CSS custom props                    │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 8. Verification                     │
-│    ├─ Check menu structure          │
-│    ├─ Validate layout               │
-│    └─ Test navigation               │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 8. Verification & Quality Scoring (v3.0)           │
+│    ├─ Check menu structure                         │
+│    ├─ Validate layout                              │
+│    ├─ Score: CSS coverage, asset completeness      │
+│    ├─ Score: responsive fidelity, HTML semantics   │
+│    └─ Score: accessibility compliance              │
+└─────────────────────────────────────────────────────┘
     ↓
-Output + Assets + Analysis
+Output + Assets + Analysis + Quality Score
 ```
 
 ### Multi-Page Clone Workflow (/design:clone-site)
@@ -372,26 +396,30 @@ Output + Assets + Analysis
 ```
 User Input (URL + options)
     ↓
-┌─────────────────────────────────────┐
-│ 1. Discover Pages                   │
-│    ├─ Parse site navigation         │
-│    ├─ Detect SPA framework (React)  │
-│    └─ Generate page list            │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 1. Discover Pages (v3.0: Progress reporting)       │
+│    ├─ Report progress via TTY-aware stderr          │
+│    ├─ Parse site navigation                         │
+│    ├─ Detect SPA framework (React, Vue, etc)        │
+│    └─ Generate page list (--dry-run stops here)     │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 2. Capture Screenshots              │
-│    ├─ Desktop (1920x1080)          │
-│    ├─ Tablet (768x1024)            │
-│    └─ Mobile (375x812)             │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 2. Capture Screenshots (v3.0: Parallel Pool)       │
+│    ├─ Initialize browser context pool               │
+│    ├─ Reuse contexts across pages (memory guards)   │
+│    ├─ Desktop (1920x1080)                          │
+│    ├─ Tablet (768x1024)                            │
+│    └─ Mobile (375x812)                             │
+└─────────────────────────────────────────────────────┘
     ↓
-┌─────────────────────────────────────┐
-│ 3. Generate Manifest                │
-│    ├─ Create manifest.json          │
-│    ├─ Map pages to screenshot paths │
-│    └─ Include capture stats         │
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│ 3. Generate Manifest (v3.0)                         │
+│    ├─ Create manifest.json                          │
+│    ├─ Map pages to screenshot paths                 │
+│    ├─ Include capture stats & estimates             │
+│    └─ Document pool efficiency metrics              │
+└─────────────────────────────────────────────────────┘
     ↓
 Output Directory
 ├─ manifest.json
@@ -402,11 +430,13 @@ Output Directory
    └─ mobile/
 ```
 
-**Key Features:**
-- Discovers navigation automatically
-- Captures all viewports for each page
-- Screenshot-only output for Claude Code vision
-- Progress reporting with per-page status
+**v3.0 Key Features:**
+- Discovery with automatic progress reporting
+- Parallel capture with context pool (reuses browser contexts, reduces memory)
+- Memory guards prevent context leaks
+- `--dry-run` shows discovery + estimates without capturing
+- Per-page status updates
+- Pool efficiency metrics in manifest
 
 ### Figma-to-Code Workflow (/design:figma-to-code)
 
@@ -564,23 +594,29 @@ cloned-designs/
 
 ## Scalability Considerations
 
-### Current Limits
+### Current Limits (v3.0)
 
-| Aspect | Limit | Impact |
-|--------|-------|--------|
+| Aspect | Limit | v3.0 Impact |
+|--------|-------|-------------|
 | Screenshot viewports | 3 fixed | Easy to extend |
 | Figma nodes | 1000+ | Tested, performs well |
-| CSS file size | 500KB+ | Filtered automatically |
-| Images per page | 100+ | Asset extraction handles |
-| Pages per site | 50+ | Multi-page CLI works |
+| CSS file size | 50MB+ | Streaming chunks at 5MB threshold |
+| Images per page | 100+ | Concurrent downloads (5→10), adaptive throttling |
+| Pages per site | 50+ | Multi-page CLI with context pool |
+| Stylesheets | 100+ | Chunked processing, dead code removal |
 
-### Performance Optimizations
+### Performance Optimizations (v3.0)
 
-1. **Parallel Processing:** Viewport screenshots in series (Playwright limitation)
-2. **CSS Deduplication:** 40-60% size reduction with PurgeCSS
-3. **Asset Optimization:** WebP conversion, lazy loading
-4. **Caching:** Screenshot reuse between workflows
-5. **Streaming:** Large downloads handled in chunks
+1. **Parallel Viewport:** Fast-path when all headless (skip browser restart)
+2. **Parallel Multi-Page:** Context pool reuse with memory guards
+3. **CSS Streaming:** Chunk-based processing for 50MB+ files
+4. **Download Concurrency:** Increased 5→10, adaptive 429 backoff
+5. **CSS Deduplication:** 40-60% baseline, up to 80% with aggressive filter
+6. **Asset Validation:** Early detection prevents corrupted downloads
+7. **Dead Code Removal:** Two-pass filtering of @media/@keyframes/unused vars
+8. **Computed Style Gap-Fill:** getComputedStyle() extraction for complete styling
+9. **Caching:** Screenshot reuse between workflows
+10. **Progress Reporting:** TTY-aware updates keep user informed
 
 ---
 
