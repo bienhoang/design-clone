@@ -460,84 +460,40 @@ def authenticate(token: str) -> bool:
 
 ## Project Structure
 
-### Directory Organization
+### Directory Organization (v4.0)
 
 ```
 design-clone/
 ├── bin/
-│   ├── cli.js                  # Main CLI entry
-│   ├── commands/
-│   │   ├── clone-site.js       # Multi-page command
-│   │   ├── init.js             # Setup command
-│   │   └── verify.js           # Verification command
-│   └── utils/
-│       ├── copy.js             # Utility functions
-│       └── validate.js
+│   ├── cli.js                   # Main CLI router
+│   ├── commands/                # CLI commands
+│   │   ├── init.js              # Installation setup
+│   │   ├── help.js              # Usage help
+│   │   ├── update.js            # Version update
+│   │   └── uninstall.js         # Skill removal
+│   └── utils/                   # CLI utilities (paths.js, version.js)
 │
 ├── src/
-│   ├── core/                   # Core extraction engines (12 semantic subdirectories)
-│   │   ├── capture/            # Screenshot pipeline (7 modules)
-│   │   ├── css/                # CSS processing (7 modules)
-│   │   ├── html/               # HTML extraction (5 modules)
-│   │   ├── animation/          # Animation & hover states (5 modules)
-│   │   ├── discovery/          # Page discovery (6 modules)
-│   │   ├── detection/          # Framework detection (3 modules)
-│   │   ├── dimension/          # DOM analysis (6 modules)
-│   │   ├── section/            # Section detection (5 modules)
-│   │   ├── media/              # Asset extraction (5 modules)
-│   │   ├── page-prep/          # Page readiness (3 modules)
-│   │   ├── content/            # Content analysis (2 modules)
-│   │   ├── links/              # URL rewriting (2 modules)
-│   │   └── tests/              # Core tests (2 modules)
-│   │
-│   ├── figma/                  # Figma-to-code pipeline
-│   │   ├── parse-url.js        # URL parsing
-│   │   ├── figma-client.py     # API client
-│   │   ├── extract-figma.py    # Token extraction
-│   │   ├── generate-css.py     # BEM generation
-│   │   └── generate-tailwind.py # Tailwind generation
-│   │
-│   ├── ai/                     # AI analysis
-│   │   ├── analyze-structure.py
-│   │   ├── extract-design-tokens.py
-│   │   └── prompts/
-│   │       ├── structure_analysis.py
-│   │       ├── design_tokens.py
-│   │       └── ux_audit.py
-│   │
-│   ├── verification/           # Quality checks
-│   │   ├── verify-menu.js
-│   │   ├── verify-layout.js
-│   │   └── [other verifications]
-│   │
-│   ├── post-process/           # Asset processing
-│   │   ├── fetch-images.js
-│   │   ├── inject-icons.js
-│   │   └── enhance-assets.js
-│   │
-│   ├── utils/                  # Shared utilities
-│   │   ├── browser.js
-│   │   ├── env.js / env.py
-│   │   ├── helpers.js
-│   │   ├── playwright.js
-│   │   └── log.js              # Centralized logging (Feb 23)
-│   │
-│   └── route-discoverers/      # Framework detection
-│       ├── base-discoverer.js
-│       ├── react-discoverer.js
-│       └── [other frameworks]
+│   ├── utils.js                 # Shared utilities, browser management, constants (~230 lines)
+│   ├── capture.js               # Screenshot pipeline + HTML/CSS extraction (~480 lines)
+│   ├── filter-css.js            # CSS filtering + dead code removal (~250 lines)
+│   ├── extract-assets.js        # Asset extraction (images, fonts, icons) (~180 lines)
+│   ├── clone-site.js            # Multi-page clone + route discovery + CSS merge (~380 lines)
+│   └── ai/                      # AI analysis prompt templates
+│       └── prompts/             # Markdown prompts for Claude Code vision
+│           ├── structure-analysis/
+│           ├── design-tokens/
+│           └── ux-audit/
 │
-├── tests/                      # Test files
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
+├── commands/design/             # Slash command definitions
+│   ├── clone.md
+│   ├── clone-px.md
+│   └── clone-site.md
 │
-├── templates/                  # HTML/CSS templates
-│   ├── base.html
-│   └── base.css
-│
-├── docs/                       # Documentation
-└── prd/                        # Product requirements
+├── tests/                       # Test suite (6 suites, 54 tests)
+├── templates/                   # HTML/CSS base templates
+├── docs/                        # Documentation
+└── SKILL.md                     # Skill definition for Claude Code
 ```
 
 ### Module Dependencies
@@ -548,29 +504,14 @@ design-clone/
 - Separate concerns across modules
 - Use dependency injection for testability
 - Import directly from module files using relative paths
-- Use centralized logging (src/utils/log.js) instead of console.log
 
-**Companion Module Pattern (Feb 23):**
-
-When a module grows beyond 150-200 LOC with repetitive logic, decompose using companion modules:
-- `module.js` - Main orchestrator (stable API)
-- `module-feature.js` - Specific feature extraction
-- `module-output.js` - Output formatting
-- `module-mappings.js` - Mapping tables/rules
-
-**Examples:**
-- `semantic-enhancer.js` → `semantic-enhancer-page.js`, `semantic-enhancer-mappings.js`
-- `dimension-extractor.js` → `dimension-extractor-card-detector.js`, `dimension-output.js`, `dimension-output-ai-summary.js`
-
-**Example Dependency Structure:**
+**Dependency Structure:**
 ```
-CLI Layer
+CLI Layer (bin/cli.js)
   ↓
-Workflow Layer (clone, clone-px, clone-site, figma-to-code)
+Core Modules (src/capture.js, src/clone-site.js, etc.)
   ↓
-Core Engines (capture/, css/, discovery/, detection/, etc. via direct imports)
-  ↓
-Utilities (browser, env, helpers, log, playwright)
+Shared Utilities (src/utils.js)
 ```
 
 ---

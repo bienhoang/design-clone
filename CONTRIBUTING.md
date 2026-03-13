@@ -22,34 +22,22 @@ Thank you for your interest in contributing!
 
 ```
 design-clone/
-├── bin/                    # CLI entry point
-│   ├── cli.js              # Main CLI
-│   ├── commands/           # CLI commands (init, verify, help)
-│   └── utils/              # CLI utilities
+├── bin/                         # CLI entry point
+│   ├── cli.js                   # Main CLI router
+│   ├── commands/                # CLI commands (init, help, update, uninstall)
+│   └── utils/                   # CLI utilities (paths.js, version.js)
 ├── src/
-│   ├── core/               # Core extraction (13 subdirectories)
-│   │   ├── capture/        # Screenshot pipeline
-│   │   ├── css/            # CSS processing
-│   │   ├── html/           # HTML extraction
-│   │   ├── animation/      # Animation & hover states
-│   │   ├── discovery/      # Page discovery
-│   │   ├── detection/      # Framework detection
-│   │   ├── dimension/      # DOM structure analysis
-│   │   ├── section/        # Section detection
-│   │   ├── media/          # Asset extraction
-│   │   ├── page-prep/      # Page readiness
-│   │   ├── content/        # Content analysis
-│   │   └── links/          # URL rewriting
-│   ├── ai/                 # AI analysis prompts (Claude Code vision)
-│   ├── verification/       # Quality assurance (19 modules)
-│   ├── utils/              # Shared utilities
-│   │   ├── browser.js      # Browser abstraction
-│   │   ├── playwright.js   # Playwright configuration
-│   │   └── env.js          # Environment resolution
-│   └── post-process/       # Post-processing scripts
-├── docs/                   # Documentation
-├── templates/              # HTML/CSS templates
-└── tests/                  # Test files
+│   ├── utils.js                 # Shared utilities, browser management, constants
+│   ├── capture.js               # Screenshot pipeline + HTML/CSS extraction
+│   ├── filter-css.js            # CSS filtering + dead code removal
+│   ├── extract-assets.js        # Asset extraction (images, fonts, icons)
+│   ├── clone-site.js            # Multi-page clone + route discovery + CSS merge
+│   └── ai/                      # AI analysis prompt templates
+│       └── prompts/             # Markdown prompts for Claude Code vision
+├── commands/design/             # Slash command definitions
+├── docs/                        # Documentation
+├── templates/                   # HTML/CSS base templates
+└── tests/                       # Test suite (6 suites, 54 tests)
 ```
 
 ### Running Tests

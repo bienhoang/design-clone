@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-03-13
+
+### Changed
+- **BREAKING**: Consolidated ~110 files (14,500 lines) into 5 core modules (~1,500 lines) — 90% reduction
+  - `src/utils.js` — Shared utilities, browser management, constants, logging, CLI helpers
+  - `src/capture.js` — Screenshot pipeline + HTML/CSS extraction + hover states + breakpoint detection
+  - `src/filter-css.js` — CSS filtering + dead code removal + AST-based selector matching
+  - `src/extract-assets.js` — Asset extraction (images, fonts, icons) with rate-limited downloads
+  - `src/clone-site.js` — Multi-page cloning + route discovery + CSS merge + link rewriting
+- Removed `src/core/` (13 subdirectories), `src/verification/` (19 modules), `src/post-process/`, `src/route-discoverers/` (11 modules), `src/utils/` (5 modules), `src/spa/` (3 modules)
+- Removed `src/figma/` pipeline (Python-based Figma-to-code)
+- Removed `src/ai/` Python scripts — AI analysis now uses Claude Code vision prompt templates only
+- Claude Code vision replaces all verification/analysis modules
+
+### Removed
+- `user-guide/` — VitePress documentation site
+- `web/` — Next.js web application
+- `repomix-output.xml` — Repository export file
+
 ## [3.1.1] - 2026-02-23
 
 ### Changed

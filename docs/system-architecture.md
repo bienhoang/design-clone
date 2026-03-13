@@ -1,35 +1,37 @@
 # Design Clone System Architecture
 
-**Version:** 3.0.0 (v3.0 Improvement Roadmap)
-**Last Updated:** February 23, 2026
+**Version:** 4.0.0 (Architecture Simplification)
+**Last Updated:** March 13, 2026
 
 ## System Design Overview
 
-Design Clone is built as a modular, pipeline-based system where each component handles a specific transformation stage. The architecture supports three main workflows with a shared foundation.
+Design Clone is a simplified, modular pipeline system consolidating ~110 files (14,500 lines) into 5 core modules (~1,500 lines)—a 90% code reduction. Claude Code vision replaces all verification and analysis modules. The architecture supports three main workflows sharing a unified foundation.
 
 ## High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    CLI Layer (Node.js)                  │
-│  /design:clone | /design:clone-px | /design:clone-site │
-│  /design:figma-to-code                                  │
-└──────────────────┬──────────────────────────────────────┘
-                   │
-        ┌──────────┴──────────┬──────────────┐
-        ▼                     ▼              ▼
-┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐
-│  Web Extraction │  │ Figma Pipeline  │  │ Verification │
-│   (Playwright)  │  │  (Python/REST)  │  │ & Quality    │
-└────────┬────────┘  └────────┬────────┘  └──────┬───────┘
-         │                    │                  │
-    ┌────┴────────────────────┴──────────────────┴─────┐
-    │                                                   │
-    ▼                   ▼                        ▼
-┌──────────────┐  ┌─────────────────┐  ┌──────────────┐
-│ Asset Layer  │  │ Code Generation │  │ Output Store │
-│ (Browser)    │  │ (CSS/Tailwind)  │  │ (File System)│
-└──────────────┘  └─────────────────┘  └──────────────┘
+┌────────────────────────────────────────────────┐
+│        CLI Layer (Node.js)                     │
+│  /design:clone | /design:clone-px             │
+│  /design:clone-site (Claude Code only)        │
+└──────────────┬─────────────────────────────────┘
+               │
+    ┌──────────┴──────────┬───────────┐
+    ▼                     ▼           ▼
+┌─────────────────┐  ┌────────────┐  ┌──────────────┐
+│  Capture        │  │ Filter CSS │  │ Extract      │
+│  (Playwright)   │  │ & Analyze  │  │ Assets       │
+│  3 viewports    │  │ (css-tree) │  │ (Concur.)    │
+└────────┬────────┘  └────────┬────┘  └──────┬───────┘
+         │                    │               │
+    ┌────┴────────────────────┴───────────────┘
+    │
+    ▼
+┌──────────────┐
+│ AI Analysis  │
+│ (Claude Code │
+│ Vision)      │
+└──────────────┘
 ```
 
 ## Component Layers
@@ -46,264 +48,243 @@ Design Clone is built as a modular, pipeline-based system where each component h
 
 **Key Commands:**
 ```
-design-clone <url>                    # Basic clone
-design-clone clone-px <url>           # Pixel-perfect
-/design:clone-site <url>              # Multi-page (Claude Code only)
-design-clone figma-to-code <url>      # Figma conversion
+design-clone <url>          # Basic clone
+design-clone clone-px <url> # Pixel-perfect
+/design:clone-site <url>    # Multi-page (Claude Code only)
 ```
 
 **Flow:**
-1. Parse arguments with yargs
-2. Validate dependencies (Node, Python, browsers)
-3. Load environment variables
-4. Execute workflow command
-5. Report results to user
+1. Parse arguments
+2. Load environment variables
+3. Execute workflow command
+4. Report results to user
 
 ---
 
-### 2. Web Extraction Pipeline
+### 2. Capture Pipeline
 
-**Location:** `src/core/`
+**Location:** `src/capture.js` (~480 lines)
 
-**Workflow Diagram:**
+**Workflow:**
 
 ```
 URL Input
     │
-    ├─► Browser Setup (Playwright)
-    │       └─► Launch Chrome/Firefox/WebKit
+    ├─► Browser Setup (Playwright singleton)
+    │       └─► Reuse browser instance across session
     │
     ├─► Page Loading
     │       ├─► Navigate to URL
     │       ├─► Wait for network idle
     │       └─► Trigger lazy-loading
     │
-    ├─► Page Preparation (page-prep/)
-    │       ├─► Handle cookie banners (cookie-handler.js)
-    │       ├─► Trigger lazy loading (lazy-loader.js)
-    │       └─► Wait for page readiness (page-readiness.js)
+    ├─► Page Preparation
+    │       ├─► Handle cookie banners
+    │       ├─► Trigger lazy loading
+    │       └─► Wait for page readiness
     │
     ├─► Screenshot Capture (3 viewports)
-    │       ├─► Desktop: 1920x1080
+    │       ├─► Desktop: 1440x900
     │       ├─► Tablet: 768x1024
     │       └─► Mobile: 375x812
     │
     ├─► HTML Extraction
     │       ├─► Serialize DOM
     │       ├─► Remove <script> tags
-    │       ├─► Keep semantic markup
-    │       └─► Preserve data attributes
+    │       └─► Preserve semantic markup
     │
     ├─► CSS Extraction
     │       ├─► Collect all stylesheets
-    │       ├─► Inline critical CSS
-    │       ├─► Preserve animations
-    │       └─► Extract @keyframes
+    │       ├─► Preserve animations & @keyframes
+    │       └─► Auto-filter with filter-css.js
     │
-    ├─► [Optional] Content Analysis (content/)
-    │       └─► Count headings, paragraphs, images, links (content-counter.js)
+    ├─► [Optional] Hover State Capture
+    │       ├─► Detect interactive elements
+    │       ├─► Generate :hover CSS
+    │       └─► Screenshot hover states
     │
-    └─► [Optional] Asset Extraction
-            ├─► Images (WebP/JPG/PNG)
-            ├─► Fonts (WOFF2/TTF)
-            └─► Icons (SVG/Font Awesome)
-```
-
-**Key Modules (by Domain):**
-
-| Module | Location | Purpose | v3.0 Changes | Input | Output |
-|--------|----------|---------|-------------|-------|--------|
-| screenshot.js | capture/ | Viewport capture | Fast-path, breakpoint detect, quality score | URL | PNG screenshots |
-| screenshot-extraction.js | capture/ | HTML/CSS extract | Progress reporting, computed gap-fill, aggressive filter | Page | HTML + CSS |
-| browser-context-pool.js | capture/ | Context reuse | NEW: Parallel multi-page, memory guards | - | Browser contexts |
-| extract-assets.js | media/ | Asset downloads | Concurrency 5→10, validation | HTML + CSS | images/, fonts/, icons/ |
-| asset-validator.js | media/ | Asset verification | NEW: Magic bytes, SVG sanitize | Assets | Valid/invalid report |
-| filter-css.js | css/ | Remove unused rules | Chunked streaming, error codes, aggressive pass | HTML + CSS | Optimized CSS |
-| breakpoint-detector.js | css/ | Breakpoint detection | NEW: Parse @media, actual breakpoints | CSS | Breakpoint list |
-| filter-css-dead-code.js | css/ | Dead code removal | NEW: Two-pass @media/@keyframes removal | CSS | Cleaned CSS |
-| css-chunker.js | css/ | Streaming chunks | NEW: 50MB limit, 5MB chunks | CSS | Chunked stream |
-| computed-style-extractor.js | css/ | Style gap-fill | NEW: getComputedStyle vs Chromium defaults | Page | Gap-filled CSS |
-| quality-scorer.js | verification/ | Quality metrics | NEW: 5-metric weighted score | Extraction | quality-score.json |
-| progress.js | utils/ | Progress reporting | NEW: TTY-aware stderr output | - | Progress events |
-| error-codes.js | shared/ | Error catalog | NEW: Structured codes + suggestions | - | DesignCloneError |
-| discover-pages.js | discovery/ | SPA navigation | Progress reporting added | URL | Page list |
-| multi-page-screenshot.js | capture/ | Multi-page capture | Context pool, memory guards, dry-run | Page list | Screenshots |
-| animation-extractor.js | animation/ | Extract animations | - | CSS | animation-tokens.json |
-| semantic-enhancer.js | html/ | HTML optimization | - | HTML + CSS | Enhanced HTML |
-| dimension-extractor.js | dimension/ | Structure analysis | - | DOM tree | layout-analysis.json |
-| section-detector.js | section/ | Section detection | - | HTML + viewport | sections.json |
-| clone-site.js | bin/commands/ | Multi-page clone CLI | Dry-run, progress, parallel | URL | Screenshots + manifest |
-
-**Critical Features:**
-
-- **Lazy Loading:** Waits for dynamic content via `page.waitForLoadState('networkidle')`
-- **JavaScript Removal:** Strips all `<script>` tags, preserves HTML structure
-- **CSS Preservation:** Keeps all stylesheets, including animations
-- **Asset Integrity:** Validates magic bytes, sanitizes SVG (v3.0)
-- **Centralized Logging:** TTY-aware output via src/utils/log.js
-- **Progress Reporting:** Real-time feedback via ProgressReporter (v3.0)
-- **Streaming CSS:** Processes 50MB+ stylesheets in chunks (v3.0)
-- **Parallel Context Pool:** Multi-page capture with memory guards (v3.0)
-
-**Recent Refactoring (Feb 23):**
-
-Two major modules were decomposed to reduce code duplication and code smells:
-- **semantic-enhancer.js:** Now uses 3 companion modules (semantic-enhancer-page.js, semantic-enhancer-mappings.js)
-- **dimension-extractor.js:** Now uses 5 companion modules (dimension-extractor-card-detector.js, dimension-output.js, dimension-output-ai-summary.js, dom-tree-analyzer.js, dom-tree-analyzer-tree-builders.js)
-
----
-
-### 3. Figma-to-Code Pipeline (Phase 3)
-
-**Location:** `src/figma/`
-
-**Architecture:**
-
-```
-Figma URL
-    │
-    ├─► URL Parser (parse-url.js)
-    │       └─► Extract file_key, node_id
-    │
-    ├─► API Authentication (figma-client.py)
-    │       └─► Validate FIGMA_ACCESS_TOKEN
-    │
-    ├─► Design Extraction (extract-figma.py)
-    │       ├─► Fetch file metadata
-    │       ├─► Traverse node hierarchy
-    │       ├─► Extract design tokens
-    │       │   ├─ Colors (fills, strokes, opacity)
-    │       │   ├─ Typography (family, size, weight, line-height)
-    │       │   ├─ Spacing (gaps, padding, margins)
-    │       │   ├─ Shadows (blur, offset, spread, color)
-    │       │   └─ Border radius (uniform, per-corner)
-    │       └─► Download screenshot
-    │
-    ├─► Output: design-tokens.json, tokens.css, figma-nodes.json
-    │
-    ├─► Code Generation (branching)
-    │   │
-    │   ├─ CSS Mode (default)
-    │   │   └─► generate-css.py
-    │   │       ├─► Build BEM class structure
-    │   │       ├─► Generate semantic HTML
-    │   │       ├─► Create CSS rules
-    │   │       └─► Output: index.html, styles.css
-    │   │
-    │   └─ Tailwind Mode (--tailwindcss)
-    │       └─► generate-tailwind.py
-    │           ├─► Map values to Tailwind scale
-    │           ├─► Generate utility classes
-    │           ├─► Generate HTML with classes
-    │           └─► Output: index.html, [tailwind.config.js]
-    │
-    └─► Final Output
-            ├─ index.html
-            ├─ styles.css (CSS mode) OR tailwind utilities
-            ├─ tokens.css (CSS custom properties)
-            ├─ design-tokens.json (machine-readable)
-            └─ analysis/ (figma-export.png, figma-nodes.json)
+    └─► [Optional] Enhanced Analysis
+            ├─► Detect breakpoints
+            ├─► Extract computed styles
+            └─► Responsive gap-fill
 ```
 
 **Key Features:**
 
-1. **Design Token Extraction (Phase 2)**
-   - Automatic color detection from fills/strokes
-   - Typography extraction from TEXT nodes
-   - Spacing normalization to Tailwind scale
-   - Shadow and border-radius mapping
-
-2. **BEM CSS Generation (Phase 3)**
-   - Semantic HTML structure
-   - Block-Element-Modifier naming
-   - Design token variable integration
-   - Responsive breakpoint support
-
-3. **Tailwind Generation (Phase 3)**
-   - Utility-first class generation
-   - Arbitrary value support for custom values
-   - Scale matching (spacing, colors, sizing)
-   - Config extension generation when needed
+| Feature | Implementation | Input | Output |
+|---------|---|-------|--------|
+| Multi-viewport capture | Playwright 3 headless contexts | URL | PNG screenshots |
+| HTML/CSS extraction | DOM serialization + stylesheet collection | Page | HTML + CSS |
+| Hover state capture | Interactive detection + :hover CSS gen | Page | Hover states + CSS |
+| Breakpoint detection | CSS @media query parsing | CSS | breakpoints.json |
+| Computed style extraction | getComputedStyle() gap-fill | Page | computed-gap.css |
+| Image compression | sharp library | Images | Optimized PNGs |
+| Cookie handling | Banner detection + dismiss clicks | Page | Clean state |
+| Lazy loading | network/load event waits | Page | Full-loaded DOM |
 
 ---
 
-### 4. AI Analysis Layer
+### 3. CSS Filtering
+
+**Location:** `src/filter-css.js` (~250 lines)
+
+**Algorithm:**
+
+```
+HTML + CSS Input
+    │
+    ├─► HTML Analysis
+    │       ├─► Parse DOM tree
+    │       ├─► Extract all CSS selectors used
+    │       └─► Build usage index (tags, IDs, classes)
+    │
+    ├─► CSS AST Parsing (css-tree)
+    │       ├─► Parse entire stylesheet
+    │       └─► Build selector→declaration map
+    │
+    ├─► Dead Code Removal (2-pass)
+    │   Pass 1: Remove unused selectors, declarations
+    │   Pass 2: Remove empty @media blocks, orphan @keyframes
+    │
+    ├─► Sanitization
+    │       ├─► Remove XSS patterns
+    │       └─► Path validation (prevent traversal)
+    │
+    └─► Output
+            └─ Filtered CSS (40-60% size reduction)
+```
+
+**Features:**
+
+| Feature | Behavior |
+|---------|----------|
+| Selector matching | Exact + complex selectors (pseudo-elements, :nth-child) |
+| Media queries | Keep used breakpoints, remove empty blocks |
+| Animations | Keep @keyframes referenced by HTML elements |
+| Custom properties | Remove unused CSS variables |
+| Chunked processing | Stream >2MB files in 2MB chunks |
+| Aggressive mode | Extra pass on @media, :hover states, animations |
+
+---
+
+### 4. Asset Extraction
+
+**Location:** `src/extract-assets.js` (~180 lines)
+
+**Workflow:**
+
+```
+HTML + CSS Input
+    │
+    ├─► Image Extraction
+    │       ├─► Parse <img> src, srcset, picture
+    │       ├─► Parse CSS background-image URLs
+    │       └─► Extract inline SVGs
+    │
+    ├─► Font Extraction
+    │       ├─► Find @font-face declarations
+    │       └─► Extract src URLs (WOFF2, TTF)
+    │
+    ├─► Rate-Limited Downloads
+    │       ├─► Batch queue (10 concurrent)
+    │       ├─► HTTP 429 exponential backoff
+    │       └─► Redirect following
+    │
+    └─► Output
+            ├─ assets/images/
+            ├─ assets/fonts/
+            ├─ assets/icons/
+            └─ assets/url-mapping.json
+```
+
+**Features:**
+
+- 10 concurrent downloads (configurable)
+- Safe filename generation
+- CORS-aware requests
+- Exponential backoff on rate limits
+- URL mapping for src rewriting
+
+---
+
+### 5. Multi-Page Clone
+
+**Location:** `src/clone-site.js` (~380 lines)
+
+**Workflow:**
+
+```
+URL Input
+    │
+    ├─► Page Discovery
+    │       ├─► History state interception
+    │       ├─► Navigation scraping (anchor tags)
+    │       ├─► Sitemap parsing (if available)
+    │       └─► Generate page list
+    │
+    ├─► Sequential Capture
+    │       ├─► For each page:
+    │       │   ├─ Navigate + wait
+    │       │   ├─ Capture (via capture.js)
+    │       │   └─ Report progress
+    │       └─ Collect all CSS
+    │
+    ├─► CSS Merge & Dedup
+    │       ├─► Combine all stylesheets
+    │       ├─► AST-level deduplication
+    │       └─► Filter unused rules
+    │
+    ├─► Link Rewriting
+    │       ├─► Rewrite internal links → local files
+    │       └─► Generate relative paths
+    │
+    └─► Output
+            ├─ Per-page screenshots
+            ├─ Merged CSS (all pages)
+            ├─ HTML files (link-rewritten)
+            └─ manifest.json
+```
+
+**Features:**
+
+- Universal page discovery (framework-agnostic)
+- Parallel context pool (memory-safe)
+- CSS deduplication (AST-level, 60-80% reduction)
+- Manifest generation with metadata
+- Dry-run mode (discovery only)
+
+---
+
+### 6. AI Analysis Layer
 
 **Location:** `src/ai/prompts/`
 
 **Claude Code Built-in Vision:**
 
-Claude Code reads prompt templates + screenshots directly. No external API calls.
+Claude Code reads prompt templates + screenshots directly. No external API calls or Python pipelines.
 
 ```
 Screenshot(s) + Context Files
     │
-    ├─► Read prompt template (markdown)
-    │       ├─► Select best variant based on available context
-    │       └─► Highest accuracy: with-hierarchy > with-dimensions > with-context > basic
+    ├─► Load prompt template (markdown)
+    │       ├─► Select variant based on available data
+    │       └─► Variants: basic, with-context, with-dimensions, with-hierarchy
     │
-    ├─► Claude Code vision analyzes screenshots
+    ├─► Claude Code vision analyzes
     │       ├─► Structure analysis → structure.md
-    │       ├─► Design tokens → design-tokens.json, tokens.css
-    │       └─► UX audit → ux-audit.json, ux-audit.md
+    │       ├─► Design tokens → design-tokens.json
+    │       └─► UX audit → ux-audit.json
     │
-    └─► Results written to output directory
+    └─► Results written to output
 ```
 
 **Prompt Templates:**
 
-- `prompts/structure-analysis/*.md` - Layout and hierarchy analysis (4 variants)
-- `prompts/design-tokens/*.md` - Design system extraction (4 variants)
-- `prompts/ux-audit/*.md` - UX quality checks (3 viewports + aggregation)
+- `prompts/structure-analysis/` (4 variants) — Layout & hierarchy analysis
+- `prompts/design-tokens/` (4 variants) — Design system extraction
+- `prompts/ux-audit/` (3 viewport + 1 aggregation) — Quality checks
 
----
-
-### 5. Verification & Quality Layer
-
-**Location:** `src/verification/`
-
-**Quality Checks:**
-
-| Check | Module | Validates |
-|-------|--------|-----------|
-| Menu Verification | verify-menu.js (+checks, +helpers) | Navigation structure, links, dropdowns |
-| Layout Consistency | verify-layout.js (+report) | Grid, flexbox, positioning |
-| Header Structure | verify-header.js (+checks, +helpers) | Logo, nav, CTA, sticky behavior |
-| Footer Structure | verify-footer.js (+checks, +helpers) | Links, copyright, social icons |
-| Slider Detection | verify-slider.js (+checks, +constants, +helpers) | Carousel controls, autoplay, indicators |
-| Audit Report | generate-audit-report.js (+css-fixes, +sections) | Consolidated verification results |
-| Quality Score | quality-scorer.js | 5-metric weighted score (0-100) |
-| Semantic HTML | semantic-enhancer.js | Proper heading hierarchy |
-
-Each verifier is decomposed into `-checks.js` (test logic) and `-helpers.js` (DOM utilities) companion modules. Total: 19 verification modules.
-
-**Execution:**
-```bash
-# Part of /design:clone-px workflow
-node src/verification/verify-menu.js --html output/source.html
-```
-
----
-
-### 6. Post-Processing Layer
-
-**Location:** `src/post-process/`
-
-**Asset Enhancement:**
-
-| Module | Function | Input | Output |
-|--------|----------|-------|--------|
-| fetch-images.js | Download images from Unsplash | Image URLs | assets/images/ |
-| inject-icons.js | Replace with Japanese-style icons | HTML | Updated HTML |
-| inject-gosnap.js | Add gosnap-widget Web Component | HTML dir | HTML with widget |
-| enhance-assets.js | Orchestrate 3-step enhancement | output/ | Enhanced HTML |
-
-**Pipeline:**
-1. Fetch images from Unsplash (if UNSPLASH_ACCESS_KEY set)
-2. Inject Japanese-style SVG icons
-3. Inject gosnap-widget (clone-px only)
-4. Generate responsive srcset
-5. Inject Font Awesome CDN link (step 2)
+Replaces 19 verification modules from v3.0. Vision-powered analysis provides superior accuracy and flexibility.
 
 ---
 
@@ -312,41 +293,27 @@ node src/verification/verify-menu.js --html output/source.html
 ### Basic Clone Workflow (/design:clone)
 
 ```
-User Input (URL)
+URL Input
     ↓
-CLI Router
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 1. Launch Browser                                   │
-│    ├─ Initialize Playwright                         │
-│    └─ Create context (or reuse from pool if exists) │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 2. Capture Screenshots (v3.0: Fast-path)           │
-│    ├─ Desktop (1920x1080)                          │
-│    ├─ Tablet (768x1024)                            │
-│    └─ Mobile (375x812)                             │
-│    └─ (If all headless: skip browser restart)      │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 3. Extract HTML & CSS (v3.0: Streaming)             │
-│    ├─ Report progress via TTY-aware stderr          │
-│    ├─ Serialize DOM, remove scripts                │
-│    ├─ Collect stylesheets (stream if >5MB)         │
-│    └─ Preserve animations                          │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 4. Filter Unused CSS (v3.0: Chunked + Errors)      │
-│    ├─ Parse selectors from HTML                    │
-│    ├─ Chunk CSS (5MB threshold)                    │
-│    ├─ Match rules against selectors                │
-│    ├─ Remove unused declarations (Pass 1)          │
-│    └─ (Optional --aggressive-filter: Pass 2)       │
-└─────────────────────────────────────────────────────┘
-    ↓
+┌──────────────────────┐
+│ Browser Setup        │
+│ (Playwright)         │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ Capture              │
+│ (3 viewports)        │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ Extract HTML + CSS   │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ Filter Unused CSS    │
+│ (css-tree AST)       │
+└──────────┬───────────┘
+           ↓
 Output Directory
 ├─ desktop.png
 ├─ tablet.png
@@ -355,392 +322,204 @@ Output Directory
 └─ source.css
 ```
 
-**v3.0 Additions:**
-- Use `--detect-breakpoints` to capture at actual @media breakpoints
-- Use `--extract-computed` to fill style gaps via getComputedStyle()
-- Use `--aggressive-filter` for stronger CSS dead code removal
-- Use `--quality-score` to output quality metrics
-- Use `--skip-gosnap` flag in `/design:clone-px` to disable gosnap injection
+**Options:**
+- `--detect-breakpoints` — Capture at actual @media queries
+- `--extract-computed` — Fill gaps via getComputedStyle()
+- `--aggressive-filter` — Stronger dead code removal
+- `--capture-hover` — Include hover state snapshots
 
 ### Pixel-Perfect Workflow (/design:clone-px)
 
 ```
 Basic Clone Output
     ↓
-┌─────────────────────────────────────────────────────┐
-│ 5. Extract Assets (v3.0: Validated, Concurrent)    │
-│    ├─ Download images (maxConcurrent: 10)           │
-│    ├─ Validate magic bytes (v3.0)                   │
-│    ├─ Fetch web fonts                              │
-│    ├─ Sanitize SVG icons (v3.0)                     │
-│    ├─ Retry on 429 with exponential backoff (v3.0)  │
-│    └─ Cache Font Awesome icons                     │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 6. AI Analysis (Built-in)                           │
-│    ├─ Read prompt template                         │
-│    ├─ Claude Code vision analysis                  │
-│    └─ Generate structure report                    │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 7. Design Token Extraction                          │
-│    ├─ Analyze visual patterns                      │
-│    ├─ Extract tokens                               │
-│    └─ Generate CSS custom props                    │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 8. Verification & Quality Scoring (v3.0)           │
-│    ├─ Check menu structure                         │
-│    ├─ Validate layout                              │
-│    ├─ Score: CSS coverage, asset completeness      │
-│    ├─ Score: responsive fidelity, HTML semantics   │
-│    └─ Score: accessibility compliance              │
-└─────────────────────────────────────────────────────┘
-    ↓
-Output + Assets + Analysis + Quality Score
+┌──────────────────────┐
+│ Extract Assets       │
+│ (Images, fonts,      │
+│  icons with 429 BOE) │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ AI Analysis          │
+│ (Claude Code Vision) │
+│ • Structure analysis  │
+│ • Design tokens      │
+│ • UX audit           │
+└──────────┬───────────┘
+           ↓
+Output + Assets + Analysis
 ```
+
+**Full Pipeline Options:**
+- `--capture-hover` — Interactive state screenshots
+- `--detect-breakpoints` — Responsive breakpoint analysis
+- `--extract-computed` — getComputedStyle() gap-fill
+- `--aggressive-filter` — Enhanced CSS dead code removal
 
 ### Multi-Page Clone Workflow (/design:clone-site)
 
 ```
-User Input (URL + options)
+URL Input
     ↓
-┌─────────────────────────────────────────────────────┐
-│ 1. Discover Pages (v3.0: Progress reporting)       │
-│    ├─ Report progress via TTY-aware stderr          │
-│    ├─ Parse site navigation                         │
-│    ├─ Detect SPA framework (React, Vue, etc)        │
-│    └─ Generate page list (--dry-run stops here)     │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 2. Capture Screenshots (v3.0: Parallel Pool)       │
-│    ├─ Initialize browser context pool               │
-│    ├─ Reuse contexts across pages (memory guards)   │
-│    ├─ Desktop (1920x1080)                          │
-│    ├─ Tablet (768x1024)                            │
-│    └─ Mobile (375x812)                             │
-└─────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────┐
-│ 3. Generate Manifest (v3.0)                         │
-│    ├─ Create manifest.json                          │
-│    ├─ Map pages to screenshot paths                 │
-│    ├─ Include capture stats & estimates             │
-│    └─ Document pool efficiency metrics              │
-└─────────────────────────────────────────────────────┘
-    ↓
+┌──────────────────────┐
+│ Discover Pages       │
+│ (Anchors + nav +     │
+│  sitemap + history)  │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ Sequential Capture   │
+│ (Per-page capture    │
+│  via capture.js)     │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ CSS Merge & Dedup    │
+│ (AST-level, 60-80%   │
+│  reduction)          │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ Link Rewriting       │
+│ (Internal links →    │
+│  local file refs)    │
+└──────────┬───────────┘
+           ↓
 Output Directory
 ├─ manifest.json
-├─ capture-results.json
-└─ analysis/
+├─ Per-page HTML
+├─ Merged CSS
+└─ Screenshots/
    ├─ desktop/
    ├─ tablet/
    └─ mobile/
 ```
 
-**v3.0 Key Features:**
-- Discovery with automatic progress reporting
-- Parallel capture with context pool (reuses browser contexts, reduces memory)
-- Memory guards prevent context leaks
-- `--dry-run` shows discovery + estimates without capturing
-- Per-page status updates
-- Pool efficiency metrics in manifest
+**Options:**
+- `--dry-run` — Discovery only, no capture
+- `--max-pages` — Limit pages to capture
+- `--detect-breakpoints` — Per-page breakpoint analysis
 
-### Figma-to-Code Workflow (/design:figma-to-code)
+## Output & State Management
 
-```
-User Input (Figma URL + flags)
-    ↓
-┌─────────────────────────────────────┐
-│ 1. Parse URL                        │
-│    ├─ Extract file_key              │
-│    └─ Extract node_id               │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 2. Figma API Connection             │
-│    ├─ Load FIGMA_ACCESS_TOKEN       │
-│    └─ Authenticate                  │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 3. Extract Design Data              │
-│    ├─ Fetch file metadata           │
-│    ├─ Traverse nodes                │
-│    ├─ Extract components            │
-│    └─ Collect all styles            │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 4. Design Token Extraction          │
-│    ├─ Colors (fills, strokes)       │
-│    ├─ Typography (size, weight)     │
-│    ├─ Spacing (gaps, padding)       │
-│    ├─ Shadows (blur, offset)        │
-│    └─ Border radius                 │
-└─────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────┐
-│ 5. Generate Code (Branch)           │
-│                                     │
-│ IF --tailwindcss:                   │
-│   → generate-tailwind.py            │
-│   → Output: HTML + classes          │
-│                                     │
-│ ELSE (default):                     │
-│   → generate-css.py                 │
-│   → Output: HTML + BEM CSS          │
-└─────────────────────────────────────┘
-    ↓
-Output Directory
-├─ index.html
-├─ styles.css (CSS mode only)
-├─ tokens.css
-├─ design-tokens.json
-└─ analysis/
-   ├─ figma-export.png
-   └─ figma-nodes.json
-```
-
----
-
-## Database & State Management
-
-**No Traditional Database.** Design Clone uses file-system-based storage:
+File-system-based output only (no database).
 
 ### Output Structure
 
 ```
-cloned-designs/
-├── {timestamp}-{domain}/           # Per-session directory
-│   ├── desktop.png                 # Screenshots
-│   ├── tablet.png
-│   ├── mobile.png
-│   ├── source.html                 # Extracted code
-│   ├── source.css
-│   ├── source-raw.css
-│   ├── tokens.json                 # Design tokens
-│   ├── animation-tokens.json
-│   ├── structure.md                # AI analysis
-│   ├── assets/
-│   │   ├── images/                 # Downloaded images
-│   │   ├── fonts/                  # Web fonts
-│   │   └── icons/                  # Icon sets
-│   └── hover-states/               # Hover captures
-│       ├── hover-1-normal.png
-│       └── hover-1-hover.png
-│
-└── {timestamp}-figma/              # Figma conversions
-    ├── index.html
-    ├── styles.css
-    ├── tokens.css
-    ├── design-tokens.json
-    └── analysis/
+output/
+├── desktop.png                 # Screenshots (3 viewports)
+├── tablet.png
+├── mobile.png
+├── source.html                 # Extracted code
+├── source.css                  # Filtered CSS
+├── source-raw.css              # Pre-filter CSS
+├── hover-states/               # Interactive captures
+│   └── hover-*.png
+├── breakpoints.json            # Detected @media queries
+├── computed-gap.css            # getComputedStyle() fill
+├── assets/                      # Downloaded assets
+│   ├── images/
+│   ├── fonts/
+│   ├── icons/
+│   └── url-mapping.json
+├── structure.md                # AI analysis
+├── ux-audit.json               # Quality metrics
+└── design-tokens.json          # Token extraction
 ```
 
-### Manifest Files
-
-**Multi-page cloning generates manifest.json:**
-
-```json
-{
-  "generated": "2026-02-05T08:00:00Z",
-  "source": "https://example.com",
-  "pages": [
-    {
-      "path": "/",
-      "filename": "index.html",
-      "screenshots": {
-        "desktop": "analysis/desktop/index.png",
-        "tablet": "analysis/tablet/index.png",
-        "mobile": "analysis/mobile/index.png"
-      }
-    }
-  ]
-}
-```
+**Multi-page output includes manifest.json mapping pages to screenshots.**
 
 ---
 
 ## Technology Decisions
 
-### Why Playwright (not Puppeteer)?
-- **Multi-browser support:** Chrome, Firefox, WebKit
-- **Modern async/await API:** Cleaner code
-- **Better viewport handling:** More accurate mobile testing
-- **Native video recording:** Built-in screen capture
+### Why Playwright?
+- Multi-browser support (Chrome, Firefox, WebKit)
+- Modern async/await API
+- Accurate viewport handling
+- Reusable browser instance pattern
 
-### Why Python for Figma?
-- **Better JSON handling:** Easier design token parsing
-- **Stdlib sufficient:** urllib, json, argparse cover all needs
-- **Cross-platform:** Windows/Mac/Linux compatible
+### Why css-tree for CSS Filtering?
+- AST-level precision (handles complex selectors)
+- Preserves source structure
+- Dead code detection (@media/@keyframes/@imports)
+- Chunked streaming for large CSS (>50MB)
 
-### Playwright as Regular Dependency (Feb 23)
-- **Before:** Optional peerDependency, required manual install
-- **After:** Regular dependency, auto-installed with `npm install`
-- **Benefit:** Simpler setup, guaranteed availability, init.js simplified (20 lines removed)
-
-### Why CSS Custom Properties for Tokens?
-- **Runtime flexibility:** Change values without compilation
-- **CSS native:** No build step required
-- **Fallback support:** Works with older browsers
-- **Easy override:** Component-level customization
-
-### Why BEM for CSS Mode?
-- **Predictable naming:** No namespace collisions
-- **Scalability:** Maintains clarity at large scale
-- **Maintainability:** Clear element relationships
-- **Compatibility:** Works with any CSS architecture
-
-### Why Tailwind Utilities as Alternative?
-- **Smaller output:** Utility classes compress well
-- **Consistency:** Enforced design system
-- **Developer UX:** Rapid prototyping
-- **Industry standard:** Familiar to most developers
+### Why Claude Code Vision (not Python)?
+- No external dependencies beyond Node.js
+- Superior image understanding
+- Direct prompt template system
+- Easier maintenance and updates
+- Replaces 19+ verification modules
 
 ---
 
-## Scalability Considerations
+## Scalability & Performance
 
-### Current Limits (v3.0)
+### Current Limits
 
-| Aspect | Limit | v3.0 Impact |
-|--------|-------|-------------|
-| Screenshot viewports | 3 fixed | Easy to extend |
-| Figma nodes | 1000+ | Tested, performs well |
-| CSS file size | 50MB+ | Streaming chunks at 5MB threshold |
-| Images per page | 100+ | Concurrent downloads (5→10), adaptive throttling |
-| Pages per site | 50+ | Multi-page CLI with context pool |
-| Stylesheets | 100+ | Chunked processing, dead code removal |
+| Aspect | Limit | Handling |
+|--------|-------|----------|
+| Screenshot viewports | 3 fixed | Desktop, tablet, mobile |
+| CSS file size | 50MB+ | Streaming chunks (2MB blocks) |
+| Images per page | 100+ | 10 concurrent downloads + 429 backoff |
+| Pages per site | 50+ | Sequential capture + context pool |
+| Stylesheets | 100+ | Chunked + AST dedup (60-80% reduction) |
 
-### Performance Optimizations (v3.0)
+### Key Optimizations
 
-1. **Parallel Viewport:** Fast-path when all headless (skip browser restart)
-2. **Parallel Multi-Page:** Context pool reuse with memory guards
-3. **CSS Streaming:** Chunk-based processing for 50MB+ files
-4. **Download Concurrency:** Increased 5→10, adaptive 429 backoff
-5. **CSS Deduplication:** 40-60% baseline, up to 80% with aggressive filter
-6. **Asset Validation:** Early detection prevents corrupted downloads
-7. **Dead Code Removal:** Two-pass filtering of @media/@keyframes/unused vars
-8. **Computed Style Gap-Fill:** getComputedStyle() extraction for complete styling
-9. **Caching:** Screenshot reuse between workflows
-10. **Progress Reporting:** TTY-aware updates keep user informed
+1. **Singleton Browser:** Reuse Playwright instance across entire session
+2. **Context Pool:** Multi-page capture with memory guards
+3. **CSS Streaming:** 2MB chunks for large stylesheets
+4. **Concurrent Downloads:** 10 parallel + exponential backoff on 429
+5. **AST Deduplication:** 60-80% CSS reduction across multi-page sites
+6. **Dead Code Removal:** Two-pass (@media/@keyframes/unused vars)
+7. **Computed Style Extraction:** Gap-fill via getComputedStyle()
+8. **Progress Reporting:** TTY-aware real-time feedback
 
 ---
 
-## Error Handling & Recovery
+## Error Handling
 
-**Multi-Level Error Strategy:**
+**Structured error codes:**
 
-```javascript
-try {
-  // 1. Input validation
-  validateUrl(url);
-  validateEnvironment();
-
-  // 2. Operation with retry logic
-  try {
-    result = await executeWithRetry(operation, 3);
-  } catch (e) {
-    // 3. Graceful degradation
-    if (isOptional(operation)) {
-      console.warn(`Skipping ${operation}: ${e.message}`);
-    } else {
-      throw e;  // Fatal error
-    }
-  }
-} catch (error) {
-  // 4. User-friendly error messages
-  reportError(error);
-  suggestResolution(error);
-  process.exit(1);
-}
-```
-
-**Common Failure Modes:**
-
-| Error | Handling | Recovery |
-|-------|----------|----------|
-| Network timeout | Retry 3x with exponential backoff | Skip if optional |
-| Missing FIGMA_ACCESS_TOKEN | Check environment vars | Provide setup guide |
-| Browser crash | Restart Playwright | Clear cache, retry |
-| API rate limit | Wait and retry | Queue requests |
-| Malformed HTML | Fallback to text nodes | Continue |
+| Error | Cause | Recovery |
+|-------|-------|----------|
+| NETWORK_TIMEOUT | Page load stalled | Retry with backoff |
+| CSS_FILTER_ERROR | Malformed CSS | Skip filter, use raw CSS |
+| ASSET_DOWNLOAD_429 | Rate limited | Exponential backoff |
+| BROWSER_CRASH | Page timeout/memory | Restart browser, clear cache |
+| INVALID_URL | Bad input | Validate & retry |
+| PAGE_NOT_FOUND | 404 response | Log & continue |
 
 ---
 
-## Security Considerations
+## Security
 
-1. **No Credential Storage:** Environment variables only, no .env files in output
-2. **URL Validation:** Only HTTP(S) URLs, no file:// or javascript:
-3. **HTML Sanitization:** Remove `<script>`, event handlers in AI analysis
-4. **Asset Validation:** CORS checks, size limits on downloads
-5. **API Token:** FIGMA_ACCESS_TOKEN never logged or exposed
+1. **No Credential Storage:** Environment variables only
+2. **URL Validation:** HTTP(S) only, no file:// or javascript:
+3. **HTML Sanitization:** Remove `<script>` tags, XSS patterns
+4. **Path Traversal Prevention:** Validate asset download paths
+5. **Asset Size Limits:** Prevent memory exhaustion from huge files
 
 ---
 
-## Testing Strategy
+## Testing
 
-**Test Coverage (50+ tests):**
+**6 test suites, 54 tests:**
 
-- Unit tests for individual modules (screenshot, filter-css, etc.)
-- Integration tests for complete workflows
-- Regression tests with snapshot comparisons
-- Performance benchmarks
-- Accessibility validation (axe-core)
+- `test-env-js.js` — Environment utility functions
+- `test-env-path-order.js` — .env file search path
+- `test-filter-css.js` — CSS filtering module
+- `test-clone-site.js` — URL normalization, path utils
+- `test-integration.js` — Module imports & exports
+- `test-cli-utils.js` — CLI paths, version, commands
 
-**Test Execution:**
-
+**Run tests:**
 ```bash
-npm test                    # Run all tests
-npm run test:unit          # Unit tests only
-npm run test:integration   # Workflow tests
-npm run test:accessibility # A11y checks
+npm test                    # All tests (with c8 coverage)
 ```
-
----
-
-## Future Architecture Enhancements
-
-### Phase 4: Component Library Generation
-- Extract reusable components from Figma
-- Generate Storybook-compatible stories
-- Document component API and variants
-
-### Real-Time Sync
-- Webhook support for Figma file changes
-- Automatic code generation on file updates
-- Design system consistency checking
-
-### Advanced CSS Generation
-- CSS-in-JS support (styled-components, emotion)
-- Shadow DOM component wrapping
-- CSS Module generation for scoping
-
----
-
-### 7. Route Discoverers
-
-**Location:** `src/route-discoverers/` (11 modules)
-
-Framework-specific page discovery for SPA routing. Each discoverer extends `base-discoverer.js` with framework-specific URL patterns and navigation detection.
-
-| Discoverer | Framework | Strategy |
-|-----------|-----------|----------|
-| react-discoverer.js | React | React Router, client-side routes |
-| vue-discoverer.js | Vue | Vue Router, hash/history mode |
-| angular-discoverer.js | Angular | Angular Router, lazy-loaded modules |
-| svelte-discoverer.js | Svelte | SvelteKit routes |
-| next-discoverer.js | Next.js | File-system routing, API routes |
-| nuxt-discoverer.js | Nuxt.js | File-based routing |
-| astro-discoverer.js | Astro | Static + dynamic routes |
-| universal-discoverer.js | Generic | Anchor tag crawling |
-
-Supporting: `base-discoverer-utils.js` (shared utilities), `index.js` (registry).
 
 ---
 
@@ -749,7 +528,5 @@ Supporting: `base-discoverer-utils.js` (shared utilities), `index.js` (registry)
 - **Codebase Summary:** [codebase-summary.md](./codebase-summary.md)
 - **Code Standards:** [code-standards.md](./code-standards.md)
 - **Project Overview PDR:** [project-overview-pdr.md](./project-overview-pdr.md)
-- **Basic Clone:** [basic-clone.md](./basic-clone.md) - Step-by-step basic workflow
-- **Pixel Perfect:** [pixel-perfect.md](./pixel-perfect.md) - Full pixel-perfect workflow
-- **CLI Reference:** [cli-reference.md](./cli-reference.md) - All script options and flags
-- **Troubleshooting:** [troubleshooting.md](./troubleshooting.md) - Common issues and error codes
+- **CLI Reference:** [cli-reference.md](./cli-reference.md)
+- **Troubleshooting:** [troubleshooting.md](./troubleshooting.md)
