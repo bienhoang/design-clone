@@ -36,108 +36,75 @@ Show installed version.
 
 ## Core Scripts
 
-### Capture
+### src/capture.js — Screenshot Pipeline
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| screenshot.js | src/core/capture/ | `--url`, `--output`, `--extract-html`, `--extract-css`, `--capture-hover`, `--full-page`, `--video`, `--video-format`, `--video-duration`, `--detect-breakpoints`, `--extract-computed`, `--aggressive-filter` |
-| multi-page-screenshot.js | src/core/capture/ | `--url`, `--output`, `--pages`, `--viewports` |
-| browser-context-pool.js | src/core/capture/ | Internal module (parallel context management) |
+```bash
+node src/capture.js --url <url> --output <dir> [flags]
+```
 
-### CSS
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--url` | required | Target URL |
+| `--output` | required | Output directory |
+| `--extract-html` | false | Extract page HTML |
+| `--extract-css` | false | Extract + filter CSS |
+| `--capture-hover` | false | Capture hover state screenshots |
+| `--full-page` | false | Full-page screenshots |
+| `--detect-breakpoints` | false | Auto-detect CSS breakpoints from @media queries |
+| `--extract-computed` | false | Extract JS-applied computed styles |
+| `--aggressive-filter` | false | Two-pass CSS dead code removal |
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| filter-css.js | src/core/css/ | `--html`, `--css`, `--output`, `--aggressive-filter` |
-| merge-css.js | src/core/css/ | `--input`, `--output` (multiple CSS files) |
-| breakpoint-detector.js | src/core/css/ | `--css`, `--output` |
-| computed-style-extractor.js | src/core/css/ | `--url`, `--output` |
-| css-chunker.js | src/core/css/ | Internal module (streaming large files) |
+**Output:** desktop.png, tablet.png, mobile.png, source.html, source-raw.css, source.css, hover-states/, hover.css, breakpoints.json, computed-gap.css
 
-### HTML
+### src/filter-css.js — CSS Filtering
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| html-extractor.js | src/core/html/ | `--url`, `--output` |
-| semantic-enhancer.js | src/core/html/ | `--html`, `--output` |
+```bash
+node src/filter-css.js --html <file> --css <file> --output <file> [flags]
+```
 
-### Media
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--html` | required | HTML file for selector analysis |
+| `--css` | required | CSS file to filter |
+| `--output` | required | Output filtered CSS path |
+| `--verbose` | false | Show filtering stats |
+| `--aggressive-filter` | false | Remove dead @media, @keyframes, unused vars |
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| extract-assets.js | src/core/media/ | `--url`, `--output` |
-| video-capture.js | src/core/media/ | `--url`, `--output`, `--format`, `--duration` |
-| asset-validator.js | src/core/media/ | Internal module (magic byte validation) |
+### src/extract-assets.js — Asset Extraction
 
-### Analysis
+```bash
+node src/extract-assets.js --url <url> --output <dir> [flags]
+```
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| dimension-extractor.js | src/core/dimension/ | `--url`, `--html`, `--output` |
-| section-detector.js | src/core/section/ | `--html`, `--screenshots`, `--output` |
-| content-counter.js | src/core/content/ | `--html`, `--output` |
-| framework-detector.js | src/core/detection/ | `--url`, `--output` |
-| page-readiness.js | src/core/page-prep/ | `--url` |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--url` | required | Target URL |
+| `--output` | required | Output directory |
+| `--verbose` | false | Show download progress |
+| `--concurrency` | 10 | Max concurrent downloads |
 
-### Discovery
+**Output:** assets/images/, assets/fonts/, assets/icons/, assets/url-mapping.json
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| discover-pages.js | src/core/discovery/ | `--url`, `--max-pages`, `--output` |
-| rewrite-links.js | src/core/links/ | `--html`, `--base-url`, `--output` |
+### src/clone-site.js — Multi-Page Clone
 
-### Animation
+```bash
+node src/clone-site.js --url <url> [flags]
+```
 
-| Script | Location | Flags |
-|--------|----------|-------|
-| animation-extractor.js | src/core/animation/ | `--css`, `--output` |
-| state-capture.js | src/core/animation/ | `--url`, `--output` |
-
-### Verification
-
-| Script | Location | Flags |
-|--------|----------|-------|
-| verify-menu.js | src/verification/ | `--html` |
-| verify-header.js | src/verification/ | `--html` |
-| verify-footer.js | src/verification/ | `--html` |
-| verify-layout.js | src/verification/ | `--html`, `--css` |
-| verify-slider.js | src/verification/ | `--html` |
-| generate-audit-report.js | src/verification/ | `--output` |
-| quality-scorer.js | src/verification/ | `--output` |
-
-### Post-Processing
-
-| Script | Location | Flags |
-|--------|----------|-------|
-| enhance-assets.js | src/post-process/ | `--input`, `--output` |
-| fetch-images.js | src/post-process/ | `--html`, `--output` |
-| inject-icons.js | src/post-process/ | `--html`, `--output` |
-| inject-gosnap.js | src/post-process/ | `--html`, `--output` |
-
-## Utilities
-
-| Script | Location | Purpose |
-|--------|----------|---------|
-| playwright.js | src/utils/ | Playwright configuration |
-| playwright-loader.js | src/utils/ | Browser instance loader |
-| browser.js | src/utils/ | Browser detection (Chrome path) |
-| env.js | src/utils/ | Environment variable loader |
-| helpers.js | src/utils/ | Shared utility functions |
-| log.js | src/utils/ | Logging utility |
-| progress.js | src/utils/ | TTY-aware progress reporter |
-
-## Shared Modules
-
-| Module | Location | Purpose |
-|--------|----------|---------|
-| config.js | src/shared/ | Global configuration |
-| error-codes.js | src/shared/ | Structured error catalog with suggestions |
-| viewports.js | src/shared/ | Viewport definitions (desktop, tablet, mobile) |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--url` | required | Target URL |
+| `--pages` | auto | Comma-separated paths (e.g., /,/about,/contact) |
+| `--max-pages` | 10 | Maximum pages to auto-discover |
+| `--output` | ./cloned-designs | Output directory |
+| `--detect-breakpoints` | false | Auto-detect CSS breakpoints |
+| `--aggressive-filter` | false | Two-pass CSS dead code removal on merged CSS |
+| `--dry-run` | false | Preview discovered pages without capture |
+| `--verbose` | false | Enable verbose logging |
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `CHROME_PATH` | No | Custom Chrome/Chromium path |
-| `GEMINI_API_KEY` | No | For AI token extraction with `--ai` flag |
 | `PLAYWRIGHT_BROWSERS_PATH` | No | Custom browser install path |

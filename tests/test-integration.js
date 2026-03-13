@@ -1,30 +1,26 @@
 #!/usr/bin/env node
 /**
- * Integration test for browser abstraction layer
- * Tests that screenshot.js can successfully import and parse arguments
+ * Integration test for the 5-file architecture
+ * Tests that all modules can be imported and export the expected functions
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseArgs, outputJSON, outputError } from '../src/utils/helpers.js';
+import { parseArgs, outputJSON, outputError } from '../src/utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = path.join(__dirname, '../src');
 
-const tests = {
-  passed: 0,
-  failed: 0,
-  tests: []
-};
+const tests = { passed: 0, failed: 0, tests: [] };
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-// Test 1: parseArgs integration with real-world use case
 console.log('\n=== Integration Test Suite ===\n');
 
+// Test 1: parseArgs integration
 try {
   console.log('Test 1: Real-world argument parsing');
   const args = parseArgs([
@@ -45,93 +41,100 @@ try {
 
   console.log('  ✓ PASSED\n');
   tests.passed++;
-  tests.tests.push({ name: 'Real-world argument parsing', status: 'passed' });
 } catch (e) {
   console.error('  ✗ FAILED:', e.message, '\n');
   tests.failed++;
-  tests.tests.push({ name: 'Real-world argument parsing', status: 'failed', error: e.message });
 }
 
-// Test 2: Screenshot script can be parsed
+// Test 2: utils.js exports
 try {
-  console.log('Test 2: screenshot.js import validation');
-  const msScript = fs.readFileSync(path.join(SRC_DIR, 'core/capture/screenshot.js'), 'utf8');
+  console.log('Test 2: utils.js exports validation');
+  const utils = await import('../src/utils.js');
 
-  // Check imports
-  assert(msScript.includes('from \'../../utils/browser.js\''), 'Import not found');
-  assert(msScript.includes('getBrowser'), 'getBrowser not imported');
-  assert(msScript.includes('getPage'), 'getPage not imported');
-  assert(msScript.includes('closeBrowser'), 'closeBrowser not imported');
-  assert(msScript.includes('parseArgs'), 'parseArgs not imported');
-  assert(msScript.includes('outputJSON'), 'outputJSON not imported');
-  assert(msScript.includes('outputError'), 'outputError not imported');
+  assert(typeof utils.getBrowser === 'function', 'getBrowser not function');
+  assert(typeof utils.getPage === 'function', 'getPage not function');
+  assert(typeof utils.closeBrowser === 'function', 'closeBrowser not function');
+  assert(typeof utils.disconnectBrowser === 'function', 'disconnectBrowser not function');
+  assert(typeof utils.parseArgs === 'function', 'parseArgs not function');
+  assert(typeof utils.outputJSON === 'function', 'outputJSON not function');
+  assert(typeof utils.outputError === 'function', 'outputError not function');
+  assert(typeof utils.loadEnv === 'function', 'loadEnv not function');
+  assert(typeof utils.getEnv === 'function', 'getEnv not function');
+  assert(typeof utils.getSkillDir === 'function', 'getSkillDir not function');
+  assert(utils.VIEWPORTS !== undefined, 'VIEWPORTS not exported');
+  assert(utils.SIZE_LIMITS !== undefined, 'SIZE_LIMITS not exported');
 
   console.log('  ✓ PASSED\n');
   tests.passed++;
-  tests.tests.push({ name: 'screenshot.js import validation', status: 'passed' });
 } catch (e) {
   console.error('  ✗ FAILED:', e.message, '\n');
   tests.failed++;
-  tests.tests.push({ name: 'screenshot.js import validation', status: 'failed', error: e.message });
 }
 
-// Test 3: Browser facade loads successfully
+// Test 3: filter-css.js exports
 try {
-  console.log('Test 3: Browser facade initialization');
-  const browser = await import('../src/utils/browser.js');
+  console.log('Test 3: filter-css.js exports validation');
+  const filterCss = await import('../src/filter-css.js');
 
-  assert(typeof browser.getBrowser === 'function', 'getBrowser not function');
-  assert(typeof browser.getPage === 'function', 'getPage not function');
-  assert(typeof browser.closeBrowser === 'function', 'closeBrowser not function');
-  assert(typeof browser.disconnectBrowser === 'function', 'disconnectBrowser not function');
-  assert(typeof browser.getProviderName === 'function', 'getProviderName not exported');
-  // CLI helpers (parseArgs, outputJSON, outputError) now come from helpers.js, not browser.js
-  assert(browser.parseArgs === undefined, 'parseArgs should not be on browser.js');
-  assert(browser.outputJSON === undefined, 'outputJSON should not be on browser.js');
-  assert(browser.outputError === undefined, 'outputError should not be on browser.js');
+  assert(typeof filterCss.filterCssFile === 'function', 'filterCssFile not function');
+  assert(typeof filterCss.analyzeHtml === 'function', 'analyzeHtml not function');
+  assert(typeof filterCss.validatePath === 'function', 'validatePath not function');
+  assert(typeof filterCss.sanitizeCss === 'function', 'sanitizeCss not function');
 
   console.log('  ✓ PASSED\n');
   tests.passed++;
-  tests.tests.push({ name: 'Browser facade initialization', status: 'passed' });
 } catch (e) {
   console.error('  ✗ FAILED:', e.message, '\n');
   tests.failed++;
-  tests.tests.push({ name: 'Browser facade initialization', status: 'failed', error: e.message });
 }
 
-// Test 4: Provider detection
+// Test 4: extract-assets.js exports
 try {
-  console.log('Test 4: Provider auto-detection');
-  const browser = await import('../src/utils/browser.js');
-  const providerName = browser.getProviderName();
+  console.log('Test 4: extract-assets.js exports validation');
+  const extractAssets = await import('../src/extract-assets.js');
 
-  assert(['unknown', 'playwright'].includes(providerName),
-    `Invalid provider name: ${providerName}`);
+  assert(typeof extractAssets.extractAssets === 'function', 'extractAssets not function');
+  assert(typeof extractAssets.extractCssUrls === 'function', 'extractCssUrls not function');
+  assert(typeof extractAssets.downloadFile === 'function', 'downloadFile not function');
+  assert(typeof extractAssets.getSafeFilename === 'function', 'getSafeFilename not function');
+  assert(typeof extractAssets.getAssetType === 'function', 'getAssetType not function');
 
-  console.log(`  ✓ PASSED (Provider: ${providerName})\n`);
+  console.log('  ✓ PASSED\n');
   tests.passed++;
-  tests.tests.push({ name: 'Provider auto-detection', status: 'passed', provider: providerName });
 } catch (e) {
   console.error('  ✗ FAILED:', e.message, '\n');
   tests.failed++;
-  tests.tests.push({ name: 'Provider auto-detection', status: 'failed', error: e.message });
 }
 
-// Test 5: Argument edge cases
+// Test 5: clone-site.js exports
 try {
-  console.log('Test 5: Argument parsing edge cases');
+  console.log('Test 5: clone-site.js exports validation');
+  const cloneSite = await import('../src/clone-site.js');
 
-  // Trailing argument
+  assert(typeof cloneSite.cloneSite === 'function', 'cloneSite not function');
+  assert(typeof cloneSite.normalizeUrl === 'function', 'normalizeUrl not function');
+  assert(typeof cloneSite.isSameDomain === 'function', 'isSameDomain not function');
+  assert(typeof cloneSite.pathToFilename === 'function', 'pathToFilename not function');
+
+  console.log('  ✓ PASSED\n');
+  tests.passed++;
+} catch (e) {
+  console.error('  ✗ FAILED:', e.message, '\n');
+  tests.failed++;
+}
+
+// Test 6: Argument edge cases
+try {
+  console.log('Test 6: Argument parsing edge cases');
+
   let args = parseArgs(['--url', 'https://example.com', '--headless']);
   assert(args.url === 'https://example.com', 'Trailing flag not handled');
   assert(args.headless === true, 'Boolean flag not handled');
 
-  // Args at end
   args = parseArgs(['--headless', '--url', 'https://example.com']);
   assert(args.headless === true, 'Flag before value');
   assert(args.url === 'https://example.com', 'Value after flag');
 
-  // Multiple consecutive flags
   args = parseArgs(['--headless', '--disable-gpu', '--no-sandbox']);
   assert(args.headless === true, 'First flag failed');
   assert(args['disable-gpu'] === true, 'Second flag failed');
@@ -139,36 +142,23 @@ try {
 
   console.log('  ✓ PASSED\n');
   tests.passed++;
-  tests.tests.push({ name: 'Argument parsing edge cases', status: 'passed' });
 } catch (e) {
   console.error('  ✗ FAILED:', e.message, '\n');
   tests.failed++;
-  tests.tests.push({ name: 'Argument parsing edge cases', status: 'failed', error: e.message });
 }
 
-// Test 6: File structure validation (new structure)
+// Test 7: File structure validation (new 5-file architecture)
 try {
-  console.log('Test 6: File structure validation');
+  console.log('Test 7: File structure validation');
 
-  const utilsDir = path.join(SRC_DIR, 'utils');
-  assert(fs.existsSync(utilsDir), 'src/utils directory missing');
-
-  const files = ['helpers.js', 'playwright.js', 'browser.js', 'env.js'];
-  for (const file of files) {
-    const filePath = path.join(utilsDir, file);
+  const coreFiles = ['utils.js', 'capture.js', 'filter-css.js', 'extract-assets.js', 'clone-site.js'];
+  for (const file of coreFiles) {
+    const filePath = path.join(SRC_DIR, file);
     assert(fs.existsSync(filePath), `${file} missing`);
-
     const content = fs.readFileSync(filePath, 'utf8');
     assert(content.length > 100, `${file} too small`);
     assert(content.includes('export'), `${file} missing export statements`);
   }
-
-  // Check core scripts exist
-  const coreDir = path.join(SRC_DIR, 'core');
-  assert(fs.existsSync(coreDir), 'src/core directory missing');
-  assert(fs.existsSync(path.join(coreDir, 'capture/screenshot.js')), 'screenshot.js missing');
-  assert(fs.existsSync(path.join(coreDir, 'css/filter-css.js')), 'filter-css.js missing');
-  assert(fs.existsSync(path.join(coreDir, 'media/extract-assets.js')), 'extract-assets.js missing');
 
   // Check AI prompt templates exist
   const aiDir = path.join(SRC_DIR, 'ai');
@@ -177,25 +167,22 @@ try {
   assert(fs.existsSync(path.join(aiDir, 'prompts', 'design-tokens', 'basic.md')), 'design-tokens/basic.md missing');
   assert(fs.existsSync(path.join(aiDir, 'prompts', 'ux-audit', 'desktop.md')), 'ux-audit/desktop.md missing');
 
-  // Check verification scripts exist
-  const verifyDir = path.join(SRC_DIR, 'verification');
-  assert(fs.existsSync(verifyDir), 'src/verification directory missing');
-  assert(fs.existsSync(path.join(verifyDir, 'verify-menu.js')), 'verify-menu.js missing');
-  assert(fs.existsSync(path.join(verifyDir, 'verify-layout.js')), 'verify-layout.js missing');
+  // Verify old directories are removed
+  assert(!fs.existsSync(path.join(SRC_DIR, 'core')), 'src/core should be removed');
+  assert(!fs.existsSync(path.join(SRC_DIR, 'verification')), 'src/verification should be removed');
+  assert(!fs.existsSync(path.join(SRC_DIR, 'route-discoverers')), 'src/route-discoverers should be removed');
+  assert(!fs.existsSync(path.join(SRC_DIR, 'post-process')), 'src/post-process should be removed');
+  assert(!fs.existsSync(path.join(SRC_DIR, 'shared')), 'src/shared should be removed');
+  assert(!fs.existsSync(path.join(SRC_DIR, 'utils')), 'src/utils should be removed');
 
   console.log('  ✓ PASSED\n');
   tests.passed++;
-  tests.tests.push({ name: 'File structure validation', status: 'passed' });
 } catch (e) {
   console.error('  ✗ FAILED:', e.message, '\n');
   tests.failed++;
-  tests.tests.push({ name: 'File structure validation', status: 'failed', error: e.message });
 }
 
 // Summary
 console.log('\n=== INTEGRATION TEST RESULTS ===\n');
-console.log(`Total Tests: ${tests.passed + tests.failed}`);
-console.log(`Passed: ${tests.passed}`);
-console.log(`Failed: ${tests.failed}`);
-
+console.log(`${tests.passed}/${tests.passed + tests.failed} tests passed`);
 process.exit(tests.failed > 0 ? 1 : 0);

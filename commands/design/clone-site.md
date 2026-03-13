@@ -1,6 +1,6 @@
 ---
 description: Clone multiple pages from a website with shared CSS and navigation
-argument-hint: [url] [--max-pages N] [--ai]
+argument-hint: [url] [--max-pages N]
 ---
 
 Clone multiple pages from this website with shared CSS and working navigation:
@@ -8,126 +8,106 @@ Clone multiple pages from this website with shared CSS and working navigation:
 
 ## Required Skills (Priority Order)
 1. **`chrome-devtools`** - Multi-viewport screenshot capture
-2. **`ai-multimodal`** - Gemini Vision for design token extraction (with --ai flag)
 
 ## Pipeline Overview
 
 ```
-URL -> Page Discovery -> [SPA State] -> Multi-page Capture -> CSS Filter & Merge (+ Dead Code) -> Link Rewriting -> [AI Tokens] -> Output
+URL -> Page Discovery -> Multi-page Capture -> CSS Merge & Dedup -> Link Rewriting -> Output
 ```
 
 ## Workflow
 
-### PRE-STEP (OPTIONAL): Capture SPA State
-
-When: Target site is a Single Page Application (React, Vue, Angular detected via framework-detector).
-
-> The `app-state-snapshot` library module (not CLI) captures framework data (__NEXT_DATA__, __NUXT__), state management stores (Redux, Vuex, Pinia, Zustand), with sensitive data filtering and size limits (1MB max). It must be invoked programmatically via `import { captureAppState } from './app-state-snapshot.js'`. Run framework detection first to determine if this step is needed.
-
-**Output:** `app-state.json` — use this to understand route state before multi-page navigation.
-
-### STEP 1: Run Clone-Site Module
-
-Run the clone-site module directly (this is NOT a CLI command - it requires Claude Code):
+### STEP 1: Run Clone-Site
 
 ```bash
 # Basic usage - auto-discovers pages from navigation
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS"
+node ~/.claude/skills/design-clone/src/clone-site.js \
+  --url "$ARGUMENTS" \
+  --output ./cloned-designs
 
 # With options
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --max-pages 5
+node ~/.claude/skills/design-clone/src/clone-site.js \
+  --url "$ARGUMENTS" \
+  --output ./cloned-designs \
+  --max-pages 5
 
 # Specific pages
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --pages /,/about,/contact
+node ~/.claude/skills/design-clone/src/clone-site.js \
+  --url "$ARGUMENTS" \
+  --output ./cloned-designs \
+  --pages /,/about,/contact
 
-# With AI design token extraction (requires GEMINI_API_KEY)
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --ai
+# With breakpoint detection and aggressive CSS filtering
+node ~/.claude/skills/design-clone/src/clone-site.js \
+  --url "$ARGUMENTS" \
+  --output ./cloned-designs \
+  --detect-breakpoints true \
+  --aggressive-filter true
 
-# Preview discovery without capture (v3.0)
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --dry-run
-
-# Auto-detect CSS breakpoints (v3.0)
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --detect-breakpoints
-
-# Clone SPA site with full optimization
-node ~/.claude/skills/design-clone/bin/commands/clone-site.js "$ARGUMENTS" --aggressive-filter --detect-breakpoints
+# Preview discovery without capture
+node ~/.claude/skills/design-clone/src/clone-site.js \
+  --url "$ARGUMENTS" \
+  --dry-run true
 ```
 
 ### CLI Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `--url <url>` | required | Target URL |
 | `--pages <paths>` | auto | Comma-separated paths (e.g., /,/about,/contact) |
 | `--max-pages <n>` | 10 | Maximum pages to auto-discover |
-| `--viewports <list>` | desktop,tablet,mobile | Viewport list |
-| `--yes` | false | Skip confirmation prompt |
-| `--output <dir>` | ./cloned-designs/{timestamp}-{domain} | Custom output directory |
-| `--ai` | false | Extract design tokens using Gemini AI |
-| `--dry-run` | false | Preview discovered pages without capture (v3.0) |
-| `--detect-breakpoints` | false | Auto-detect CSS breakpoints from media queries (v3.0) |
-| `--aggressive-filter` | false | Two-pass CSS dead code removal on merged CSS (v3.0) |
+| `--output <dir>` | ./cloned-designs | Output directory |
+| `--detect-breakpoints` | false | Auto-detect CSS breakpoints from media queries |
+| `--aggressive-filter` | false | Two-pass CSS dead code removal on merged CSS |
+| `--dry-run` | false | Preview discovered pages without capture |
+| `--verbose` | false | Enable verbose logging |
 
 ### STEP 2: Process Flow (Automatic)
 
 The command executes these steps automatically:
 
-1. **Page Discovery** - Crawls navigation links, respects same-domain
-2. **Multi-page Capture** - Screenshots + HTML/CSS for each page
-3. **CSS Merge** - Combines filtered CSS with deduplication (15-30% reduction)
-4. **Dead Code Removal** (if --aggressive-filter) - Removes unused @media, @keyframes, CSS vars from merged CSS
-5. **Link Rewriting** - Updates internal links to local .html files
-6. **Token Extraction** (if --ai) - Gemini Vision extracts design tokens
-7. **Manifest Generation** - Creates manifest.json with page metadata
-
-### Output Structure
-
-```
-cloned-designs/{timestamp}-{domain}/
-├── analysis/           # Screenshots by viewport
-│   ├── desktop/
-│   ├── tablet/
-│   └── mobile/
-├── html/               # Raw extracted HTML (source)
-├── css/                # Per-page CSS (raw + filtered)
-├── pages/              # HTML with rewritten links
-│   ├── index.html
-│   ├── about.html
-│   └── contact.html
-├── styles.css          # Merged + deduplicated CSS
-├── tokens.css          # Design tokens (if --ai)
-├── design-tokens.json  # Token data (if --ai)
-├── app-state.json      # (optional) SPA state snapshot
-├── manifest.json       # Page metadata + mapping
-└── capture-results.json
-```
+1. **Page Discovery** - Crawls navigation links via nav scraping + history interception + sitemap
+2. **Sequential Capture** - Screenshots + HTML/CSS for each page using capture.js
+3. **CSS Merge** - Combines filtered CSS with AST-level deduplication
+4. **Link Rewriting** - Updates internal links to local .html files
+5. **Manifest Generation** - Creates manifest.json with page metadata
 
 ### STEP 3: Review & Edit
 
 After cloning:
 
-1. **Test navigation** - Open `pages/index.html` in browser
+1. **Test navigation** - Open pages/index.html in browser
 2. **Verify CSS** - Check that styles.css covers all pages
 3. **Check screenshots** - Review analysis/ for visual reference
-4. **Edit tokens** (if --ai) - Modify tokens.css to customize design
 
-## Features
+## Output Structure
 
-- **Auto-discovers pages** from navigation (SPA-aware)
-- **Shared CSS** with deduplication (15-30% reduction)
-- **Filtered CSS** - Uses per-page filtered CSS, not raw
-- **Dead code CSS removal** (optional) - Two-pass removal with `--aggressive-filter`
-- **SPA state preservation** (optional) - Captures app state before multi-page navigation
-- **Working internal links** - Rewrites to local .html files
-- **Progress reporting** - Shows capture progress
-- **Graceful errors** - Continues on individual page failures
-- **AI tokens** (optional) - Gemini Vision design token extraction
-
-## Environment Variables
-
-```bash
-# Optional: For AI token extraction with --ai flag
-GEMINI_API_KEY=your-key
 ```
+cloned-designs/
+├── index/              # Per-page capture directories
+│   ├── desktop.png
+│   ├── tablet.png
+│   ├── mobile.png
+│   ├── source.html
+│   └── source.css
+├── about/
+│   └── ...
+├── pages/              # HTML with rewritten links
+│   ├── index.html
+│   ├── about.html
+│   └── contact.html
+├── styles.css          # Merged + deduplicated CSS
+└── manifest.json       # Page metadata + mapping
+```
+
+## Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| Page fails to load | Continues with other pages, logs warning |
+| No navigation found | Falls back to homepage only |
+| CSS extraction fails | Uses raw CSS fallback |
 
 ## Examples
 
@@ -138,22 +118,6 @@ GEMINI_API_KEY=your-key
 # Clone specific pages only
 /design:clone-site https://example.com --pages /,/about,/pricing
 
-# Clone with AI token extraction
-/design:clone-site https://example.com --ai --max-pages 5
-
-# Preview pages before cloning (v3.0)
-/design:clone-site https://example.com --dry-run
-
-# Clone SPA site with full optimization
-/design:clone-site https://spa-app.com --aggressive-filter --detect-breakpoints
+# Clone with full optimization
+/design:clone-site https://example.com --aggressive-filter true --detect-breakpoints true
 ```
-
-## Error Handling
-
-| Scenario | Behavior |
-|----------|----------|
-| Page fails to load | Continues with other pages, logs warning |
-| No navigation found | Falls back to homepage only |
-| CSS extraction fails | Uses raw CSS fallback |
-| No GEMINI_API_KEY | Skips token extraction, logs hint |
-| Python not found | Skips AI features, continues |

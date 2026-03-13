@@ -28,10 +28,11 @@ export async function verify() {
   // Check required files
   const requiredFiles = [
     'SKILL.md',
-    'src/core/capture/screenshot.js',
-    'src/core/css/filter-css.js',
-    'src/utils/browser.js',
-    'src/utils/env.js'
+    'src/capture.js',
+    'src/filter-css.js',
+    'src/utils.js',
+    'src/extract-assets.js',
+    'src/clone-site.js'
   ];
 
   let filesOk = true;

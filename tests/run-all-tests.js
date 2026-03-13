@@ -1,31 +1,21 @@
 #!/usr/bin/env node
 /**
- * Run all Phase 02 tests and summarize results
+ * Run all tests and summarize results
  */
 
 import { spawn } from 'child_process';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const tests = [
-  { name: 'Node.js env.js tests', cmd: 'node', args: ['test-env-js.js'] },
-  { name: 'filter-css.js tests', cmd: 'node', args: ['test-filter-css.js'] },
-  { name: 'animation-extractor.js tests', cmd: 'node', args: ['test-animation-extractor.js'] },
-  { name: 'state-capture.js tests', cmd: 'node', args: ['test-state-capture.js'] },
-  { name: 'video-capture.js tests', cmd: 'node', args: ['test-video-capture.js'] },
-  { name: 'framework-detector.js tests', cmd: 'node', args: ['test-framework-detector.js'] },
-  { name: 'route-discoverers tests', cmd: 'node', args: ['test-route-discoverers.js'] },
-  { name: 'app-state-snapshot.js tests', cmd: 'node', args: ['test-app-state-snapshot.js'] },
-  { name: 'discover-pages SPA tests', cmd: 'node', args: ['test-discover-pages-spa.js'] },
-  { name: 'section-context-mapping tests', cmd: 'node', args: ['test-section-context-mapping.js'] },
-  { name: 'dom-hierarchy-integration tests', cmd: 'node', args: ['test-dom-hierarchy-integration.js'] },
-  { name: 'semantic-enhancer.js tests', cmd: 'node', args: ['test-semantic-enhancer.js'] },
+  { name: 'Env utility tests', cmd: 'node', args: ['test-env-js.js'] },
   { name: 'Env path order tests', cmd: 'node', args: ['test-env-path-order.js'] },
+  { name: 'filter-css.js tests', cmd: 'node', args: ['test-filter-css.js'] },
+  { name: 'clone-site.js tests', cmd: 'node', args: ['test-clone-site.js'] },
   { name: 'Integration tests', cmd: 'node', args: ['test-integration.js'] },
-  { name: 'CLI utils tests', cmd: 'node', args: ['test-cli-utils.js'] }
+  { name: 'CLI utils tests', cmd: 'node', args: ['test-cli-utils.js'] },
 ];
 
 let totalPassed = 0;
@@ -42,27 +32,17 @@ function runTest(test) {
     let stdout = '';
     let stderr = '';
 
-    proc.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
+    proc.stdout.on('data', (data) => { stdout += data.toString(); });
+    proc.stderr.on('data', (data) => { stderr += data.toString(); });
 
     proc.on('close', (code) => {
-      resolve({
-        test: test.name,
-        code,
-        stdout,
-        stderr
-      });
+      resolve({ test: test.name, code, stdout, stderr });
     });
   });
 }
 
 async function runAllTests() {
-  console.log('Running all Phase 02 tests...\n');
+  console.log('Running all tests...\n');
   console.log('='.repeat(60));
 
   for (const test of tests) {
@@ -72,7 +52,6 @@ async function runAllTests() {
 
     if (result.code === 0) {
       console.log(`✓ PASSED`);
-      // Extract test count from output if available
       const match = result.stdout.match(/(\d+)\/(\d+) tests passed/);
       if (match) {
         const [, passed, total] = match;
@@ -94,7 +73,6 @@ async function runAllTests() {
     console.log(`${status} ${result.test}: ${result.code === 0 ? 'PASSED' : 'FAILED'}`);
     if (result.code !== 0) {
       allPassed = false;
-      // Show first few lines of error
       if (result.stderr) {
         console.log(`   Error: ${result.stderr.split('\n')[0]}`);
       }

@@ -16,7 +16,6 @@ Clone website designs with multi-viewport screenshots, HTML/CSS extraction, CSS 
 - **Multi-viewport Screenshots** - Desktop, tablet, mobile captures
 - **Hover State Capture** - Interactive element screenshots and :hover CSS generation
 - **Built-in AI Analysis** - Design token extraction via Claude Code vision
-- **ui-ux-pro-max Quality Check** - Accessibility, hover states, contrast validation
 
 ## Prerequisites
 
@@ -35,33 +34,19 @@ npm install
 design-clone/
 ├── bin/                         # CLI entry point
 │   ├── cli.js
-│   ├── commands/                # CLI commands (clone-site, init, verify, help, update, uninstall)
+│   ├── commands/                # CLI commands (init, help, update, uninstall)
 │   └── utils/                   # CLI utilities
 ├── src/
-│   ├── core/                    # Core extraction (13 subdirectories)
-│   │   ├── capture/             # Screenshot pipeline (8 modules)
-│   │   ├── css/                 # CSS processing (12 modules)
-│   │   ├── html/                # HTML extraction & semantic enhancement (5 modules)
-│   │   ├── animation/           # Animation & hover states (5 modules)
-│   │   ├── discovery/           # Page discovery (6 modules)
-│   │   ├── detection/           # Framework detection (3 modules)
-│   │   ├── dimension/           # DOM structure analysis (6 modules)
-│   │   ├── section/             # Section detection & cropping (5 modules)
-│   │   ├── media/               # Asset extraction & validation (6 modules)
-│   │   ├── page-prep/           # Page readiness (3 modules)
-│   │   ├── content/             # Content analysis (2 modules)
-│   │   ├── links/               # URL rewriting (2 modules)
-│   │   └── tests/               # Core tests
-│   ├── shared/                  # Cross-module shared code (config, error-codes, viewports)
-│   ├── ai/                      # AI analysis prompt templates
-│   │   └── prompts/             # Markdown prompts for Claude Code vision
-│   │       ├── structure-analysis/
-│   │       ├── design-tokens/
-│   │       └── ux-audit/
-│   ├── verification/            # Quality assurance (19 modules)
-│   ├── post-process/            # Asset enhancement (6 modules)
-│   ├── route-discoverers/       # Framework-specific routing (11 modules)
-│   └── utils/                   # Shared utilities (7 modules)
+│   ├── utils.js                 # Shared utilities, browser management, constants
+│   ├── capture.js               # Screenshot pipeline + HTML/CSS extraction
+│   ├── filter-css.js            # CSS filtering + dead code removal
+│   ├── extract-assets.js        # Asset extraction (images, fonts, icons)
+│   ├── clone-site.js            # Multi-page clone with route discovery
+│   └── ai/                      # AI analysis prompt templates
+│       └── prompts/             # Markdown prompts for Claude Code vision
+│           ├── structure-analysis/
+│           ├── design-tokens/
+│           └── ux-audit/
 ├── templates/                   # HTML/CSS base templates
 ├── tests/                       # Test suite
 ├── docs/                        # Documentation
@@ -81,95 +66,77 @@ Basic design capture with Font Awesome icons and Unsplash images.
 **Workflow:**
 ```bash
 # Step 1: Capture screenshots + HTML/CSS
-node src/core/capture/screenshot.js \
+node src/capture.js \
   --url "URL" \
   --output ./output \
-  --extract-html \
-  --extract-css
+  --extract-html true \
+  --extract-css true
 
-# Step 2: Filter unused CSS
-node src/core/css/filter-css.js \
+# Step 2 (optional): Standalone CSS filter
+node src/filter-css.js \
   --html ./output/source.html \
   --css ./output/source-raw.css \
   --output ./output/source.css
 
-# Step 3: Quality Check with ui-ux-pro-max (REQUIRED)
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "animation hover" --domain ux
+# Step 3: Review output + build clone
 ```
-
-**Key Features:**
-- Screenshots + HTML/CSS extraction
-- Font Awesome 6 CDN icons
-- Direct Unsplash image URLs (no API)
-- Japanese design principles (Ma, Kanso, Shibui, Seijaku)
-- Mobile-first responsive CSS
-- **ui-ux-pro-max quality validation**
 
 **Output:** desktop.png, tablet.png, mobile.png, source.html, source.css, source-raw.css
 
 ### design:clone-site
 
-Multi-page screenshot capture for Claude Code vision to generate new HTML/CSS.
+Multi-page clone with shared CSS and working navigation.
 
-```bash
-/design:clone-site https://example.com
-```
-
-**Usage (Claude Code only):**
 ```bash
 /design:clone-site https://example.com
 /design:clone-site https://example.com --pages /,/about,/contact
 /design:clone-site https://example.com --max-pages 5
 ```
 
-**Options:**
-- `--pages <paths>` - Comma-separated paths
-- `--max-pages <n>` - Limit pages (default: 10)
-- `--viewports <list>` - Viewports (default: desktop,tablet,mobile)
-- `--yes` - Skip confirmation
-- `--output <dir>` - Custom output directory
+**Usage:**
+```bash
+node src/clone-site.js \
+  --url "URL" \
+  --output ./cloned-designs \
+  --max-pages 10
+```
+
+**Options:** `--url`, `--pages`, `--max-pages`, `--output`, `--detect-breakpoints`, `--aggressive-filter`, `--dry-run`
 
 ### design:clone-px
 
 Pixel-perfect clone with full asset extraction and AI analysis.
 
-**Full Workflow:**
-
 ```bash
-# Step 1: Capture + Extract
-node src/core/capture/screenshot.js \
+/design:clone-px https://example.com
+```
+
+**Workflow:**
+```bash
+# Step 1: Capture + Extract (with hover, breakpoints, computed styles)
+node src/capture.js \
   --url "URL" \
   --output ./output \
-  --extract-html --extract-css \
+  --extract-html true --extract-css true \
   --capture-hover true \
-  --full-page
+  --full-page true \
+  --detect-breakpoints true \
+  --extract-computed true \
+  --aggressive-filter true
 
-# Step 2: Filter CSS
-node src/core/css/filter-css.js \
-  --html ./output/source.html \
-  --css ./output/source-raw.css \
-  --output ./output/source.css
-
-# Step 3: Extract Assets (images, fonts, icons)
-node src/core/media/extract-assets.js \
+# Step 2: Extract Assets
+node src/extract-assets.js \
   --url "URL" \
   --output ./output
 
-# Step 4: AI Structure Analysis (built-in Claude Code vision)
-# Step 5: Extract Design Tokens (built-in Claude Code vision)
-# Step 6: Verify Menu
-node src/verification/verify-menu.js \
-  --html ./output/source.html
-
-# Step 7: Quality Check with ui-ux-pro-max (REQUIRED)
+# Step 3: AI Structure Analysis (Claude Code vision)
+# Step 4: Extract Design Tokens (Claude Code vision)
+# Step 5: Build the clone
 ```
 
-**Note:** Step 1 includes `--capture-hover true` to capture interactive element states and generate `:hover` CSS rules.
+## Quality Checklist
 
-## Quality Checklist (ui-ux-pro-max)
-
-After generating HTML/CSS, verify using `ui-ux-pro-max` skill:
+After generating HTML/CSS, verify:
 
 ### Visual Quality
 - [ ] No emojis used as icons (use Font Awesome instead)
@@ -221,76 +188,27 @@ After generating HTML/CSS, verify using `ui-ux-pro-max` skill:
 | Shibui (渋い) | Subtle elegance | Soft shadows, gentle transitions |
 | Seijaku (静寂) | Tranquility | Calm colors, visual harmony |
 
-## Animation & Hover Capture
-
-### CSS Animations
-Extracts @keyframes and transitions with `--extract-css`. Output: `animations.css`, `animation-tokens.json`
-
-### Hover State Capture
-Use `--capture-hover` flag. Output: `hover-states/`, `hover.css`, `hover-diff.json`
-
-### Video Recording (opt-in)
-Use `--video` flag. Formats: webm (default), mp4, gif (requires ffmpeg).
+## Capture Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--extract-animations` | true (with --extract-css) | Extract @keyframes and transitions |
+| `--extract-html` | false | Extract page HTML |
+| `--extract-css` | false | Extract + filter CSS |
 | `--capture-hover` | false | Capture hover state screenshots |
-| `--video` | false | Record scroll preview video |
-| `--video-format` | webm | Video format: webm, mp4, gif |
-| `--video-duration` | 12000 | Video duration in ms |
-| `--detect-breakpoints` | false | Auto-detect CSS breakpoints (v3.0) |
-| `--extract-computed` | false | Extract computed styles (v3.0) |
-| `--aggressive-filter` | false | Aggressive CSS dead code removal (v3.0) |
-| `--quality-score` | false | Generate quality score (v3.0) |
-| `--dry-run` | false | Preview discovery without capture (v3.0) |
+| `--full-page` | false | Full-page screenshots |
+| `--detect-breakpoints` | false | Auto-detect CSS breakpoints |
+| `--extract-computed` | false | Extract computed styles |
+| `--aggressive-filter` | false | Two-pass CSS dead code removal |
 
 ## Script Reference
 
-| Script | Location | Purpose |
-|--------|----------|---------|
-| screenshot.js | src/core/capture/ | Capture screenshots + extract HTML/CSS |
-| multi-page-screenshot.js | src/core/capture/ | Capture multiple pages |
-| browser-context-pool.js | src/core/capture/ | Browser context pooling with memory guards |
-| filter-css.js | src/core/css/ | Filter unused CSS rules |
-| merge-css.js | src/core/css/ | Merge + deduplicate CSS |
-| breakpoint-detector.js | src/core/css/ | Auto-detect CSS breakpoints |
-| computed-style-extractor.js | src/core/css/ | Extract computed styles |
-| css-chunker.js | src/core/css/ | Stream-process large CSS files |
-| filter-css-dead-code.js | src/core/css/ | Aggressive CSS dead code removal |
-| animation-extractor.js | src/core/animation/ | Extract @keyframes and transitions |
-| state-capture.js | src/core/animation/ | Capture hover states |
-| video-capture.js | src/core/media/ | Record scroll preview video |
-| extract-assets.js | src/core/media/ | Download images, fonts, icons |
-| asset-validator.js | src/core/media/ | Validate assets with magic bytes |
-| discover-pages.js | src/core/discovery/ | Discover navigation links |
-| html-extractor.js | src/core/html/ | HTML extraction |
-| semantic-enhancer.js | src/core/html/ | HTML semantic enhancement |
-| section-detector.js | src/core/section/ | Section detection & cropping |
-| dimension-extractor.js | src/core/dimension/ | DOM structure analysis |
-| framework-detector.js | src/core/detection/ | Framework detection (SPA routing) |
-| page-readiness.js | src/core/page-prep/ | Cookie handling, lazy loading |
-| content-counter.js | src/core/content/ | Content metrics |
-| rewrite-links.js | src/core/links/ | Rewrite internal links |
-| clone-site.js | bin/commands/ | Multi-page clone module |
-| playwright.js | src/utils/ | Playwright configuration |
-| playwright-loader.js | src/utils/ | Playwright browser loader |
-| progress.js | src/utils/ | TTY-aware progress reporter |
-| error-codes.js | src/shared/ | Structured error catalog |
-| quality-scorer.js | src/verification/ | 5-metric quality scoring |
-| generate-audit-report.js | src/verification/ | Clone audit report generation |
-| verify-menu.js | src/verification/ | Validate navigation structure |
-| verify-header.js | src/verification/ | Validate header structure |
-| verify-footer.js | src/verification/ | Validate footer structure |
-| verify-layout.js | src/verification/ | Verify layout consistency |
-| verify-slider.js | src/verification/ | Validate slider/carousel |
-| fetch-images.js | src/post-process/ | Fetch and optimize images |
-| inject-icons.js | src/post-process/ | Replace icons with Font Awesome |
-| enhance-assets.js | src/post-process/ | Enhance extracted assets |
-| inject-gosnap.js | src/post-process/ | GoSnap integration |
-| prompts/structure-analysis/*.md | src/ai/ | AI structure analysis prompts |
-| prompts/design-tokens/*.md | src/ai/ | Design token extraction prompts |
-| prompts/ux-audit/*.md | src/ai/ | UX audit prompts |
+| Script | Purpose |
+|--------|---------|
+| src/utils.js | Shared utilities, browser management, constants, progress reporting |
+| src/capture.js | Screenshot pipeline + HTML/CSS extraction + hover + breakpoints |
+| src/filter-css.js | CSS filtering + dead code removal + chunked processing |
+| src/extract-assets.js | Download images, fonts, icons with rate limiting |
+| src/clone-site.js | Multi-page clone with route discovery + CSS merge + link rewriting |
 
 ## References
 

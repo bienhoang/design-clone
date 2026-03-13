@@ -18,8 +18,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 
-import { discoverPages } from '../../src/core/discovery/discover-pages.js';
-import { captureMultiplePages } from '../../src/core/capture/multi-page-screenshot.js';
+import { cloneSite as cloneSiteCore } from '../../src/clone-site.js';
 
 /**
  * Generate output directory name
@@ -80,116 +79,19 @@ export function parseArgs(args) {
  * @returns {Promise<Object>} Clone result
  */
 export async function cloneSite(url, options = {}) {
-  const startTime = Date.now();
   const {
     pages: manualPages,
     maxPages = 10,
-    viewports = ['desktop', 'tablet', 'mobile'],
     output
   } = options;
 
-  // Validate URL
-  let baseUrl;
-  try {
-    baseUrl = new URL(url);
-  } catch {
-    throw new Error(`Invalid URL: ${url}`);
-  }
-
-  // Generate output directory
   const outputDir = output || generateOutputDir(url);
 
-  console.error(`\n[clone-site] Target: ${url}`);
-  console.error(`[clone-site] Output: ${outputDir}`);
-
-  // Step 1: Discover or use manual pages
-  console.error('\n[1/3] Discovering pages...');
-
-  let pageList;
-  if (manualPages && manualPages.length > 0) {
-    pageList = {
-      success: true,
-      pages: manualPages.map(p => ({
-        path: p,
-        name: p === '/' ? 'Home' : p.replace(/^\//, '').replace(/-/g, ' '),
-        url: new URL(p, url).href
-      }))
-    };
-    console.error(`   Using ${pageList.pages.length} manual pages`);
-  } else {
-    pageList = await discoverPages(url, { maxPages });
-    if (!pageList.success) {
-      console.error(`   Warning: Discovery failed - ${pageList.error}`);
-      console.error('   Falling back to homepage only');
-    }
-    console.error(`   Found ${pageList.pages.length} pages`);
-  }
-
-  for (const page of pageList.pages) {
-    console.error(`   - ${page.path} (${page.name})`);
-  }
-
-  // Step 2: Capture all pages (screenshots only)
-  console.error('\n[2/3] Capturing screenshots...');
-
-  const captureResult = await captureMultiplePages(pageList.pages, {
-    outputDir,
-    viewports,
-    onProgress: (current, total, info) => {
-      console.error(`   [${current}/${total}] ${info.status}: ${info.name}`);
-    }
+  return cloneSiteCore(url, {
+    pages: manualPages,
+    maxPages,
+    output: outputDir,
   });
-
-  if (!captureResult.success) {
-    throw new Error(`Capture failed: ${captureResult.error}`);
-  }
-
-  console.error(`   Captured ${captureResult.stats.successfulPages}/${captureResult.stats.totalPages} pages`);
-  console.error(`   Screenshots: ${captureResult.stats.totalScreenshots}`);
-
-  // Step 3: Generate manifest
-  console.error('\n[3/3] Generating manifest...');
-
-  const manifest = {
-    baseUrl: url,
-    capturedAt: new Date().toISOString(),
-    pages: captureResult.pages
-      .filter(p => p.success)
-      .map(p => ({
-        path: p.path,
-        name: p.name,
-        originalUrl: p.url,
-        screenshots: Object.fromEntries(
-          Object.entries(p.screenshots)
-            .filter(([, v]) => !v.failed)
-            .map(([vp, v]) => [vp, path.relative(outputDir, v.path)])
-        )
-      })),
-    stats: {
-      totalPages: captureResult.stats.totalPages,
-      totalScreenshots: captureResult.stats.totalScreenshots,
-      captureTimeMs: captureResult.stats.totalTimeMs
-    }
-  };
-
-  const manifestPath = path.join(outputDir, 'manifest.json');
-  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-  console.error(`   Created: manifest.json`);
-
-  // Summary
-  const totalTime = Date.now() - startTime;
-  console.error(`\n[clone-site] Complete!`);
-  console.error(`   Output: ${path.resolve(outputDir)}`);
-  console.error(`   Pages: ${manifest.pages.length}`);
-  console.error(`   Time: ${(totalTime / 1000).toFixed(1)}s`);
-
-  return {
-    success: true,
-    outputDir: path.resolve(outputDir),
-    manifest,
-    captureResult,
-    totalTimeMs: totalTime
-  };
 }
 
 /**

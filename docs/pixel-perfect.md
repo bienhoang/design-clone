@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full extraction pipeline: screenshots, hover states, assets, section/framework detection, AI analysis, verification, and quality scoring.
+Full extraction pipeline: screenshots with hover states, asset extraction, AI structure analysis, and design token extraction via Claude Code vision.
 
 ## Prerequisites
 
@@ -11,148 +11,66 @@ Full extraction pipeline: screenshots, hover states, assets, section/framework d
 
 ## Complete Pipeline
 
-### 1. Page Preparation
+### 1. Capture + Extract (with Hover, Breakpoints, Computed Styles)
 
 ```bash
-node src/core/page-prep/page-readiness.js --url "URL"
+node src/capture.js \
+  --url "URL" \
+  --output ./output \
+  --extract-html true --extract-css true \
+  --capture-hover true \
+  --full-page true \
+  --detect-breakpoints true \
+  --extract-computed true \
+  --aggressive-filter true
 ```
 
-Handles cookie banners (`cookie-handler.js`), triggers lazy loading (`lazy-loader.js`), waits for full page render.
+Single-session capture: multi-viewport screenshots + HTML/CSS + hover state captures. Handles cookie banners, lazy loading, and page readiness automatically.
 
-### 2. Capture + Extract
+**Output:** desktop.png, tablet.png, mobile.png, source.html, source-raw.css, source.css, hover-states/, hover.css, breakpoints.json, computed-gap.css
+
+### 2. Extract Assets
 
 ```bash
-node src/core/capture/screenshot.js \
-  --url "URL" --output ./output \
-  --extract-html --extract-css --capture-hover true --full-page \
-  --detect-breakpoints --extract-computed --aggressive-filter
+node src/extract-assets.js \
+  --url "URL" \
+  --output ./output
 ```
 
-Multi-viewport screenshots + HTML/CSS + hover state captures. v3.0 flags: `--detect-breakpoints` detects @media queries, `--extract-computed` captures JS-applied styles, `--aggressive-filter` runs two-pass CSS dead code removal. Uses `browser-context-pool.js` for parallel contexts with memory guards.
+Downloads images, fonts, icons with rate-limited batch downloads. Inline SVGs saved automatically.
 
-### 3. CSS Processing
+**Output:** assets/images/, assets/fonts/, assets/icons/, assets/url-mapping.json
 
-CSS filtering is integrated into capture step with `--aggressive-filter` flag. Optional standalone run:
+### 3. AI Structure Analysis (Claude Code Vision)
 
-```bash
-node src/core/css/filter-css.js \
-  --html ./output/source.html --css ./output/source-raw.css --output ./output/source.css --aggressive-filter
-```
+Read screenshots and source code, then analyze layout structure:
 
-Pipeline: `filter-css-html-analyzer.js` parses HTML selectors, `filter-css-selector-matcher.js` matches against CSS, `filter-css-dead-code.js` removes unreachable rules.
+1. Read desktop.png, tablet.png, mobile.png
+2. Read source.html and source.css
+3. If breakpoints.json exists, include responsive breakpoint data
+4. If hover.css exists, include hover CSS
+5. Write result to output/structure.md
 
-### 4. Section Detection
-
-```bash
-node src/core/section/section-detector.js \
-  --html ./output/source.html --screenshots ./output --output ./output
-```
-
-Detects page sections (hero, features, pricing, footer) using `section-detector-strategies.js`. Crops screenshots per section via `section-cropper.js`.
-
-**Output:** sections.json, section crop images
-
-### 5. Framework Detection
-
-```bash
-node src/core/detection/framework-detector.js --url "URL" --output ./output
-```
-
-Detects frontend framework (React, Vue, Angular, Svelte, Next.js, etc.) via `framework-detector-signals.js`. Identifies routing type for SPA handling via `framework-detector-routing.js`.
-
-**Output:** framework-info.json
-
-### 6. Dimension Extraction
-
-```bash
-node src/core/dimension/dimension-extractor.js \
-  --url "URL" --html ./output/source.html --output ./output
-```
-
-Analyzes DOM structure. `dom-tree-analyzer.js` builds hierarchy, `dimension-extractor-card-detector.js` finds repeated card patterns, `dimension-output-ai-summary.js` generates AI-friendly summary.
-
-**Output:** dimensions-summary.json, dom-hierarchy.json
-
-### 7. Content Counting
-
-```bash
-node src/core/content/content-counter.js --html ./output/source.html --output ./output
-```
-
-Counts headings, paragraphs, images, links, forms. `content-counter-dom.js` handles DOM traversal.
-
-**Output:** content-summary.md
-
-### 8. Semantic Enhancement
-
-```bash
-node src/core/html/semantic-enhancer.js --html ./output/source.html --output ./output/source.html
-```
-
-Upgrades div soup to semantic HTML5. Uses `semantic-enhancer-mappings.js` for element mapping rules, `semantic-enhancer-page.js` for page-level structure.
-
-### 9. Asset Extraction
-
-```bash
-node src/core/media/extract-assets.js --url "URL" --output ./output
-```
-
-Downloads images, fonts, icons. `extract-assets-page-scraper.js` discovers assets, `extract-assets-downloader.js` handles download with retry. `asset-validator.js` validates with magic byte verification and SVG sanitization.
-
-### 10. AI Structure Analysis
-
-Claude Code vision analyzes screenshots. Prompt selection (4 tiers):
-1. `with-hierarchy.md` - Best: has DOM hierarchy + dimensions
-2. `with-dimensions.md` - Good: has dimension data
-3. `with-context.md` - OK: has HTML/CSS source
-4. `basic.md` - Minimal: screenshot only
+Prompt selection (4 tiers based on available data):
+- `src/ai/prompts/structure-analysis/with-hierarchy.md` — Best: has DOM hierarchy + dimensions
+- `src/ai/prompts/structure-analysis/with-dimensions.md` — Good: has dimension data
+- `src/ai/prompts/structure-analysis/with-context.md` — OK: has HTML/CSS source
+- `src/ai/prompts/structure-analysis/basic.md` — Minimal: screenshot only
 
 **Output:** structure.md
 
-### 11. Design Token Extraction
+### 4. Design Token Extraction (Claude Code Vision)
 
-Claude Code vision extracts colors, typography, spacing. Prompts: `with-css.md` (if CSS available) or `basic.md`.
+Extract colors, typography, spacing from source CSS and screenshots:
+
+- If source.css exists: use `src/ai/prompts/design-tokens/with-css.md` + first 15KB of CSS
+- Else: use `src/ai/prompts/design-tokens/basic.md`
 
 **Output:** design-tokens.json, tokens.css (CSS custom properties)
 
-### 12. Verification Suite
+### 5. Build the Clone
 
-| Verifier | Script | Checks |
-|----------|--------|--------|
-| Menu | verify-menu.js | Navigation links, mobile hamburger, dropdowns |
-| Header | verify-header.js | Logo, nav, CTA, sticky behavior |
-| Footer | verify-footer.js | Links, social icons, copyright |
-| Layout | verify-layout.js | Grid/flex structure, overflow, z-index |
-| Slider | verify-slider.js | Carousel controls, autoplay, indicators |
-
-Each verifier has `-checks.js` (test logic) and `-helpers.js` (DOM utilities) modules.
-
-### 13. Audit Report + Per-Section Token Extraction
-
-Audit report consolidates verification results. Per-section design tokens are extracted for each section:
-
-```bash
-node src/verification/generate-audit-report.js --output ./output
-```
-
-**Output:** audit-report.md
-
-Then, for each section in `sections.json`, extract per-section design tokens:
-
-For each section:
-- Read section crop image + section HTML context
-- Generate tokens using `design-tokens/section-with-css.md` or `design-tokens/section.md` prompts
-- **Output:** `section-tokens/{section-name}.json`
-
-### 14. Quality Scoring
-
-```bash
-node src/verification/quality-scorer.js --output ./output
-```
-
-5-metric scoring: structural fidelity, CSS coverage, asset completeness, responsive behavior, accessibility. Weighted composite score 0-100.
-
-**Output:** quality-score.json
+Read structure.md, design-tokens.json, source.html, source.css, hover.css, breakpoints.json, computed-gap.css, and screenshots. Build production HTML/CSS matching the original.
 
 ## Output Structure
 
@@ -163,25 +81,23 @@ output/
 ├── hover-states/, hover.css
 ├── breakpoints.json                     # Detected responsive breakpoints
 ├── computed-gap.css                     # JS-applied computed styles
-├── animations.css                       # Extracted @keyframes definitions
-├── animation-tokens.json                # Animation timing/easing data
-├── sections.json, framework-info.json, dimensions-summary.json
-├── content-summary.md
-├── structure.md, design-tokens.json, tokens.css
-├── section-tokens/                      # Per-section design tokens
-│   ├── header.json
-│   ├── hero.json
-│   └── ...
-├── ux-audit.md                          # Per-viewport UX audit results
+├── structure.md                         # AI-generated layout analysis
+├── design-tokens.json, tokens.css       # Extracted design tokens
 ├── assets/
-├── audit-report.md, quality-score.json
+│   ├── images/
+│   ├── fonts/
+│   ├── icons/
+│   └── url-mapping.json
 ```
 
-## v3.0 Enhancements
+## Capture Flags
 
-- `breakpoint-detector.js` - Auto-detect responsive breakpoints from media queries
-- `computed-style-extractor.js` - Extract JS-applied computed styles
-- `css-chunker.js` - Stream-process CSS files >50MB
-- `browser-context-pool.js` - Parallel browser contexts with memory guards
-- `error-codes.js` - Structured error catalog with actionable suggestions
-- `progress.js` - TTY-aware progress reporting
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--extract-html` | false | Extract page HTML |
+| `--extract-css` | false | Extract + filter CSS |
+| `--capture-hover` | false | Capture hover state screenshots |
+| `--full-page` | false | Full-page screenshots |
+| `--detect-breakpoints` | false | Auto-detect CSS breakpoints |
+| `--extract-computed` | false | Extract JS-applied computed styles |
+| `--aggressive-filter` | false | Two-pass CSS dead code removal |

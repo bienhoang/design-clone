@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 /**
- * Test suite for lib/env.js
- * Tests env resolution logic, .env file parsing, and search path ordering
+ * Test suite for env utilities in utils.js
+ * Tests env resolution logic and .env file parsing
  */
 
-import { loadEnv, getEnv, requireEnv, getSkillDir } from '../src/utils/env.js';
+import { loadEnv, getEnv, requireEnv, getSkillDir } from '../src/utils.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Test utilities
 const tests = [];
 let passed = 0;
 let failed = 0;
@@ -26,25 +25,10 @@ function assertEquals(actual, expected, message) {
   }
 }
 
-function assertExists(value, message) {
-  if (!value) {
-    throw new Error(`${message}: Value is empty or null`);
-  }
-}
-
 function assertTrue(value, message) {
-  if (!value) {
-    throw new Error(`${message}: Expected true, got ${value}`);
-  }
+  if (!value) throw new Error(`${message}: Expected true, got ${value}`);
 }
 
-function assertFalse(value, message) {
-  if (value) {
-    throw new Error(`${message}: Expected false, got ${value}`);
-  }
-}
-
-// Test suite
 test('loadEnv() returns string path or null', () => {
   const result = loadEnv();
   if (result !== null && typeof result !== 'string') {
@@ -53,28 +37,23 @@ test('loadEnv() returns string path or null', () => {
 });
 
 test('getEnv() returns value when exists', () => {
-  // Set a test variable
   process.env.TEST_ENV_VAR = 'test_value';
-  const result = getEnv('TEST_ENV_VAR');
-  assertEquals(result, 'test_value', 'getEnv() should return existing var');
+  assertEquals(getEnv('TEST_ENV_VAR'), 'test_value', 'getEnv() should return existing var');
 });
 
 test('getEnv() returns default when not exists', () => {
   delete process.env.NONEXISTENT_VAR_XYZ;
-  const result = getEnv('NONEXISTENT_VAR_XYZ', 'default_val');
-  assertEquals(result, 'default_val', 'getEnv() should return default for missing var');
+  assertEquals(getEnv('NONEXISTENT_VAR_XYZ', 'default_val'), 'default_val', 'getEnv() should return default');
 });
 
 test('getEnv() returns null when no default and not exists', () => {
   delete process.env.NONEXISTENT_VAR_ABC;
-  const result = getEnv('NONEXISTENT_VAR_ABC');
-  assertEquals(result, null, 'getEnv() should return null for missing var without default');
+  assertEquals(getEnv('NONEXISTENT_VAR_ABC'), null, 'getEnv() should return null');
 });
 
 test('requireEnv() returns value when exists', () => {
   process.env.REQUIRED_TEST = 'required_value';
-  const result = requireEnv('REQUIRED_TEST');
-  assertEquals(result, 'required_value', 'requireEnv() should return existing var');
+  assertEquals(requireEnv('REQUIRED_TEST'), 'required_value', 'requireEnv() should return existing var');
 });
 
 test('requireEnv() throws when not exists', () => {
@@ -83,7 +62,7 @@ test('requireEnv() throws when not exists', () => {
     requireEnv('NONEXISTENT_REQUIRED');
     throw new Error('requireEnv() should throw for missing var');
   } catch (e) {
-    if (!e.message.includes('Required environment variable')) {
+    if (!e.message.includes('Required env var')) {
       throw new Error('Error message should mention required variable');
     }
   }
@@ -103,7 +82,7 @@ test('requireEnv() includes hint in error message', () => {
 
 test('getSkillDir() returns valid directory', () => {
   const skillDir = getSkillDir();
-  assertExists(skillDir, 'getSkillDir() should return non-empty string');
+  assertTrue(skillDir && skillDir.length > 0, 'getSkillDir() should return non-empty string');
   assertTrue(skillDir.endsWith('design-clone'), 'getSkillDir() should point to design-clone');
   assertTrue(fs.existsSync(skillDir), 'getSkillDir() should point to existing directory');
 });
@@ -115,7 +94,7 @@ test('getSkillDir() returns absolute path', () => {
 
 // Run all tests
 async function runTests() {
-  console.log('Running lib/env.js tests...\n');
+  console.log('Running env utility tests...\n');
 
   for (const { name, fn } of tests) {
     try {
@@ -130,7 +109,6 @@ async function runTests() {
   }
 
   console.log(`\n${passed}/${tests.length} tests passed`);
-
   if (failed > 0) {
     console.log(`${failed} tests failed`);
     process.exit(1);

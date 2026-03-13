@@ -16,11 +16,10 @@
     ".env.example"
   ],
   "scripts": {
-    "screenshot": "node src/core/capture/screenshot.js",
-    "filter-css": "node src/core/css/filter-css.js",
-    "extract-assets": "node src/core/media/extract-assets.js",
-    "verify-menu": "node src/verification/verify-menu.js",
-    "verify-layout": "node src/verification/verify-layout.js",
+    "screenshot": "node src/capture.js",
+    "filter-css": "node src/filter-css.js",
+    "extract-assets": "node src/extract-assets.js",
+    "clone-site": "node src/clone-site.js",
     "test": "c8 node tests/run-all-tests.js",
     "test:no-coverage": "node tests/run-all-tests.js",
     "docs:dev": "npm run docs:dev --prefix docs",
@@ -51,10 +50,7 @@
     "playwright": "^1.58.1",
     "sharp": "^0.34.5"
   },
-  "optionalDependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "fluent-ffmpeg": "^2.1.2"
-  },
+  "optionalDependencies": {},
   "devDependencies": {
     "c8": "^10.1.3"
   }
