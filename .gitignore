@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+web/node_modules/
+user-guide/node_modules/
 
 # Python cache
 __pycache__/
@@ -20,6 +22,9 @@ test-output/
 
 # OS
 .DS_Store
+
+# Generated
+repomix-output.xml
 cloned-designs/
 plans/
 output/
